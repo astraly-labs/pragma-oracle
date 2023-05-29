@@ -1,8 +1,9 @@
 [project]
 protostar-version = "0.11.0"
 lib-path = "lib"
-linked-libraries = ["account"]
+linked-libraries = ["account", "introspection"]
 
 [contracts]
 account = ["account"]
+introspection = ["introspection"]
 
