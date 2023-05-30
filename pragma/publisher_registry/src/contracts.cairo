@@ -1,0 +1,1 @@
+mod publisher_registry;

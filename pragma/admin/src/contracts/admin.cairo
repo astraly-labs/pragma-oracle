@@ -33,8 +33,8 @@ mod Admin {
     #[internal]
     fn assert_only_admin() {
         let admin = get_admin_address();
-        let self = get_contract_address();
-        assert(self == caller, 'Admin: unauthorized');
+        let caller = get_caller_address();
+        assert(caller == admin, 'Admin: unauthorized');
     }
 
 }
