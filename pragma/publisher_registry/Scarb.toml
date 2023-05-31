@@ -1,0 +1,5 @@
+[package]
+name = "publisher_registry"
+version = "0.1.0"
+
+[dependencies]

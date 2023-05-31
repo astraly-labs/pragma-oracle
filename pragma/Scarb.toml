@@ -1,0 +1,9 @@
+[package]
+name = "pragma"
+version = "0.1.0"
+
+[dependencies]
+account = { path = "account" }
+admin = { path = "admin" }
+introspection = { path = "introspection" }
+publisher_registry = { path = "publisher_registry" }
