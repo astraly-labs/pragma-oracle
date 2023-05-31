@@ -1,1 +1,2 @@
-mod Entry;
+mod entry;
+mod structs;

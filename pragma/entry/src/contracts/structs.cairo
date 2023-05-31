@@ -1,3 +1,4 @@
+#[derive(Copy, Drop)]
 struct BaseEntry {
     timestamp: felt252,
     source: felt252,
@@ -33,23 +34,23 @@ struct Pair {
 }
 
 struct Currency {
-    id: felt,
-    decimals: felt,
-    is_abstract_currency: felt, // True (1) if not a specific token but abstract, e.g. USD or ETH as a whole
-    starknet_address: felt, // optional, e.g. can have synthetics for non-bridged assets
-    ethereum_address: felt, // optional
+    id: felt252,
+    decimals: felt252,
+    is_abstract_currency: felt252, // True (1) if not a specific token but abstract, e.g. USD or ETH as a whole
+    starknet_address: felt252, // optional, e.g. can have synthetics for non-bridged assets
+    ethereum_address: felt252, // optional
 }
 
 struct Checkpoint {
-    timestamp: felt,
-    value: felt,
-    aggregation_mode: felt,
-    num_sources_aggregated: felt,
+    timestamp: felt252,
+    value: felt252,
+    aggregation_mode: felt252,
+    num_sources_aggregated: felt252,
 }
 
 struct EmpiricPricesResponse {
-    price: felt,
-    decimals: felt,
-    last_updated_timestamp: felt,
-    num_sources_aggregated: felt,
+    price: felt252,
+    decimals: felt252,
+    last_updated_timestamp: felt252,
+    num_sources_aggregated: felt252,
 }
