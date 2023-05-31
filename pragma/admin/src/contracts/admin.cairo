@@ -2,6 +2,7 @@
 mod Admin {
     use starknet::get_caller_address;
     use starknet::ContractAddress;
+    use zeroable::Zeroable;
 
     struct Storage {
         admin_address: ContractAddress
@@ -35,6 +36,14 @@ mod Admin {
         let admin = get_admin_address();
         let caller = get_caller_address();
         assert(caller == admin, 'Admin: unauthorized');
+    }
+
+    #[internal]
+    fn initialize_admin_address(admin_address: ContractAddress) {
+        // If the admin address is already initialized, do nothing.
+        assert(admin_address::read().is_zero(), 'Admin: already initialized');
+
+        admin_address::write(admin_address);
     }
 
 }

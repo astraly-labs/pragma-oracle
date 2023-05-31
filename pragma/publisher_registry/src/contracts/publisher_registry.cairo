@@ -8,6 +8,7 @@ mod PublisherRegistry {
     use array::ArrayTCloneImpl;
     use traits::Into;
     use traits::TryInto;
+    use admin::contracts::Admin::Admin;
     
     use publisher_registry::business_logic::interface::IPublisherRegistry;
 
@@ -21,7 +22,7 @@ mod PublisherRegistry {
 
     #[constructor]
     fn constructor(admin_address: ContractAddress) {
-        AdminImpl::initialize_admin_address(admin_address);
+        Admin::initialize_admin_address(admin_address);
     }
 
     #[event]
@@ -71,13 +72,9 @@ mod PublisherRegistry {
                 return ();
             }
 
-            let publisher_idx: felt252 = _find_publisher_idx(0, publishers_len, publisher);
+            let (publisher_idx, found) = _find_publisher_idx(0, publishers_len, publisher);
 
-            if (publisher_idx == -1) {
-                assert(false, 'Publisher not found');
-            }
-
-            let publisher_idx: usize = publisher_idx.try_into().unwrap(); // TODO: check if that's ok
+            assert(found, 'Publisher not found');
 
             if (publisher_idx == publishers_len - 1) {
                 publishers_storage_len::write(publishers_len - 1);
@@ -127,10 +124,8 @@ mod PublisherRegistry {
             let mut sources_arr = ArrayTrait::new();
             _iter_publisher_sources(0_usize, cur_idx, publisher, ref sources_arr);
 
-            let source_idx = _find_source_idx(0_usize, source, @sources_arr);
-            assert(source_idx != -1, 'Source not found');
-
-            let source_idx: usize = source_idx.try_into().unwrap(); // TODO: check if that's ok
+            let (source_idx, found) = _find_source_idx(0_usize, source, @sources_arr);
+            assert(found, 'Source not found');
 
             if (source_idx == cur_idx - 1) {
                 publishers_sources_idx::write(publisher, source_idx);
@@ -150,7 +145,7 @@ mod PublisherRegistry {
 
     #[view]
     fn get_admin_address() -> ContractAddress {
-        return AdminImpl::get_admin_address();
+        return Admin::get_admin_address();
     }
 
     #[view]
@@ -180,9 +175,9 @@ mod PublisherRegistry {
         
         _iter_publisher_sources(0_usize, cur_idx, publisher, ref sources_arr);
 
-        let source_idx = _find_source_idx(0_usize, source, @sources_arr);
+        let (_, found) = _find_source_idx(0_usize, source, @sources_arr);
 
-        return source_idx == -1;
+        found
     }
 
 
@@ -216,28 +211,28 @@ mod PublisherRegistry {
         _build_array(index + 1_usize, len, ref publishers);
     }
 
-    fn _find_publisher_idx(cur_idx: usize, max_idx: usize, publisher: felt252) -> felt252 {
+    fn _find_publisher_idx(cur_idx: usize, max_idx: usize, publisher: felt252) -> (usize, bool) {
         if cur_idx == max_idx {
-            return -1;
+            return (0, false);
         }
 
         let current_publisher = publishers_storage::read(cur_idx);
 
         if (current_publisher == publisher) {
-            return cur_idx.into();
+            return (cur_idx, true);
         }
 
         gas::withdraw_gas_all(get_builtin_costs()).expect('Out of gas');
         _find_publisher_idx(cur_idx + 1_usize, max_idx, publisher)
     }   
 
-    fn _find_source_idx(cur_idx: usize, source: felt252, sources_arr: @Array<felt252>) -> felt252 {
+    fn _find_source_idx(cur_idx: usize, source: felt252, sources_arr: @Array<felt252>) -> (usize, bool) {
         if cur_idx == sources_arr.len() {
-            return -1;
+            return (0, false);
         }
 
         if (*sources_arr[cur_idx] == source) {
-            return cur_idx.into();
+            return (cur_idx, true);
         }
 
         gas::withdraw_gas_all(get_builtin_costs()).expect('Out of gas');
