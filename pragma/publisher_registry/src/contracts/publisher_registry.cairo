@@ -19,6 +19,11 @@ mod PublisherRegistry {
         publishers_sources_idx: LegacyMap::<felt252, usize>,
     }
 
+    #[constructor]
+    fn constructor(admin_address: ContractAddress) {
+        AdminImpl::initialize_admin_address(admin_address);
+    }
+
     #[event]
     fn RegisteredPublisher(publisher: felt252, publisher_address:ContractAddress) {}
 
@@ -98,11 +103,55 @@ mod PublisherRegistry {
             publishers_sources::write((publisher, cur_idx), source);
             publishers_sources_idx::write(publisher, cur_idx + 1);
         }
+
+        fn add_sources_for_publisher(publisher: felt252, sources: @Array<felt252>) {
+            let mut idx = 0;
+
+            loop {
+                if (idx == sources.len()) {
+                    break();
+                }
+
+                PublisherRegistryImpl::add_source_for_publisher(publisher, *sources[idx]);
+                idx += 1;
+            }
+        }
+
+        fn remove_source_for_publisher(publisher: felt252, source: felt252) {
+            let cur_idx = publishers_sources_idx::read(publisher);
+
+            if (cur_idx == 0) {
+                return ();
+            }
+
+            let mut sources_arr = ArrayTrait::new();
+            _iter_publisher_sources(0_usize, cur_idx, publisher, ref sources_arr);
+
+            let source_idx = _find_source_idx(0_usize, source, @sources_arr);
+            assert(source_idx != -1, 'Source not found');
+
+            let source_idx: usize = source_idx.try_into().unwrap(); // TODO: check if that's ok
+
+            if (source_idx == cur_idx - 1) {
+                publishers_sources_idx::write(publisher, source_idx);
+                publishers_sources::write((publisher, source_idx), 0);
+            } else {
+                let last_source = publishers_sources::read((publisher, cur_idx - 1));
+                publishers_sources_idx::write(publisher, cur_idx - 1);
+                publishers_sources::write((publisher, cur_idx - 1), 0);
+                publishers_sources::write((publisher, source_idx), last_source);
+            }
+        }
     }
 
     //
     // View
     //
+
+    #[view]
+    fn get_admin_address() -> ContractAddress {
+        return AdminImpl::get_admin_address();
+    }
 
     #[view]
     fn get_publisher_address(publisher: felt252) -> ContractAddress {
@@ -129,17 +178,11 @@ mod PublisherRegistry {
 
         let mut sources_arr = ArrayTrait::new();
         
-        loop {
-            let cur_source = publishers_sources::read((publisher, cur_idx - 1));
-            sources_arr.append(cur_source);
+        _iter_publisher_sources(0_usize, cur_idx, publisher, ref sources_arr);
 
-            if (cur_idx == 1) {
-                break;
-            }
+        let source_idx = _find_source_idx(0_usize, source, @sources_arr);
 
-            cur_idx -= 1;
-        }
-        
+        return source_idx == -1;
     }
 
 
@@ -187,5 +230,31 @@ mod PublisherRegistry {
         gas::withdraw_gas_all(get_builtin_costs()).expect('Out of gas');
         _find_publisher_idx(cur_idx + 1_usize, max_idx, publisher)
     }   
+
+    fn _find_source_idx(cur_idx: usize, source: felt252, sources_arr: @Array<felt252>) -> felt252 {
+        if cur_idx == sources_arr.len() {
+            return -1;
+        }
+
+        if (*sources_arr[cur_idx] == source) {
+            return cur_idx.into();
+        }
+
+        gas::withdraw_gas_all(get_builtin_costs()).expect('Out of gas');
+        _find_source_idx(cur_idx + 1_usize, source, sources_arr)
+    }
+
+    fn _iter_publisher_sources(cur_idx: usize, max_idx: usize, publisher: felt252, ref sources_arr: Array<felt252>) {
+        if cur_idx == max_idx {
+            return ();
+        }
+
+        let source = publishers_sources::read((publisher, cur_idx));
+
+        sources_arr.append(source);
+
+        gas::withdraw_gas_all(get_builtin_costs()).expect('Out of gas');
+        _iter_publisher_sources(cur_idx + 1_usize, max_idx, publisher, ref sources_arr)
+    }
 }
 
