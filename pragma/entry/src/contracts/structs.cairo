@@ -1,3 +1,8 @@
+const MEDIAN: felt252 = 120282243752302; // str_to_felt("MEDIAN")
+const SPOT: felt252 = 1397772116;
+const FUTURE: felt252 = 77332301042245;
+const GENERIC: felt252 = 20060925819242819;
+
 #[derive(Copy, Drop, PartialOrd)]
 struct BaseEntry {
     timestamp: felt252,
@@ -5,7 +10,6 @@ struct BaseEntry {
     publisher: felt252,
 }
 
-//Changed the architecture of the Base Entry and added a field with the price
 
 struct GenericEntryStorage {
     timestamp__value: felt252, 
