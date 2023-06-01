@@ -1,24 +1,21 @@
-#[derive(Copy, Drop)]
+#[derive(Copy, Drop, PartialOrd)]
 struct BaseEntry {
     timestamp: felt252,
     source: felt252,
     publisher: felt252,
 }
 
-struct GenericEntry {
-    base: BaseEntry,
-    key: felt252,
-    value: felt252,
-}
+//Changed the architecture of the Base Entry and added a field with the price
 
 struct GenericEntryStorage {
     timestamp__value: felt252, 
 }
 
+#[derive(Copy, Drop, PartialOrd)]
 struct SpotEntry {
     base: BaseEntry,
-    pair_id: felt252,
     price: felt252,
+    pair_id: felt252,
     volume: felt252,
 }
 

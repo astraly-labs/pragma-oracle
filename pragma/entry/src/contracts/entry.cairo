@@ -3,34 +3,36 @@ mod Entry {
     use array::ArrayTrait;
     use entry::contracts::structs::BaseEntry;
     use alexandria_math::sorting::src::merge_sort::merge;
+    //Change this import to our changed import
+    use entry::contracts::structs::SpotEntry;
+    use traits::TryInto;
+    use traits::Into;
+    use option::OptionTrait;
 
-
-    trait BaseEntryTrait {
-        fn timestamp(self: @BaseEntry) -> felt252;
-        fn source(self: @BaseEntry) -> felt252;
-        fn publisher(self: @BaseEntry) -> felt252;
+    trait hasBaseEntry<T> {
+        fn get_base_entry(self: @T) -> BaseEntry;
+        fn get_base_timestamp(self: @T) -> felt252;
     }
 
-    trait EntryTrait<T> {
-        fn value(self: T) -> felt252;
+    impl hasBaseEntryImpl of hasBaseEntry<SpotEntry> {
+        fn get_base_entry(self: @SpotEntry) -> BaseEntry {
+            (*self).base
+        }
+        fn get_base_timestamp(self: @SpotEntry) -> felt252 {
+            (*self).base.timestamp
+        }
     }
 
-    impl EntryImpl of EntryTrait {
-        fn value(self: T) -> felt252 {
-            (*self).value
+    trait hasPrice<T> {
+        fn get_price(self: @T) -> felt252;
+    }
+
+    impl hasPriceImpl of hasPrice<SpotEntry> {
+        fn get_price(self: @SpotEntry) -> felt252 {
+            (*self).price
         }
     }
-    impl BaseEntryImpl of BaseEntryTrait {
-        fn timestamp(self: @BaseEntry) -> felt252 {
-            (*self).timestamp
-        }
-        fn source(self: @BaseEntry) -> felt252 {
-            (*self).source
-        }
-        fn publisher(self: @BaseEntry) -> felt252 {
-            (*self).publisher
-        }
-    }
+
     //
     // Helpers
     //
@@ -39,9 +41,9 @@ mod Entry {
     // @param entries_len: length of entries array
     // @param entries: pointer to first Entry in array
     // @return value: the aggregation value
-    fn aggregate_entries<T>(entries: Array<T>) -> felt252 {
+    fn aggregate_entries<T>(entries: Array<T>) -> u256 {
         let value = entries_median(entries);
-        value
+        1
     }
 
 
@@ -50,21 +52,21 @@ mod Entry {
     // @return last_updated_timestamp: the latest timestamp from the array
     fn aggregate_timestamps_max<
         T,
-        impl TBaseEntryTrait: BaseEntryTrait,
+        impl THasBaseEntry: hasBaseEntry<T>,
         impl TPartialOrd: PartialOrd<T>,
         impl TCopy: Copy<T>,
         impl TDrop: Drop<T>
     >(
         entries: @Array<T>
-    ) -> felt252 {
-        let mut max_timestamp = (*entries[0_usize]).timestamp;
+    ) -> u256 {
+        let mut max_timestamp: u256 = (*entries[0_usize]).get_base_timestamp().into();
         let mut index = 1_usize;
         loop {
             if index >= entries.len() {
                 break max_timestamp;
             }
-            if (*entries[index]).timestamp > max_timestamp {
-                max_timestamp = (*entries[index]).timestamp;
+            if (*entries[index]).get_base_timestamp().into() > max_timestamp {
+                max_timestamp = (*entries[index]).get_base_timestamp().into();
             }
             index = index + 1;
         }
@@ -74,32 +76,33 @@ mod Entry {
     // @param entries: pointer to first Entry in array
     // @return value: the median value from the array of entries
 
-    fn entries_median<T, impl TEntryTrait: EntryTrait<T>>(entries: Array<T>) -> felt252 {
-        let mut sorted_entries = ArrayTrait::new();
+    fn entries_median<T, impl ThasPrice: hasPrice<T>>(entries: Array<T>) -> u256 {
+        let mut sorted_entries = ArrayTrait::<SpotEntry>::new();
         sorted_entries = merge(entries);
         let entries_len = sorted_entries.len();
         assert(entries_len > 0_usize, 'entries must not be empty');
         let is_even = 1 - entries_len % 2_usize;
         if (is_even == 0) {
-            let median_idx = (entries_len + 1) / 2_usize;
+            let median_idx = (entries_len + 1) / 2;
             let median_entry = *sorted_entries.at(median_idx);
-            median_entry.value
+            median_entry.get_price().into()
         } else {
-            let median_idx_1 = entries_len / 2_usize;
-            let median_idx_2 = median_idx_1 - 1_usize;
-            let median_entry_1 = *sorted_entries.at(median_idx_1);
-            let median_entry_2 = *sorted_entries.at(median_idx_2);
-            (median_entry_1.value + median_entry_2.value) / 2_usize
+            let median_idx_1 = entries_len / 2;
+            let median_idx_2 = median_idx_1 - 1;
+            let median_entry_1 = (*sorted_entries.at(median_idx_1)).get_price();
+            let median_entry_2 = (*sorted_entries.at(median_idx_2)).get_price();
+            (median_entry_1.into() + median_entry_2.into()) / (2.into())
         }
     }
-    fn entries_mean<T, impl TEntryTrait: EntryTrait<T>>(entries: @Array<T>) -> felt252 {
-        let mut sum = 0_usize;
+    fn entries_mean<T, impl ThasPrice: hasPrice<T>>(entries: @Array<T>) -> u256 {
+        let mut sum = 0;
         let mut index = 0_usize;
+        let entries_len = entries.len();
         loop {
-            if index >= entries.len() {
-                break sum / entries.len();
+            if index >= entries_len {
+                break (sum / entries_len);
             }
-            sum = sum + (*entries[index]).value;
+            sum = sum + (*entries[index]).get_price().into();
             index = index + 1;
         }
     }
