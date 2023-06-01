@@ -23,6 +23,12 @@ struct SpotEntryStorage {
     timestamp__volume__price: felt252, 
 }
 
+enum DataType {
+    SpotEntry: (),
+    FutureEntry: (),
+    OptionEntry: (),
+}
+
 
 struct Pair {
     id: felt252, // same as key currently (e.g. str_to_felt("ETH/USD") - force uppercase)
@@ -45,9 +51,10 @@ struct Checkpoint {
     num_sources_aggregated: felt252,
 }
 
-struct EmpiricPricesResponse {
+struct PragmaPricesResponse {
     price: felt252,
     decimals: felt252,
     last_updated_timestamp: felt252,
     num_sources_aggregated: felt252,
 }
+
