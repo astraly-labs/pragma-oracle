@@ -187,12 +187,43 @@ mod PublisherRegistry {
 
     #[external]
     fn add_publisher(publisher: felt252, publisher_address: ContractAddress) {
+        Admin::assert_only_admin();
         PublisherRegistryImpl::add_publisher(publisher, publisher_address)
+    }
+
+    #[external]
+    fn remove_publisher(publisher: felt252) {
+        Admin::assert_only_admin();
+        PublisherRegistryImpl::remove_publisher(publisher)
     }
 
     #[external]
     fn update_publisher_address(publisher: felt252, new_publisher_address: ContractAddress) {
         PublisherRegistryImpl::update_publisher_address(publisher, new_publisher_address)
+    }
+
+    #[external]
+    fn add_source_for_publisher(publisher: felt252, source: felt252) {
+        Admin::assert_only_admin();
+        PublisherRegistryImpl::add_source_for_publisher(publisher, source)
+    }
+
+    #[external]
+    fn add_sources_for_publisher(publisher: felt252, sources: Array<felt252>) {
+        Admin::assert_only_admin();
+        PublisherRegistryImpl::add_sources_for_publisher(publisher, @sources)
+    }
+
+    #[external]
+    fn remove_source_for_publisher(publisher: felt252, source: felt252) {
+        Admin::assert_only_admin();
+        PublisherRegistryImpl::remove_source_for_publisher(publisher, source)
+    }
+
+    #[external]
+    fn set_admin_address(new_admin_address: ContractAddress) {
+        Admin::assert_only_admin();
+        Admin::set_admin_address(new_admin_address);
     }
 
     //

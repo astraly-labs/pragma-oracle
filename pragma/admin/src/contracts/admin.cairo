@@ -7,17 +7,7 @@ mod Admin {
     struct Storage {
         admin_address: ContractAddress
     }
-
-    //
-    // Externals
-    //
-
-    #[external]
-    fn set_admin_address(new_address: ContractAddress) {
-        assert_only_admin();
-        admin_address::write(new_address);
-    }
-
+    
     //
     // View
     //
@@ -46,5 +36,10 @@ mod Admin {
         admin_address::write(admin_address);
     }
 
+    #[internal]
+    fn set_admin_address(new_address: ContractAddress) {
+        assert_only_admin();
+        admin_address::write(new_address);
+    }
 }
 
