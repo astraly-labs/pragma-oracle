@@ -23,10 +23,16 @@ struct SpotEntryStorage {
     timestamp__volume__price: felt252, 
 }
 
+/// Data Types
+/// The value is the `pair_id` of the data
+///
+/// * `Spot` - Spot price
+/// * `Future` - Future price
+/// * `Generic` - Generic price
 enum DataType {
-    SpotEntry: (),
-    FutureEntry: (),
-    OptionEntry: (),
+    SpotEntry: felt252,
+    FutureEntry: felt252,
+    OptionEntry: felt252
 }
 
 
