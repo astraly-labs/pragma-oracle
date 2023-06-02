@@ -7,5 +7,6 @@ account = { path = "account" }
 admin = { path = "admin" }
 introspection = { path = "introspection" }
 publisher_registry = { path = "publisher_registry" }
+summary_stats = { path = "summary_stats" }
 oracle = { path = "oracle" }
 entry = { path = "entry" }
