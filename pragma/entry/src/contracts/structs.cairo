@@ -1,9 +1,12 @@
-const MEDIAN: u256 = 120282243752302; // str_to_felt("MEDIAN")
-const SPOT: u256 = 1397772116;
-const FUTURE: u256 = 77332301042245;
-const GENERIC: u256 = 20060925819242819;
-const BOTH_TRUE: u256 = 2;
-const USD_CURRENCY_ID: u256 = 5591876;
+use starknet::ContractAddress;
+
+const MEDIAN: felt252 = 120282243752302; // str_to_felt("MEDIAN")
+const SPOT: felt252 = 1397772116;
+const FUTURE: felt252 = 77332301042245;
+const GENERIC: felt252 = 20060925819242819;
+const BOTH_TRUE: felt252 = 2;
+const USD_CURRENCY_ID: felt252 = 5591876;
+
 
 #[derive(Copy, Drop, PartialOrd)]
 struct BaseEntry {
@@ -50,23 +53,23 @@ struct Pair {
 
 struct Currency {
     id: felt252,
-    decimals: u256,
+    decimals: u32,
     is_abstract_currency: felt252, // True (1) if not a specific token but abstract, e.g. USD or ETH as a whole
-    starknet_address: felt252, // optional, e.g. can have synthetics for non-bridged assets
-    ethereum_address: felt252, // optional
+    starknet_address: ContractAddress, // optional, e.g. can have synthetics for non-bridged assets
+    ethereum_address: ContractAddress, // optional
 }
 
 struct Checkpoint {
     timestamp: u256,
     value: u256,
     aggregation_mode: felt252,
-    num_sources_aggregated: u256,
+    num_sources_aggregated: u32,
 }
 
 struct PragmaPricesResponse {
     price: u256,
-    decimals: u256,
+    decimals: u32,
     last_updated_timestamp: u256,
-    num_sources_aggregated: u256,
+    num_sources_aggregated: u32,
 }
 
