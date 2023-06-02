@@ -11,24 +11,24 @@ mod Entry {
 
     trait hasBaseEntry<T> {
         fn get_base_entry(self: @T) -> BaseEntry;
-        fn get_base_timestamp(self: @T) -> felt252;
+        fn get_base_timestamp(self: @T) -> u256;
     }
 
     impl hasBaseEntryImpl of hasBaseEntry<SpotEntry> {
         fn get_base_entry(self: @SpotEntry) -> BaseEntry {
             (*self).base
         }
-        fn get_base_timestamp(self: @SpotEntry) -> felt252 {
+        fn get_base_timestamp(self: @SpotEntry) -> u256 {
             (*self).base.timestamp
         }
     }
 
     trait hasPrice<T> {
-        fn get_price(self: @T) -> felt252;
+        fn get_price(self: @T) -> u256;
     }
 
     impl hasPriceImpl of hasPrice<SpotEntry> {
-        fn get_price(self: @SpotEntry) -> felt252 {
+        fn get_price(self: @SpotEntry) -> u256 {
             (*self).price
         }
     }
@@ -41,9 +41,17 @@ mod Entry {
     // @param entries_len: length of entries array
     // @param entries: pointer to first Entry in array
     // @return value: the aggregation value
-    fn aggregate_entries<T>(entries: Array<T>) -> u256 {
+    fn aggregate_entries<
+        T,
+        impl ThasPrice: hasPrice<T>,
+        impl TPartialOrd: PartialOrd<T>,
+        impl TCopy: Copy<T>,
+        impl TDrop: Drop<T>
+    >(
+        entries: Array<T>
+    ) -> u256 {
         let value = entries_median(entries);
-        1
+        value
     }
 
 
@@ -59,14 +67,14 @@ mod Entry {
     >(
         entries: @Array<T>
     ) -> u256 {
-        let mut max_timestamp: u256 = (*entries[0_usize]).get_base_timestamp().into();
+        let mut max_timestamp: u256 = (*entries[0_usize]).get_base_timestamp();
         let mut index = 1_usize;
         loop {
             if index >= entries.len() {
                 break max_timestamp;
             }
-            if (*entries[index]).get_base_timestamp().into() > max_timestamp {
-                max_timestamp = (*entries[index]).get_base_timestamp().into();
+            if (*entries[index]).get_base_timestamp() > max_timestamp {
+                max_timestamp = (*entries[index]).get_base_timestamp();
             }
             index = index + 1;
         }
@@ -76,7 +84,15 @@ mod Entry {
     // @param entries: pointer to first Entry in array
     // @return value: the median value from the array of entries
 
-    fn entries_median<T, impl ThasPrice: hasPrice<T>>(entries: Array<T>) -> u256 {
+    fn entries_median<
+        T,
+        impl ThasPrice: hasPrice<T>,
+        impl TPartialOrd: PartialOrd<T>,
+        impl TCopy: Copy<T>,
+        impl TDrop: Drop<T>
+    >(
+        entries: Array<T>
+    ) -> u256 {
         let mut sorted_entries = ArrayTrait::<SpotEntry>::new();
         sorted_entries = merge(entries);
         let entries_len = sorted_entries.len();
@@ -85,24 +101,24 @@ mod Entry {
         if (is_even == 0) {
             let median_idx = (entries_len + 1) / 2;
             let median_entry = *sorted_entries.at(median_idx);
-            median_entry.get_price().into()
+            median_entry.get_price()
         } else {
             let median_idx_1 = entries_len / 2;
             let median_idx_2 = median_idx_1 - 1;
             let median_entry_1 = (*sorted_entries.at(median_idx_1)).get_price();
             let median_entry_2 = (*sorted_entries.at(median_idx_2)).get_price();
-            (median_entry_1.into() + median_entry_2.into()) / (2.into())
+            (median_entry_1 + median_entry_2) / (2.into())
         }
     }
     fn entries_mean<T, impl ThasPrice: hasPrice<T>>(entries: @Array<T>) -> u256 {
-        let mut sum = 0;
+        let mut sum: u256 = 0.into();
         let mut index = 0_usize;
         let entries_len = entries.len();
         loop {
-            if index >= entries_len {
+            if index >= entries.len() {
                 break (sum / entries_len);
             }
-            sum = sum + (*entries[index]).get_price().into();
+            sum = sum + (*entries[index]).get_price();
             index = index + 1;
         }
     }

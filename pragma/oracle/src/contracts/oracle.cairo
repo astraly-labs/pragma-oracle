@@ -76,7 +76,7 @@ mod Oracle {
         //Working for spot hop only for now 
         fn get_data_with_USD_hop(
             base_currency_id: felt252, quote_currency_id: felt252, aggregation_mode: felt252
-        ) {
+        )-> {
             let mut sources = ArrayTrait::new();
             let base_pair_id = oracle_pair_id_storage::read(base_currency_id, USD_CURRENCY_ID);
             let (quote_pair_id) = oracle_pair_id_storage::read(quote_currency_id, USD_CURRENCY_ID);
@@ -89,8 +89,17 @@ mod Oracle {
                 get_data(
                 quote_pair_id, aggregation_mode, ref sources
             );
-            let (currency) = Oracle_currencies_storage.read(quote_currency_id);
+            let (currency) = oracle_currencies_storage.read(quote_currency_id);
             let decimals = currency.decimals;
+            let rebased_value = convert_via_usd(base_value, quote_value, decimals);
+
+            let (last_updated_timestamp) = _max(
+                quote_last_updated_timestamp, base_last_updated_timestamp
+            );
+            let (num_sources_aggregated) = _max(
+                quote_num_sources_aggregated, base_num_sources_aggregated
+            );
+            return (rebased_value, decimals, last_updated_timestamp, num_sources_aggregated);
         }
     }
 }

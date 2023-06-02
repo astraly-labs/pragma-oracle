@@ -1,32 +1,32 @@
-const MEDIAN: felt252 = 120282243752302; // str_to_felt("MEDIAN")
-const SPOT: felt252 = 1397772116;
-const FUTURE: felt252 = 77332301042245;
-const GENERIC: felt252 = 20060925819242819;
-const BOTH_TRUE: felt252 = 2;
-const USD_CURRENCY_ID: felt252 = 5591876;
+const MEDIAN: u256 = 120282243752302; // str_to_felt("MEDIAN")
+const SPOT: u256 = 1397772116;
+const FUTURE: u256 = 77332301042245;
+const GENERIC: u256 = 20060925819242819;
+const BOTH_TRUE: u256 = 2;
+const USD_CURRENCY_ID: u256 = 5591876;
 
 #[derive(Copy, Drop, PartialOrd)]
 struct BaseEntry {
-    timestamp: felt252,
+    timestamp: u256,
     source: felt252,
     publisher: felt252,
 }
 
 
 struct GenericEntryStorage {
-    timestamp__value: felt252, 
+    timestamp__value: u256, 
 }
 
 #[derive(Copy, Drop, PartialOrd)]
 struct SpotEntry {
     base: BaseEntry,
-    price: felt252,
+    price: u256,
     pair_id: felt252,
-    volume: felt252,
+    volume: u256,
 }
 
 struct SpotEntryStorage {
-    timestamp__volume__price: felt252, 
+    timestamp__volume__price: u256, 
 }
 
 /// Data Types
@@ -36,9 +36,9 @@ struct SpotEntryStorage {
 /// * `Future` - Future price
 /// * `Generic` - Generic price
 enum DataType {
-    SpotEntry: felt252,
-    FutureEntry: felt252,
-    OptionEntry: felt252
+    SpotEntry: u256,
+    FutureEntry: u256,
+    OptionEntry: u256
 }
 
 
@@ -50,23 +50,23 @@ struct Pair {
 
 struct Currency {
     id: felt252,
-    decimals: felt252,
+    decimals: u256,
     is_abstract_currency: felt252, // True (1) if not a specific token but abstract, e.g. USD or ETH as a whole
     starknet_address: felt252, // optional, e.g. can have synthetics for non-bridged assets
     ethereum_address: felt252, // optional
 }
 
 struct Checkpoint {
-    timestamp: felt252,
-    value: felt252,
+    timestamp: u256,
+    value: u256,
     aggregation_mode: felt252,
-    num_sources_aggregated: felt252,
+    num_sources_aggregated: u256,
 }
 
 struct PragmaPricesResponse {
-    price: felt252,
-    decimals: felt252,
-    last_updated_timestamp: felt252,
-    num_sources_aggregated: felt252,
+    price: u256,
+    decimals: u256,
+    last_updated_timestamp: u256,
+    num_sources_aggregated: u256,
 }
 
