@@ -1,4 +1,5 @@
+#[derive(Drop, Copy)]
 struct TickElem {
-    tick: u64,
+    tick: u32,
     value: u256
 }

@@ -1,17 +1,18 @@
 use pragma::time_series::structs::TickElem;
 use array::ArrayTrait;
 use alexandria_math::math::signed_integers::i129;
+use zeroable::Zeroable;
 
 fn calculate_slope(x1: i129, x2: i129, y1: i129, y2: i129) -> i129 {
     (y2 - y1) / (x2 - x1)
 }
 
-fn scale_data(start_tick: u32, end_tick: u32, ref tick_array: Array<ref TickElem>, num_intervals: u32) -> Array<ref TickElem> {
+fn scale_data(start_tick: u32, end_tick: u32, tick_array: @Array<TickElem>, num_intervals: u32) -> Array<TickElem> {
     let interval = (end_tick - start_tick) / (num_intervals - 1);
-    let mut output = ArrayTrait::<ref TickElem>::new();
+    let mut output: Array<TickElem> = ArrayTrait::new();
 
-    let cur_index:u32 = 0;
-    let index:u32 = 0;
+    let mut cur_index:u32 = 0;
+    let mut index:u32 = 0;
 
     loop {
         if cur_index == num_intervals {
@@ -28,12 +29,12 @@ fn scale_data(start_tick: u32, end_tick: u32, ref tick_array: Array<ref TickElem
         let (idx, _before, _after) = get_bounded_tick_idx(tick, index, tick_array);
 
         if *tick_array[idx].tick == tick {
-            output.push(tick_array[idx]);
+            output.append(*tick_array[idx]);
             continue;
         }
 
-        let mut slope:i129 = 0;
-        if (_after) {
+        let mut slope:i129 = i129 {inner: 0_u128, sign: false};
+        if _after {
             let z = tick_array.len() - 1;
             slope = calculate_slope(tick_array[z-1].tick, tick_array[z].tick, tick_array[z-1].value, tick_array[z].value);
         } else {
@@ -47,15 +48,16 @@ fn scale_data(start_tick: u32, end_tick: u32, ref tick_array: Array<ref TickElem
         let offset = tick_array[index].value - (slope * tick_array[index].tick);
         let z = slope * tick + offset;
 
-        output.push(TickElem { tick, value: z });
+        output.append(TickElem { tick, value: z });
 
         cur_index += 1;
         index = idx;
-        
-    }
+    };
+
+    output
 }
 
-fn get_bounded_tick_idx(cur_position: u32, cur_index: u32, tick_array: @Array<ref TickElem>) -> (u32, bool, bool) {
+fn get_bounded_tick_idx(cur_position: u32, cur_index: u32, tick_array: @Array<TickElem>) -> (u32, bool, bool) {
     if cur_index == tick_array.len() {
         return (cur_index - 1, false, true);
     }
@@ -65,12 +67,12 @@ fn get_bounded_tick_idx(cur_position: u32, cur_index: u32, tick_array: @Array<re
     }
 
     let _is_before_start = cur_position < *tick_array[0].tick;
-    let _is_zero = cur_position.is_zero();
-    if _is_before_start && _is_zero {
+    let _is_zero = cur_position == 0;
+    if _is_before_start & _is_zero {
         return (0, true, false);
     }
 
-    if *tick_array[cur_index].tick <= cur_position && cur_position <= *tick_array[cur_index + 1].tick {
+    if *tick_array[cur_index].tick <= cur_position & cur_position <= *tick_array[cur_index + 1].tick {
         return (cur_index, false, false);
     }
 
