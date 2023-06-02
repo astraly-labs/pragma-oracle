@@ -9,7 +9,7 @@ mod PublisherRegistry {
     use traits::Into;
     use traits::TryInto;
     use admin::contracts::Admin::Admin;
-    
+
     use publisher_registry::business_logic::interface::IPublisherRegistry;
 
     struct Storage {
@@ -26,10 +26,14 @@ mod PublisherRegistry {
     }
 
     #[event]
-    fn RegisteredPublisher(publisher: felt252, publisher_address:ContractAddress) {}
+    fn RegisteredPublisher(publisher: felt252, publisher_address: ContractAddress) {}
 
     #[event]
-    fn UpdatedPublisherAddress(publisher: felt252, old_publisher_address: ContractAddress, new_publisher_address: ContractAddress) {}
+    fn UpdatedPublisherAddress(
+        publisher: felt252,
+        old_publisher_address: ContractAddress,
+        new_publisher_address: ContractAddress
+    ) {}
 
     impl PublisherRegistryImpl of IPublisherRegistry {
         fn add_publisher(publisher: felt252, publisher_address: ContractAddress) {
@@ -89,7 +93,7 @@ mod PublisherRegistry {
 
         fn add_source_for_publisher(publisher: felt252, source: felt252) {
             let existing_publisher_address = get_publisher_address(publisher);
-            
+
             assert(!existing_publisher_address.is_zero(), 'Publisher does not exist');
 
             let can_publish = can_publish_source(publisher, source);
@@ -106,7 +110,7 @@ mod PublisherRegistry {
 
             loop {
                 if (idx == sources.len()) {
-                    break();
+                    break ();
                 }
 
                 PublisherRegistryImpl::add_source_for_publisher(publisher, *sources[idx]);
@@ -172,7 +176,7 @@ mod PublisherRegistry {
         }
 
         let mut sources_arr = ArrayTrait::new();
-        
+
         _iter_publisher_sources(0_usize, cur_idx, publisher, ref sources_arr);
 
         let (_, found) = _find_source_idx(0_usize, source, @sources_arr);
@@ -187,43 +191,12 @@ mod PublisherRegistry {
 
     #[external]
     fn add_publisher(publisher: felt252, publisher_address: ContractAddress) {
-        Admin::assert_only_admin();
         PublisherRegistryImpl::add_publisher(publisher, publisher_address)
-    }
-
-    #[external]
-    fn remove_publisher(publisher: felt252) {
-        Admin::assert_only_admin();
-        PublisherRegistryImpl::remove_publisher(publisher)
     }
 
     #[external]
     fn update_publisher_address(publisher: felt252, new_publisher_address: ContractAddress) {
         PublisherRegistryImpl::update_publisher_address(publisher, new_publisher_address)
-    }
-
-    #[external]
-    fn add_source_for_publisher(publisher: felt252, source: felt252) {
-        Admin::assert_only_admin();
-        PublisherRegistryImpl::add_source_for_publisher(publisher, source)
-    }
-
-    #[external]
-    fn add_sources_for_publisher(publisher: felt252, sources: Array<felt252>) {
-        Admin::assert_only_admin();
-        PublisherRegistryImpl::add_sources_for_publisher(publisher, @sources)
-    }
-
-    #[external]
-    fn remove_source_for_publisher(publisher: felt252, source: felt252) {
-        Admin::assert_only_admin();
-        PublisherRegistryImpl::remove_source_for_publisher(publisher, source)
-    }
-
-    #[external]
-    fn set_admin_address(new_admin_address: ContractAddress) {
-        Admin::assert_only_admin();
-        Admin::set_admin_address(new_admin_address);
     }
 
     //
@@ -255,9 +228,11 @@ mod PublisherRegistry {
 
         gas::withdraw_gas_all(get_builtin_costs()).expect('Out of gas');
         _find_publisher_idx(cur_idx + 1_usize, max_idx, publisher)
-    }   
+    }
 
-    fn _find_source_idx(cur_idx: usize, source: felt252, sources_arr: @Array<felt252>) -> (usize, bool) {
+    fn _find_source_idx(
+        cur_idx: usize, source: felt252, sources_arr: @Array<felt252>
+    ) -> (usize, bool) {
         if cur_idx == sources_arr.len() {
             return (0, false);
         }
@@ -270,7 +245,9 @@ mod PublisherRegistry {
         _find_source_idx(cur_idx + 1_usize, source, sources_arr)
     }
 
-    fn _iter_publisher_sources(cur_idx: usize, max_idx: usize, publisher: felt252, ref sources_arr: Array<felt252>) {
+    fn _iter_publisher_sources(
+        cur_idx: usize, max_idx: usize, publisher: felt252, ref sources_arr: Array<felt252>
+    ) {
         if cur_idx == max_idx {
             return ();
         }

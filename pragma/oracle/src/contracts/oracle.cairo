@@ -4,7 +4,9 @@ mod Oracle {
     use starknet::ContractAddress;
     use entry::contracts::structs::{
         BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
+        USD_CURRENCY_ID
     };
+    use oracle::business_logic::oracleInterface::IOracle;
     struct Storage {
         oracle_address_storage: ContractAddress,
         oracle_publisher_registry_address: ContractAddress,
@@ -65,11 +67,30 @@ mod Oracle {
                 'OracleImplementation: This function can only be called by the oracle controller'
             );
             return ();
+        }
+
         //
         //Getters
         //
 
-        fn get_spot_with_USD_hop()
+        //Working for spot hop only for now 
+        fn get_data_with_USD_hop(
+            base_currency_id: felt252, quote_currency_id: felt252, aggregation_mode: felt252
+        ) {
+            let mut sources = ArrayTrait::new();
+            let base_pair_id = oracle_pair_id_storage::read(base_currency_id, USD_CURRENCY_ID);
+            let (quote_pair_id) = oracle_pair_id_storage::read(quote_currency_id, USD_CURRENCY_ID);
+            let (base_value, _, base_last_updated_timestamp, base_num_sources_aggregated) =
+                get_data(
+                base_pair_id, aggregation_mode, ref sources
+            );
+
+            let (quote_value, _, quote_last_updated_timestamp, quote_num_sources_aggregated) =
+                get_data(
+                quote_pair_id, aggregation_mode, ref sources
+            );
+            let (currency) = Oracle_currencies_storage.read(quote_currency_id);
+            let decimals = currency.decimals;
         }
     }
 }
