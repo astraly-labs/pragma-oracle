@@ -1,7 +1,7 @@
 #[contract]
 mod Entry {
     use array::ArrayTrait;
-    use entry::contracts::structs::BaseEntry;
+    use entry::contracts::structs::{BaseEntry};
     use alexandria_math::sorting::src::merge_sort::merge;
     //Change this import to our changed import
     use entry::contracts::structs::SpotEntry;

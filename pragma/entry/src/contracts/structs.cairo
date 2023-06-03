@@ -1,11 +1,11 @@
 use starknet::ContractAddress;
 
-const MEDIAN: felt252 = 120282243752302; // str_to_felt("MEDIAN")
-const SPOT: felt252 = 1397772116;
-const FUTURE: felt252 = 77332301042245;
-const GENERIC: felt252 = 20060925819242819;
+const MEDIAN: felt252 = 'MEDIAN'; // str_to_felt("MEDIAN")
+const SPOT: felt252 = 'SPOT';
+const FUTURE: felt252 = 'FUTURE';
+const GENERIC: felt252 = 'GENERIC';
 const BOTH_TRUE: felt252 = 2;
-const USD_CURRENCY_ID: felt252 = 5591876;
+const USD_CURRENCY_ID: felt252 = 'USD';
 
 
 #[derive(Copy, Drop, PartialOrd)]
@@ -28,21 +28,58 @@ struct SpotEntry {
     volume: u256,
 }
 
+#[derive(Copy, Drop, PartialOrd)]
+struct FutureEntry { 
+    base: BaseEntry,
+    price: u256,
+    pair_id: felt252,
+    volume: u256,
+    expiration_timestamp: u256,
+}
+
+struct OptionEntry { 
+    rawParameters : rawSVI,
+    essviParameters : eSSVI,
+    forwardPrice : u256,
+    strikePrice : u256,
+    expirationTimestamp : u256,
+    source : @Array<felt252>  //array containing all the sources used for the aggregation
+
+}
+
+
+struct rawSVI { 
+    a : u256, 
+    b : u256,
+    rho : u256,
+    m : u256,
+    sigma : u256,
+    decimals: u32
+
+}
+
+struct eSSVI { 
+    theta : u256,
+    rho : u256, 
+    phi : u256
+}
 struct SpotEntryStorage {
     timestamp__volume__price: u256, 
 }
 
 /// Data Types
 /// The value is the `pair_id` of the data
+/// For future option, pair_id and expiration timestamp
 ///
 /// * `Spot` - Spot price
 /// * `Future` - Future price
 /// * `Generic` - Generic price
 enum DataType {
     SpotEntry: u256,
-    FutureEntry: u256,
+    FutureEntry: (u256, u256),
     OptionEntry: u256
 }
+
 
 
 struct Pair {
