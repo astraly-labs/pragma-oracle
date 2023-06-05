@@ -1,5 +1,5 @@
 use entry::contracts::structs::{
-    BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
+    BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint, simpleDataType
 };
 use array::ArrayTrait;
 use starknet::ContractAddress;
@@ -13,33 +13,34 @@ trait IOracle {
         pairs: @Array<Pair>
     );
 
+    fn only_oracle_controller(); 
     //
     // Getters
     //
-    fn get_decimals(data_type: DataType, expiration_timestamp: Option::<felt252>) -> felt252;
-    fn get_data_median(data_type: DataType, expiration_timestamp: Option::<felt252>) -> felt252;
+    fn get_decimals(data_type: DataType, expiration_timestamp: Option::<u256>) -> u32;
+    fn get_data_median(data_type: DataType, expiration_timestamp: Option::<u256>) -> u256;
     fn get_data_median_for_sources(
-        data_type: DataType, sources: @Array<felt252>, expiration_timestamp: Option::<felt252>
+        data_type: DataType, sources: @Array<felt252>, expiration_timestamp: Option::<u256>
     ) -> felt252;
     fn get_data(
-        expiration_timestamp: Option::<felt252>, data_type: DataType, aggregation_mode: felt252
+        data_type: DataType, aggregation_mode: felt252, sources: @Array::<felt252>
     ) -> PragmaPricesResponse;
     fn get_data_entry<T>(
-        source: felt252, data_type: DataType, expiration_timestamp: Option::<felt252>, 
+        source: felt252, data_type: DataType, expiration_timestamp: Option::<u256>, 
     ) -> T;
     fn get_data_for_sources(
-        expiration_timestamp: Option::<felt252>, data_type: DataType, aggregation_mode: felt252
+        expiration_timestamp: Option::<u256>, data_type: DataType, aggregation_mode: felt252
     ) -> Array<PragmaPricesResponse>;
     fn get_data_entries(
-        expiration_timestamp: Option::<felt252>, data_type: DataType, sources: @Array<felt252>
+        expiration_timestamp: Option::<u256>, data_type: DataType, sources: @Array<felt252>
     ) -> Array<PragmaPricesResponse>;
-    fn get_last_checkpoint_before(timestamp: felt252, data_type: DataType) -> (Checkpoint, felt252);
+    fn get_last_checkpoint_before(timestamp: u256, data_type: DataType) -> (Checkpoint, u256);
     fn get_data_with_USD_hop(
-        base_currency_id: felt252, quote_currency_id: felt252, aggregation_mode: felt252
+        base_currency_id: felt252, quote_currency_id: felt252, aggregation_mode: felt252, typeof: simpleDataType, expiration_timestamp : Option::<felt252>
     ) -> PragmaPricesResponse;
     fn get_admin_address() -> ContractAddress;
     fn get_publisher_registry_address() -> ContractAddress;
-    fn get_latest_checkpoint_index(key: felt252) -> felt252;
+    fn get_latest_checkpoint_index(key: felt252) -> u256;
     fn get_checkpoint(key: felt252, index: felt252) -> Checkpoint;
     fn get_sources_threshold() -> felt252;
 

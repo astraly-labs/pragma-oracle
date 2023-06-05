@@ -3,3 +3,5 @@ name = "oracle"
 version = "0.1.0"
 
 [dependencies]
+entry = { path = "../entry"}
+publisher_registry = { path = "../publisher_registry" }

@@ -4,8 +4,10 @@ const MEDIAN: felt252 = 'MEDIAN'; // str_to_felt("MEDIAN")
 const SPOT: felt252 = 'SPOT';
 const FUTURE: felt252 = 'FUTURE';
 const GENERIC: felt252 = 'GENERIC';
+const OPTION: felt252 = 'OPTION';
 const BOTH_TRUE: felt252 = 2;
 const USD_CURRENCY_ID: felt252 = 'USD';
+
 
 
 #[derive(Copy, Drop, PartialOrd)]
@@ -67,6 +69,10 @@ struct SpotEntryStorage {
     timestamp__volume__price: u256, 
 }
 
+struct FutureEntryStorage {
+    timestamp__price: u256,
+}
+
 /// Data Types
 /// The value is the `pair_id` of the data
 /// For future option, pair_id and expiration timestamp
@@ -75,10 +81,22 @@ struct SpotEntryStorage {
 /// * `Future` - Future price
 /// * `Generic` - Generic price
 enum DataType {
-    SpotEntry: u256,
-    FutureEntry: (u256, u256),
-    OptionEntry: u256
+    SpotEntry: felt252,
+    FutureEntry: (felt252, u256),
+    OptionEntry: felt252
 }
+
+enum PossibleEntries { 
+    Spot : SpotEntryStorage,
+    Future :FutureEntryStorage,
+    // Option : OptionEntryStorage,
+}
+
+enum simpleDataType { 
+        SpotEntry: (), 
+        FutureEntry: (),
+        OptionEntry: (),
+    }
 
 
 
