@@ -38,7 +38,6 @@ trait IOracle {
     fn get_data_with_USD_hop(
         base_currency_id: felt252, quote_currency_id: felt252, aggregation_mode: felt252, typeof: simpleDataType, expiration_timestamp : Option::<felt252>
     ) -> PragmaPricesResponse;
-    fn get_admin_address() -> ContractAddress;
     fn get_publisher_registry_address() -> ContractAddress;
     fn get_latest_checkpoint_index(key: felt252) -> u256;
     fn get_checkpoint(key: felt252, index: felt252) -> Checkpoint;

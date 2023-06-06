@@ -89,7 +89,7 @@ enum DataType {
 enum PossibleEntries { 
     Spot : SpotEntryStorage,
     Future :FutureEntryStorage,
-    // Option : OptionEntryStorage,
+    Option : OptionEntryStorage,
 }
 
 enum simpleDataType { 
@@ -97,6 +97,13 @@ enum simpleDataType {
         FutureEntry: (),
         OptionEntry: (),
     }
+
+enum entryDataType { 
+    SpotEntry: (SpotEntry), 
+    FutureEntry : (FutureEntry), 
+    OptionEnty : (OptionEntry)
+}
+
 
 
 
