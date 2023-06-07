@@ -46,7 +46,6 @@ struct OptionEntry {
     forwardPrice: u256,
     strikePrice: u256,
     expirationTimestamp: u256,
-    source: Array<felt252> //array containing all the sources used for the aggregation
 }
 
 #[derive(Serde, Drop, Copy)]
@@ -90,8 +89,8 @@ enum DataType {
 }
 
 
-#[derive(Serde, Drop)]
-enum PossibleEntries {
+#[derive(Serde, Drop, Copy)]
+struct PossibleEntries {
     Spot: u256, //structure SpotEntryStorage
     Future: u256, //structure FutureEntryStorage
     Option: u256, //structure OptionEntryStorage

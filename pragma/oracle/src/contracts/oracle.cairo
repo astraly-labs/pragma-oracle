@@ -678,7 +678,7 @@ mod Oracle {
         }
     }
 
-    fn validate_data_timestamp<T, impl THasBaseEntry: hasBaseEntry<T>>(
+    fn validate_data_timestamp<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
         new_entry: entryDataType, last_entry: T
     ) {
         match new_entry {
