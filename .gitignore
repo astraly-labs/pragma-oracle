@@ -1,0 +1,40 @@
+# IDE
+.vscode
+.idea
+
+# Python
+__pycache__
+venv
+
+# starknet
+node.json
+deployments
+artifacts
+build
+
+# nile
+127.0.0.1.*
+
+# Protostar
+./pragma/build
+*logs.json
+
+.DS_Store
+.env
+
+lint.sarif
+coverage/*
+
+# Scripts artifacts
+blockhashes.json
+deployed_addresses.json
+
+# thoth relateds stuff 
+output-callgraph/*
+build/*
+docs/callgraphs/*
+
+# Hypothesis
+.hypothesis/*
+node_modules
+tmp
