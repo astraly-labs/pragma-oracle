@@ -30,7 +30,6 @@ format:
 	poetry run autoflake . -r
 
 format-check:
-	poetry run cairo-format -c ${cairo_files}
 	poetry run autoflake . -r -cd
 
 clean:
