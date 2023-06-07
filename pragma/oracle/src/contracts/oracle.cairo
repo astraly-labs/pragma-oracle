@@ -11,70 +11,68 @@ mod Oracle {
     use traits::TryInto;
     use entry::contracts::structs::{
         BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
-        USD_CURRENCY_ID, SPOT, FUTURE, OPTION, PossibleEntries, FutureEntry, OptionEntry, simpleDataType, entryDataType
+        USD_CURRENCY_ID, SPOT, FUTURE, OPTION, PossibleEntries, FutureEntry, OptionEntry,
+        simpleDataType, entryDataType
     };
     use oracle::business_logic::oracleInterface::IOracle;
     use pragma::publisher_registry::business_logic::interface::IPublisherRegistry;
-    use pragma::bits_manipulation::bits_manipulation::{actual_set_element_at, actual_get_element_at}; 
+    use pragma::bits_manipulation::bits_manipulation::{
+        actual_set_element_at, actual_get_element_at
+    };
     use pragma::time_series::convert::convert_via_usd;
     use admin::contracts::Admin::Admin;
     use serde::Serde;
-    use serde::deserialize_array_helper; 
+    use serde::deserialize_array_helper;
     use serde::serialize_array_helper;
-    use starknet::{SyscallResult, storage_access::{StorageAccess, StorageBaseAddress, storage_address_from_base_and_offset, storage_write_syscall, storage_read_syscall}};
+    use starknet::{
+        SyscallResult,
+        storage_access::{
+            StorageAccess, StorageBaseAddress, storage_address_from_base_and_offset,
+            storage_write_syscall, storage_read_syscall
+        }
+    };
 
     //Structure
-    
+
     struct Storage {
-
-
         //oracle controller address storage, contractAddress
         oracle_controller_address_storage: ContractAddress,
-
         // oracle publisher registry address, ContractAddres
         oracle_publisher_registry_address_storage: ContractAddress,
-
         //oracle pair storage, legacy map between the pair_id and the pair in question (no need to specify the data type here).
-        oracle_pairs_storage: LegacyMap::<felt252,Pair>,
-
+        oracle_pairs_storage: LegacyMap::<felt252, Pair>,
         //oracle_pair_id_storage, legacy Map between (quote_currency_id, base_currency_id) and the pair_id
-        oracle_pair_id_storage : LegacyMap::<(felt252, felt252), felt252>,
-
+        oracle_pair_id_storage: LegacyMap::<(felt252, felt252), felt252>,
         //oracle_currencies_storage, legacy Map between (currency_id) and the currency
         oracle_currencies_storage: LegacyMap::<felt252, Currency>,
-
         //oralce_sources_storage, legacyMap between (pair_id ,(SPOT/FUTURES/OPTIONS), index, expiration_timestamp ) and the source
         oracle_sources_storage: LegacyMap::<(felt252, felt252, usize, u256), felt252>,
-
         //oracle_sources_len_storage, legacyMap between (pair_id ,(SPOT/FUTURES/OPTIONS), expiration_timestamp) and the len of the sources array
         oracle_sources_len_storage: LegacyMap::<(felt252, felt252, u256), u256>,
-
         //oracle_data_entry_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), source, expiration_timestamp (0 for SPOT))
-        oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u256),PossibleEntries>,
-
+        oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u256), PossibleEntries>,
         //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT)) asociated to a checkpoint
         oracle_checkpoints: LegacyMap::<(felt252, felt252, usize, u256), Checkpoint>,
-
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
         oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u256), usize>,
         oracle_sources_threshold_storage: u32,
     }
 
-    trait workingEntry<T> { 
-        fn process(self : @T) -> felt252;
+    trait workingEntry<T> {
+        fn process(self: @T) -> felt252;
     }
-    impl SworkingEntryImpl of workingEntry<SpotEntry> { 
-        fn process(self : @SpotEntry) -> felt252 { 
-            return(SPOT);
+    impl SworkingEntryImpl of workingEntry<SpotEntry> {
+        fn process(self: @SpotEntry) -> felt252 {
+            return (SPOT);
         }
     }
-    impl FworkingEntryImpl of workingEntry<FutureEntry> { 
-        fn process(self : @FutureEntry) -> felt252 { 
+    impl FworkingEntryImpl of workingEntry<FutureEntry> {
+        fn process(self: @FutureEntry) -> felt252 {
             return (FUTURE);
         }
     }
-    impl OworkingEntryImpl of workingEntry<OptionEntry> { 
-        fn process(self : @OptionEntry) -> felt252{ 
+    impl OworkingEntryImpl of workingEntry<OptionEntry> {
+        fn process(self: @OptionEntry) -> felt252 {
             return (OPTION);
         }
     }
@@ -106,51 +104,61 @@ mod Oracle {
     impl PairStorageAccess of StorageAccess<Pair> {
         fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<Pair> {
             Result::Ok(
-                Pair { 
-                    id : storage_read_syscall(
+                Pair {
+                    id: storage_read_syscall(
                         address_domain, storage_address_from_base_and_offset(base, 0_u8)
                     )?,
-                    quote_currency_id : storage_read_syscall(
+                    quote_currency_id: storage_read_syscall(
                         address_domain, storage_address_from_base_and_offset(base, 1_u8)
                     )?,
-                    base_currency_id : storage_read_syscall(
+                    base_currency_id: storage_read_syscall(
                         address_domain, storage_address_from_base_and_offset(base, 2_u8)
                     )?
                 }
             )
         }
         #[inline(always)]
-        fn write(
-            address_domain: u32, base: StorageBaseAddress, value: Pair
-        ) -> SyscallResult<()> {
+        fn write(address_domain: u32, base: StorageBaseAddress, value: Pair) -> SyscallResult<()> {
             storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 0_u8), value.id,
+                address_domain, storage_address_from_base_and_offset(base, 0_u8), value.id, 
             )?;
             storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 1_u8), value.quote_currency_id,
+                address_domain,
+                storage_address_from_base_and_offset(base, 1_u8),
+                value.quote_currency_id,
             )?;
             storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 2_u8), value.base_currency_id,
+                address_domain,
+                storage_address_from_base_and_offset(base, 2_u8),
+                value.base_currency_id,
             )?;
         }
     }
-    
-    impl CheckpointStorageAccess of StorageAccess<Checkpoint> { 
+
+    impl CheckpointStorageAccess of StorageAccess<Checkpoint> {
         fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<Checkpoint> {
             Result::Ok(
-                Checkpoint { 
-                    timestamp : storage_read_syscall(
+                Checkpoint {
+                    timestamp: storage_read_syscall(
                         address_domain, storage_address_from_base_and_offset(base, 0_u8)
-                    )?.try_into().unwrap(),
-                    value : storage_read_syscall(
+                    )?
+                        .try_into()
+                        .unwrap(),
+                    value: storage_read_syscall(
                         address_domain, storage_address_from_base_and_offset(base, 1_u8)
-                    )?.try_into().unwrap(),
-                    aggregation_mode : storage_read_syscall(
+                    )?
+                        .try_into()
+                        .unwrap(),
+                    aggregation_mode: storage_read_syscall(
                         address_domain, storage_address_from_base_and_offset(base, 2_u8)
-                    )?.try_into().unwrap(),
-                    num_sources_aggregated : storage_read_syscall(
+                    )?
+                        .try_into()
+                        .unwrap(),
+                    num_sources_aggregated: storage_read_syscall(
                         address_domain, storage_address_from_base_and_offset(base, 3_u8)
-                    )?.try_into().unwrap(),
+                    )?
+                        .try_into()
+                        .unwrap(),
                 }
             )
         }
@@ -159,39 +167,53 @@ mod Oracle {
             address_domain: u32, base: StorageBaseAddress, value: Checkpoint
         ) -> SyscallResult<()> {
             storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 0_u8), value.timestamp.into(),
+                address_domain,
+                storage_address_from_base_and_offset(base, 0_u8),
+                value.timestamp.into(),
             )?;
             storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 1_u8), value.value.into(),
+                address_domain,
+                storage_address_from_base_and_offset(base, 1_u8),
+                value.value.into(),
             )?;
             storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 2_u8), value.aggregation_mode.into(),
+                address_domain,
+                storage_address_from_base_and_offset(base, 2_u8),
+                value.aggregation_mode.into(),
             )?;
             storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 3_u8), value.num_sources_aggregated.into(),
+                address_domain,
+                storage_address_from_base_and_offset(base, 3_u8),
+                value.num_sources_aggregated.into(),
             )?;
         }
     }
 
-    impl CurrencyStorageAccess of StorageAccess<Currency> { 
+    impl CurrencyStorageAccess of StorageAccess<Currency> {
         fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<Currency> {
             Result::Ok(
-                Checkpoint { 
-                    id : storage_read_syscall(
+                Checkpoint {
+                    id: storage_read_syscall(
                         address_domain, storage_address_from_base_and_offset(base, 0_u8)
                     )?,
-                    decimals : storage_read_syscall(
+                    decimals: storage_read_syscall(
                         address_domain, storage_address_from_base_and_offset(base, 1_u8)
-                    )?.try_into().unwrap(),
-                    is_abstract_currency : storage_read_syscall(
+                    )?
+                        .try_into()
+                        .unwrap(),
+                    is_abstract_currency: storage_read_syscall(
                         address_domain, storage_address_from_base_and_offset(base, 2_u8)
                     )?,
-                    starknet_address : storage_read_syscall(
+                    starknet_address: storage_read_syscall(
                         address_domain, storage_address_from_base_and_offset(base, 3_u8)
-                    )?.try_into().unwrap(),
-                    ethereum_address : storage_read_syscall(
+                    )?
+                        .try_into()
+                        .unwrap(),
+                    ethereum_address: storage_read_syscall(
                         address_domain, storage_address_from_base_and_offset(base, 4_u8)
-                    )?.try_into().unwrap(),
+                    )?
+                        .try_into()
+                        .unwrap(),
                 }
             )
         }
@@ -200,19 +222,27 @@ mod Oracle {
             address_domain: u32, base: StorageBaseAddress, value: Currency
         ) -> SyscallResult<()> {
             storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 0_u8), value.id,
+                address_domain, storage_address_from_base_and_offset(base, 0_u8), value.id, 
             )?;
             storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 1_u8), value.decimals.into(),
+                address_domain,
+                storage_address_from_base_and_offset(base, 1_u8),
+                value.decimals.into(),
             )?;
             storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 2_u8), value.is_abstract_currency.into(),
+                address_domain,
+                storage_address_from_base_and_offset(base, 2_u8),
+                value.is_abstract_currency.into(),
             )?;
             storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 3_u8), value.starknet_address.into(),
+                address_domain,
+                storage_address_from_base_and_offset(base, 3_u8),
+                value.starknet_address.into(),
             )?;
             storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 4_u8), value.ethereum_address.into(),
+                address_domain,
+                storage_address_from_base_and_offset(base, 4_u8),
+                value.ethereum_address.into(),
             )?;
         }
     }
@@ -260,8 +290,6 @@ mod Oracle {
     //     }
     // }
 
-    
-
     #[event]
     fn UpdatedPublisherRegistryAddress(
         old_publisher_registry_address: ContractAddress,
@@ -290,7 +318,7 @@ mod Oracle {
     fn CheckpointSpotEntry(pair_id: felt252) {}
 
     #[event]
-    fn CheckpointFutureEntry(pair_id: felt252, expiration_timestamp : u256) {}
+    fn CheckpointFutureEntry(pair_id: felt252, expiration_timestamp: u256) {}
 
 
     #[constructor]
@@ -303,29 +331,24 @@ mod Oracle {
         _set_keys_currencies(currencies_len, currencies, 0);
         _set_keys_pairs(pairs_len, pairs, 0);
     }
-    impl OracleImpl of IOracle {
-        
+    impl OracleImpl of IOracle {//
+    //Getters
+    //
 
-        //
-        //Getters
-        //
+    // fn get_decimals(data_type: DataType, expiration_timestamp:Option::<u256>) -> u32 {
+    //             let currency = match data_type { 
+    //                 DataType::SpotEntry(pair_id) => {
+    //                 let pair = oracle_pairs_storage::read(pair_id);
+    //                 oracle_currencies_storage::read(pair.base_currency_id);
+    //                 },
+    //                 DataType::FutureEntry((pair_id, expiration_timestamp)) => {
+    //                     oracle_pairs_storage::read(pair_id);
+    //                     oracle_currencies_storage::read(pair.base_currency_id);
+    //                 },
 
-        // fn get_decimals(data_type: DataType, expiration_timestamp:Option::<u256>) -> u32 {
-        //             let currency = match data_type { 
-        //                 DataType::SpotEntry(pair_id) => {
-        //                 let pair = oracle_pairs_storage::read(pair_id);
-        //                 oracle_currencies_storage::read(pair.base_currency_id);
-        //                 },
-        //                 DataType::FutureEntry((pair_id, expiration_timestamp)) => {
-        //                     oracle_pairs_storage::read(pair_id);
-        //                     oracle_currencies_storage::read(pair.base_currency_id);
-        //                 },
-
-        //             }
-        //             currency.decimals
-        //         }
-
-        
+    //             }
+    //             currency.decimals
+    //         }
 
     //     // available for futures and spot data types
     //     fn get_data_with_USD_hop(
@@ -372,10 +395,8 @@ mod Oracle {
     //             last_updated_timestamp : last_updated_timestamp, 
     //             num_sources_aggregated  : num_sources_aggregated
     //         } 
-            
+
     //     }
-
-
 
     //     fn get_data(data_type: DataType, aggregation_mode: felt252, sources: @Array<felt252>) -> PragmaPricesResponse {
     //         let entries = get_data_entries(data_type, sources); 
@@ -399,10 +420,6 @@ mod Oracle {
     //         };
     //     }
 
-    
-     
-
-
     //     fn get_data_entries<T>(data_type : DataType,sources : @Array<felt252> ) -> (@Array<T>, u256) { 
     //         let last_updated_timestamp = get_latest_entry_timestamp(data_type, sources);
     //         let current_timestamp = get_block_timestamp();
@@ -413,7 +430,7 @@ mod Oracle {
     //     }
 
     //     fn get_data_entry<T>(data_type : DataType, sources : felt252) -> T {
-           
+
     //        let _entry = match data_type {
     //        DataType::SpotEntry(pair_id) => {oracle_data_entry_storage::read(pair_id, source, SPOT, 0);},
     //        DataType::FutureEntry((pair_id, expiration_timestamp)) => {oracle_data_entry_storage::read(pair_id, source, FUTURE, expiration_timestamp)},
@@ -436,7 +453,7 @@ mod Oracle {
     //                 };
     //             },
     //             DataType::FutureEntry((pair_id, expiration_timestamp)) => 
-                
+
     //             {
     //                 return FutureEntry { 
     //                 base_entry : BaseEntry { 
@@ -453,7 +470,6 @@ mod Oracle {
     //         }             
     //         }
 
-
     //     fn get_latest_checkpoint_index(data_type : DataType, aggregation_mode : felt252) -> u256 {
     //         let checkpoint_index = match data_type { 
     //             DataType::SpotEntry(pair_id) => {oracle_checkpoint_index::read((pair_id, SPOT, 0));},
@@ -461,7 +477,6 @@ mod Oracle {
     //         }
     //         return checkpoint_index;
     //     }
-
 
     //     //TODO, ADD AGGREGATION_MODE
     //     fn get_latest_checkpoint ( data_type : DataType, aggregation_mode :felt252) -> Checkpoint { 
@@ -472,7 +487,7 @@ mod Oracle {
     //         }
     //         return latest_checkpoint;
     //     }
-        
+
     //     fn get_decimals_for_currency(currency_id : felt252, typeof : felt252) -> u32 { 
     //         let key_currency = oracle_currencies_storage::read(currency_id);
     //         if (key_currency.id.is_zero()){
@@ -499,7 +514,6 @@ mod Oracle {
     //         return ();
     //     }
 
-
     //     //
     //     //View 
     //     //
@@ -515,12 +529,9 @@ mod Oracle {
     //         return publisher_registry_address;
     //     }
 
-
     //     //
     //     //Setters
     //     //
-
-        
 
     //     fn publish_data(new_entry : entryDataType) { 
     //         match new_entry { 
@@ -552,7 +563,7 @@ mod Oracle {
     //             }
     //         }
     //         return();
-     
+
     //     }
 
     //     fn update_publisher_registry_address(publisher_registry_address : ContractAddress){ 
@@ -564,7 +575,6 @@ mod Oracle {
     //         return ();
     //     }
 
-       
     //     //
     //     //Internal
     //     //
@@ -580,11 +590,9 @@ mod Oracle {
     //                 sources.append(new_source);
     //             }
     //         }
-            
+
     //     }
 
-        
-        
     //     fn get_latest_entry_timestamp(data_type : DataType, sources: @Array<felt252>) -> u256{ 
     //         let mut cur_idx = 0;
     //         let mut latest_timestamp = 0;
@@ -622,139 +630,166 @@ mod Oracle {
 
     //     }
 
-        fn get_all_sources(data_type : DataType) -> Array<felt252> { 
-            let mut sources = ArrayTrait::<felt252>::new();
-            match data_type { 
-                DataType::SpotEntry(pair_id) => { 
-                    let source_len = oracle_sources_len_storage::read((pair_id, SPOT, 0));
-                    build_sources_array(data_type, ref sources, source_len); 
-                    return sources;
-                }, 
-                DataType::FutureEntry((pair_id, expiration_timestamp)) => { 
-                    let source_len = oracle_sources_len_storage::read((pair_id, FUTURE, expiration_timestamp));
-                    build_sources_array(data_type ,ref sources, source_len, expiration_timestamp);
-                    return sources;
-                },
-            }
-            
+    fn get_all_sources(data_type: DataType) -> Array<felt252> {
+        let mut sources = ArrayTrait::<felt252>::new();
+        match data_type {
+            DataType::SpotEntry(pair_id) => {
+                let source_len = oracle_sources_len_storage::read((pair_id, SPOT, 0));
+                build_sources_array(data_type, ref sources, source_len);
+                return sources;
+            },
+            DataType::FutureEntry((
+                pair_id, expiration_timestamp
+            )) => {
+                let source_len = oracle_sources_len_storage::read(
+                    (pair_id, FUTURE, expiration_timestamp)
+                );
+                build_sources_array(data_type, ref sources, source_len, expiration_timestamp);
+                return sources;
+            },
         }
+    }
 
-        fn validate_data_timestamp<T, impl THasBaseEntry : hasBaseEntry<T>>(new_entry : entryDataType , last_entry : T)  { 
-            
-                match new_entry { 
-                    entryDataType::SpotEntry(spot_entry)=> {
-                        assert(spot_entry.base.timestamp > last_entry.base.timestamp, 'Existing entry is more recent');
-                        if (last_entry.base.timestamp.is_zero()) { 
-                            let sources_len = oracle_sources_len_storage::read((spot_entry.pair_id,SPOT));
-                            oracle_sources_storage::write((spot_entry.pair_id, SPOT, sources_len, 0), spot_entry.base.source );
-                            oracle_sources_len_storage::write((spot_entry.pair_id, SPOT, 0), sources_len +1 ); }
-                    },
-                    entryDataType::FutureEntry(future_entry)=> {
-                        assert(future_entry.base.timestamp > last_entry.base.timestamp, 'Existing entry is more recent');
-                        if (last_entry.base.timestamp.is_zero()) { 
-                            let sources_len = oracle_sources_len_storage::read((future_entry.pair_id,FUTURE, future_entry.expiration_timestamp));
-                            oracle_sources_storage::write((future_entry.pair_id, FUTURE, sources_len, future_entry.expiration_timestamp), future_entry.base.source);
-                            oracle_sources_len_storage::write((future_entry.pair_id, FUTURE,future_entry.expiration_timestamp), sources_len +1 ); }
-                            }
-                        }
-                        return ();
-        }
-            
-            
-        
-
-    
-
-
-        fn add_currency(currency: Currency) {
-
-            let existing_currency = oracle_currencies_storage::read(currency.id);
-            assert(existing_currency.id == 0, 'Currency already exists for key');
-            SubmittedCurrency(currency);
-            oracle_currencies_storage::write(currency.id, currency);
-            return ();
-        }
-
-
-
-        // fn update_currency(currency: Currency, typeof : felt252) {
-        //     oracle_currencies_storage::write(currency.id, currency);
-        //     UpdatedCurrency(currency);
-        //     return ();
-        // }
-        
-        // fn add_pair(pair : Pair) { 
-        //     let pair_id = oracle_pairs_storage::read(pair.id);
-        //     assert(pair_id.is_zero(), 'Oracle: pair with this key already registered');
-        //     SubmittedPair(pair);
-        //     oracle_pairs_storage::write(pair.id, pair);
-        //     oracle_pair_id_storage::write((pair.quote_currency_id, pair.base_currency_id), pair.id);
-        //     return();
-        // }
-
-       
-        
-        // fn _set_keys_currencies(key_currencies: @Array<Currency> , idx :usize) { 
-            
-        //     loop {
-        //         if (idx == key_currencies.len()) { 
-        //             break ();
-        //         }
-        //         let key_currency = *key_currencies.at(idx);
-        //         oracle_currencies_storage::write(key_currency.id, key_currency);
-        //         _set_keys_currencies(key_currencies, idx+1);
-        //     }  
-        //     return();
-        // }
-
-        // fn set_sources_threshold(threshold: u32) {
-        //         oracle_sources_threshold_storage::write(threshold);
-        //         return ();
-        //     }
-    
-        // fn _set_keys_pairs(key_pairs: @Array<Pair>) { 
-        //     let mut idx : usize  =0; 
-        //     loop {
-        //         if (idx>= key_pairs.len()) { 
-        //             break ();
-        //         }
-        //         let key_pair = *key_pairs.at(idx);
-        //         oracle_pairs_storage::write(key_pair.id, key_pair);
-        //         oracle_pair_id_storage::write((key_pair.quote_currency_id, key_pair.base_currency_id), key_pair.id);
-        //         idx = idx +1;
-        //     }  
-        //     return();
-        // }
-
-        fn set_checkpoint(data_type : DataType, aggregation_mode :felt252) { 
-            let priceResponse = get_data(data_type, aggregation_mode); 
-            let sources_threshold = oracle_sources_threshold_storage::read();
-            let cur_checkpoint = get_latest_checkpoint(data_type, aggregation_mode);
-            if (sources_threshold< priceResponse.num_sources_aggregated & (cur_checkpoint.timestamp+1)< priceResponse.timestamp) { 
-                let new_checkpoint = Checkpoint
-                {timestamp: priceResponse.timestamp, value: priceResponse.price, aggregation_mode:aggregation_mode, num_sources_aggregated:priceResponse.num_sources_aggregated};
-                match data_type {
-                    DataType::SpotEntry(pair_id) => {
-                        let cur_idx = oracle_checkpoint_index::read((pair_id, SPOT, 0));
-                        oracle_checkpoints::write((pair_id, SPOT, cur_idx, 0.into()),  new_checkpoint); 
-                        oracle_checkpoint_index::write((pair_id, SPOT, 0), cur_idx+1);
-                        CheckpointSpotEntry(pair_id);
-                      
-
-                    },
-                    DataType::FutureEntry((pair_id, expiration_timestamp)) => { 
-                        let cur_idx = oracle_checkpoint_index::read((pair_id, FUTURE, expiration_timestamp));
-                        oracle_checkpoints::write((pair_id, FUTURE, cur_idx, expiration_timestamp) ,new_checkpoint); 
-                        oracle_checkpoint_index::write((pair_id, FUTURE, expiration_timestamp), cur_idx+1);
-                        CheckpointFutureEntry(pair_id, expiration_timestamp);
-                       
-                    },
+    fn validate_data_timestamp<T, impl THasBaseEntry: hasBaseEntry<T>>(
+        new_entry: entryDataType, last_entry: T
+    ) {
+        match new_entry {
+            entryDataType::SpotEntry(spot_entry) => {
+                assert(
+                    spot_entry.base.timestamp > last_entry.base.timestamp,
+                    'Existing entry is more recent'
+                );
+                if (last_entry.base.timestamp.is_zero()) {
+                    let sources_len = oracle_sources_len_storage::read((spot_entry.pair_id, SPOT));
+                    oracle_sources_storage::write(
+                        (spot_entry.pair_id, SPOT, sources_len, 0), spot_entry.base.source
+                    );
+                    oracle_sources_len_storage::write(
+                        (spot_entry.pair_id, SPOT, 0), sources_len + 1
+                    );
+                }
+            },
+            entryDataType::FutureEntry(future_entry) => {
+                assert(
+                    future_entry.base.timestamp > last_entry.base.timestamp,
+                    'Existing entry is more recent'
+                );
+                if (last_entry.base.timestamp.is_zero()) {
+                    let sources_len = oracle_sources_len_storage::read(
+                        (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp)
+                    );
+                    oracle_sources_storage::write(
+                        (
+                            future_entry.pair_id,
+                            FUTURE,
+                            sources_len,
+                            future_entry.expiration_timestamp
+                        ),
+                        future_entry.base.source
+                    );
+                    oracle_sources_len_storage::write(
+                        (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp),
+                        sources_len + 1
+                    );
                 }
             }
-            return ();
         }
- }
- 
- 
+        return ();
+    }
 
+
+    fn add_currency(currency: Currency) {
+        let existing_currency = oracle_currencies_storage::read(currency.id);
+        assert(existing_currency.id == 0, 'Currency already exists for key');
+        SubmittedCurrency(currency);
+        oracle_currencies_storage::write(currency.id, currency);
+        return ();
+    }
+
+
+    // fn update_currency(currency: Currency, typeof : felt252) {
+    //     oracle_currencies_storage::write(currency.id, currency);
+    //     UpdatedCurrency(currency);
+    //     return ();
+    // }
+
+    // fn add_pair(pair : Pair) { 
+    //     let pair_id = oracle_pairs_storage::read(pair.id);
+    //     assert(pair_id.is_zero(), 'Oracle: pair with this key already registered');
+    //     SubmittedPair(pair);
+    //     oracle_pairs_storage::write(pair.id, pair);
+    //     oracle_pair_id_storage::write((pair.quote_currency_id, pair.base_currency_id), pair.id);
+    //     return();
+    // }
+
+    // fn _set_keys_currencies(key_currencies: @Array<Currency> , idx :usize) { 
+
+    //     loop {
+    //         if (idx == key_currencies.len()) { 
+    //             break ();
+    //         }
+    //         let key_currency = *key_currencies.at(idx);
+    //         oracle_currencies_storage::write(key_currency.id, key_currency);
+    //         _set_keys_currencies(key_currencies, idx+1);
+    //     }  
+    //     return();
+    // }
+
+    // fn set_sources_threshold(threshold: u32) {
+    //         oracle_sources_threshold_storage::write(threshold);
+    //         return ();
+    //     }
+
+    // fn _set_keys_pairs(key_pairs: @Array<Pair>) { 
+    //     let mut idx : usize  =0; 
+    //     loop {
+    //         if (idx>= key_pairs.len()) { 
+    //             break ();
+    //         }
+    //         let key_pair = *key_pairs.at(idx);
+    //         oracle_pairs_storage::write(key_pair.id, key_pair);
+    //         oracle_pair_id_storage::write((key_pair.quote_currency_id, key_pair.base_currency_id), key_pair.id);
+    //         idx = idx +1;
+    //     }  
+    //     return();
+    // }
+
+    fn set_checkpoint(data_type: DataType, aggregation_mode: felt252) {
+        let priceResponse = get_data(data_type, aggregation_mode);
+        let sources_threshold = oracle_sources_threshold_storage::read();
+        let cur_checkpoint = get_latest_checkpoint(data_type, aggregation_mode);
+        if (sources_threshold < priceResponse.num_sources_aggregated
+            & (cur_checkpoint.timestamp + 1) < priceResponse.timestamp) {
+            let new_checkpoint = Checkpoint {
+                timestamp: priceResponse.timestamp,
+                value: priceResponse.price,
+                aggregation_mode: aggregation_mode,
+                num_sources_aggregated: priceResponse.num_sources_aggregated
+            };
+            match data_type {
+                DataType::SpotEntry(pair_id) => {
+                    let cur_idx = oracle_checkpoint_index::read((pair_id, SPOT, 0));
+                    oracle_checkpoints::write((pair_id, SPOT, cur_idx, 0.into()), new_checkpoint);
+                    oracle_checkpoint_index::write((pair_id, SPOT, 0), cur_idx + 1);
+                    CheckpointSpotEntry(pair_id);
+                },
+                DataType::FutureEntry((
+                    pair_id, expiration_timestamp
+                )) => {
+                    let cur_idx = oracle_checkpoint_index::read(
+                        (pair_id, FUTURE, expiration_timestamp)
+                    );
+                    oracle_checkpoints::write(
+                        (pair_id, FUTURE, cur_idx, expiration_timestamp), new_checkpoint
+                    );
+                    oracle_checkpoint_index::write(
+                        (pair_id, FUTURE, expiration_timestamp), cur_idx + 1
+                    );
+                    CheckpointFutureEntry(pair_id, expiration_timestamp);
+                },
+            }
+        }
+        return ();
+    }
+}
 
