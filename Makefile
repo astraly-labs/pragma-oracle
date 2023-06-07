@@ -25,7 +25,6 @@ deploy: build
 	poetry run python ./scripts/deploy_pragma.py
 
 format:
-	poetry run cairo-format -i ${cairo_files}
 	poetry run black scripts/.
 	poetry run isort scripts/.
 	poetry run autoflake . -r
