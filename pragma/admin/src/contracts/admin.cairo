@@ -7,7 +7,7 @@ mod Admin {
     struct Storage {
         admin_address: ContractAddress
     }
-    
+
     //
     // View
     //

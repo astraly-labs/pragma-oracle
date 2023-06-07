@@ -26,7 +26,7 @@ mod SummaryStats {
     use summary_stats::business_logic::interface::ISummaryStats;
 
     struct Storage {
-        oracle_address: ContractAddress,
+        oracle_address: ContractAddress, 
     }
 
     #[constructor]
@@ -35,7 +35,9 @@ mod SummaryStats {
     }
 
     impl SummaryStatsImpl of ISummaryStats {
-        fn calculate_mean(oracle_address: ContractAddress, key: felt252, start: u32, stop: u32) -> u256 {
+        fn calculate_mean(
+            oracle_address: ContractAddress, key: felt252, start: u32, stop: u32
+        ) -> u256 {
             // let oracle = IOracle { contract_address: oracle_address };
             // let latest_checkpoint_index = oracle.get_latest_checkpoint_index(key);
             // let (cp, start_index) = oracle.get_last_spot_checkpoint_before(key, start);
@@ -47,13 +49,15 @@ mod SummaryStats {
             // let mean = to_wei(mean);
 
             // mean
-            u256 { low: 0, high: 0}
+            u256 { low: 0, high: 0 }
         }
 
-        fn calculate_volatility(oracle_address: ContractAddress, key: felt252, start: u32, stop: u32, num_samples: u32) -> u256 {
-            u256 { low: 0, high: 0}
+        fn calculate_volatility(
+            oracle_address: ContractAddress, key: felt252, start: u32, stop: u32, num_samples: u32
+        ) -> u256 {
+            u256 { low: 0, high: 0 }
         }
-    } 
+    }
 
     //
     // Views
@@ -73,9 +77,11 @@ mod SummaryStats {
     #[view]
     fn calculate_volatility(key: felt252, start: u32, stop: u32, num_samples: u32) -> u256 {
         let oracle_address = oracle_address::read();
-        let volatility = SummaryStatsImpl::calculate_volatility(oracle_address, key, start, stop, num_samples);
-        
+        let volatility = SummaryStatsImpl::calculate_volatility(
+            oracle_address, key, start, stop, num_samples
+        );
+
         // Reporting in percentage
         volatility * 100.into()
-   }
+    }
 }

@@ -11,7 +11,8 @@ const publisher: felt252 = 'TEST_PUBLISHER';
 fn deploy_publisher_registry() -> felt252 {
     let mut constructor_calldata = ArrayTrait::new();
     constructor_calldata.append(admin_address);
-    let publisher_registry_address = deploy_contract('publisher_registry', @constructor_calldata).unwrap();
+    let publisher_registry_address = deploy_contract('publisher_registry', @constructor_calldata)
+        .unwrap();
 
     start_prank(admin_address, publisher_registry_address).unwrap();
 
@@ -33,7 +34,7 @@ fn test_register_non_admin_fail() {
     let mut invoke_calldata = ArrayTrait::new();
     invoke_calldata.append('NEW_PUBLISHER');
     invoke_calldata.append(222);
-    
+
     match invoke(publisher_registry_address, 'add_publisher', @invoke_calldata) {
         Result::Ok(x) => assert(false, 'Shouldnt have succeeded'),
         Result::Err(x) => {
@@ -48,7 +49,8 @@ fn test_add_publisher() {
 
     let mut calldata = ArrayTrait::new();
     calldata.append(publisher);
-    let return_data2 = call(publisher_registry_address, 'get_publisher_address', @calldata).unwrap();
+    let return_data2 = call(publisher_registry_address, 'get_publisher_address', @calldata)
+        .unwrap();
     assert(*return_data2.at(0_u32) == publisher_address, 'wrong publisher address');
 }
 
@@ -58,7 +60,8 @@ fn test_update_publisher_address() {
 
     let mut calldata = ArrayTrait::new();
     calldata.append(publisher);
-    let return_data2 = call(publisher_registry_address, 'get_publisher_address', @calldata).unwrap();
+    let return_data2 = call(publisher_registry_address, 'get_publisher_address', @calldata)
+        .unwrap();
     assert(*return_data2.at(0_u32) == publisher_address, 'wrong publisher address');
 
     let new_publisher_address = 789;
@@ -70,7 +73,8 @@ fn test_update_publisher_address() {
 
     invoke(publisher_registry_address, 'update_publisher_address', @invoke_calldata).unwrap();
 
-    let return_data3 = call(publisher_registry_address, 'get_publisher_address', @calldata).unwrap();
+    let return_data3 = call(publisher_registry_address, 'get_publisher_address', @calldata)
+        .unwrap();
     assert(*return_data3.at(0_u32) == new_publisher_address, 'wrong publisher address');
 }
 
@@ -81,7 +85,7 @@ fn test_rotate_fails_for_unregistered_publisher() {
     let mut invoke_calldata = ArrayTrait::new();
     invoke_calldata.append('NEW_PUBLISHER');
     invoke_calldata.append(222);
-    
+
     match invoke(publisher_registry_address, 'update_publisher_address', @invoke_calldata) {
         Result::Ok(x) => assert(false, 'Shouldnt have succeeded'),
         Result::Err(x) => {
@@ -103,15 +107,18 @@ fn test_register_second_publisher() {
 
     let mut calldata = ArrayTrait::new();
     calldata.append(publisher);
-    let return_data1 = call(publisher_registry_address, 'get_publisher_address', @calldata).unwrap();
+    let return_data1 = call(publisher_registry_address, 'get_publisher_address', @calldata)
+        .unwrap();
     assert(*return_data1.at(0_u32) == publisher_address, 'wrong publisher address');
 
     let mut calldata = ArrayTrait::new();
     calldata.append('NEW_PUBLISHER');
-    let return_data2 = call(publisher_registry_address, 'get_publisher_address', @calldata).unwrap();
+    let return_data2 = call(publisher_registry_address, 'get_publisher_address', @calldata)
+        .unwrap();
     assert(*return_data2.at(0_u32) == 222, 'wrong publisher address');
 
-    let return_data3 = call(publisher_registry_address, 'get_all_publishers', @ArrayTrait::new()).unwrap();
+    let return_data3 = call(publisher_registry_address, 'get_all_publishers', @ArrayTrait::new())
+        .unwrap();
     assert(return_data3.len() == 3, 'wrong number of publishers');
     assert(*return_data3.at(1_u32) == publisher, 'wrong publisher address');
     assert(*return_data3.at(2_u32) == 'NEW_PUBLISHER', 'wrong publisher address');
@@ -136,7 +143,8 @@ fn test_re_register_fail() {
 
     let mut calldata = ArrayTrait::new();
     calldata.append(publisher);
-    let return_data1 = call(publisher_registry_address, 'get_publisher_address', @calldata).unwrap();
+    let return_data1 = call(publisher_registry_address, 'get_publisher_address', @calldata)
+        .unwrap();
     assert(*return_data1.at(0_u32) == publisher_address, 'wrong publisher address');
 }
 
@@ -160,6 +168,7 @@ fn test_rotate_admin_address() {
 
     let mut calldata = ArrayTrait::new();
     calldata.append('NEW_PUBLISHER');
-    let return_data2 = call(publisher_registry_address, 'get_publisher_address', @calldata).unwrap();
+    let return_data2 = call(publisher_registry_address, 'get_publisher_address', @calldata)
+        .unwrap();
     assert(*return_data2.at(0_u32) == 222, 'wrong publisher address');
 }

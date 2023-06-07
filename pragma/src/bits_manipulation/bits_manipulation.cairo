@@ -16,12 +16,7 @@ fn actual_get_element_at(input: u256, at: u256, number_of_bits: u256) -> u256 {
 // @param number_of_bits: The size of the element that needs to be added
 // @param element: The element that needs to be encoded
 // @return response: The new felt containing the encoded value a the given position on the given number of bits
-fn actual_set_element_at(
-    input: u256,
-    at: u256,
-    number_of_bits: u256,
-    element: u256,
-) -> u256 {
+fn actual_set_element_at(input: u256, at: u256, number_of_bits: u256, element: u256, ) -> u256 {
     assert_valid_felt(element, number_of_bits);
     let mask = generate_set_mask(at, number_of_bits);
     let masked_input = input & mask;

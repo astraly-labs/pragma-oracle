@@ -9,7 +9,6 @@ const BOTH_TRUE: felt252 = 2;
 const USD_CURRENCY_ID: felt252 = 'USD';
 
 
-
 #[derive(Copy, Drop, PartialOrd, Serde)]
 struct BaseEntry {
     timestamp: u256,
@@ -31,7 +30,7 @@ struct SpotEntry {
 }
 
 #[derive(Copy, Drop, PartialOrd, Serde)]
-struct FutureEntry { 
+struct FutureEntry {
     base: BaseEntry,
     price: u256,
     pair_id: felt252,
@@ -40,42 +39,40 @@ struct FutureEntry {
 }
 
 #[derive(Serde, Drop)]
-struct OptionEntry { 
-    rawParameters : rawSVI,
-    essviParameters : eSSVI,
-    forwardPrice : u256,
-    strikePrice : u256,
-    expirationTimestamp : u256,
-    source : @Array<felt252>  //array containing all the sources used for the aggregation
-
+struct OptionEntry {
+    rawParameters: rawSVI,
+    essviParameters: eSSVI,
+    forwardPrice: u256,
+    strikePrice: u256,
+    expirationTimestamp: u256,
+    source: @Array<felt252> //array containing all the sources used for the aggregation
 }
 
 #[derive(Serde)]
-struct rawSVI { 
-    a : u256, 
-    b : u256,
-    rho : u256,
-    m : u256,
-    sigma : u256,
+struct rawSVI {
+    a: u256,
+    b: u256,
+    rho: u256,
+    m: u256,
+    sigma: u256,
     decimals: u32
-
 }
 
 #[derive(Serde)]
-struct eSSVI { 
-    theta : u256,
-    rho : u256, 
-    phi : u256
+struct eSSVI {
+    theta: u256,
+    rho: u256,
+    phi: u256
 }
 
-#[derive(Serde, Drop )]
+#[derive(Serde, Drop)]
 struct SpotEntryStorage {
     timestamp__volume__price: u256, 
 }
 
 #[derive(Serde, Drop)]
 struct FutureEntryStorage {
-    timestamp__price: u256,
+    timestamp__price: u256, 
 }
 
 /// Data Types
@@ -93,27 +90,26 @@ enum DataType {
 
 
 #[derive(Serde, Drop)]
-enum PossibleEntries { 
-    Spot : SpotEntryStorage,
-    Future :FutureEntryStorage,
-    // Option : OptionEntryStorage,
+enum PossibleEntries {
+    Spot: SpotEntryStorage,
+    Future: FutureEntryStorage,
+// Option : OptionEntryStorage,
 }
 
-enum simpleDataType { 
-        SpotEntry: (), 
-        FutureEntry: (),
-        OptionEntry: (),
-    }
+enum simpleDataType {
+    SpotEntry: (),
+    FutureEntry: (),
+    OptionEntry: (),
+}
 
-enum entryDataType { 
-    SpotEntry: SpotEntry, 
-    FutureEntry : FutureEntry, 
-    OptionEnty : OptionEntry,
+enum entryDataType {
+    SpotEntry: SpotEntry,
+    FutureEntry: FutureEntry,
+    OptionEnty: OptionEntry,
 }
 
 
-
-#[derive(Serde, Drop )]
+#[derive(Serde, Drop)]
 struct Pair {
     id: felt252, // same as key currently (e.g. str_to_felt("ETH/USD") - force uppercase)
     quote_currency_id: felt252, // currency id - str_to_felt encode the ticker

@@ -11,7 +11,7 @@ trait IOracle {
         publisher_registry_address: ContractAddress,
         currencies: @Array<Currency>,
         pairs: @Array<Pair>
-    ); 
+    );
     //
     // Getters
     //
@@ -34,11 +34,15 @@ trait IOracle {
     ) -> Array<PragmaPricesResponse>;
     fn get_last_checkpoint_before(timestamp: u256, data_type: DataType) -> (Checkpoint, u256);
     fn get_data_with_USD_hop(
-        base_currency_id: felt252, quote_currency_id: felt252, aggregation_mode: felt252, typeof: simpleDataType, expiration_timestamp : Option::<felt252>
+        base_currency_id: felt252,
+        quote_currency_id: felt252,
+        aggregation_mode: felt252,
+        typeof: simpleDataType,
+        expiration_timestamp: Option::<felt252>
     ) -> PragmaPricesResponse;
     fn get_publisher_registry_address() -> ContractAddress;
     fn get_latest_checkpoint_index(key: felt252) -> u256;
-    fn get_checkpoints(data_type : DataType, index: felt252) -> Checkpoint;
+    fn get_checkpoints(data_type: DataType, index: felt252) -> Checkpoint;
     fn get_sources_threshold() -> u32;
 
     //
@@ -50,8 +54,8 @@ trait IOracle {
     fn set_admin_address(new_admin_address: ContractAddress);
     fn update_publisher_registry_address(new_publisher_registry_address: ContractAddress);
     fn add_currency(currency: Currency);
-    fn update_currency(currency: Currency, typeof:felt252);
+    fn update_currency(currency: Currency, typeof: felt252);
     fn add_pair(pair: Pair);
-    fn set_checkpoint(data_type : DataType, aggregation_mode: felt252);
+    fn set_checkpoint(data_type: DataType, aggregation_mode: felt252);
     fn set_sources_threshold(threshold: u32);
 }

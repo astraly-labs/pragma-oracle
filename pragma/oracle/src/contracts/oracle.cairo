@@ -480,7 +480,7 @@ mod Oracle {
     //         }
     //         key_currency.decimals
     //     }
-    // }
+    }
 
 
     //     //
@@ -754,6 +754,7 @@ mod Oracle {
             return ();
         }
  }
+ 
  
 
 
