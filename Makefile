@@ -27,7 +27,7 @@ deploy: build
 	poetry run python ./scripts/deploy_pragma.py
 
 format:
-  cd pragma && scarb fmt
+	cd pragma && scarb fmt
 	poetry run black scripts/.
 	poetry run isort scripts/.
 	poetry run autoflake . -r
@@ -41,4 +41,4 @@ clean:
 	mkdir build
 
 format-mac:
-	cairo-format src/**/*.cairo -i
+	cd pragma && scarb fmt

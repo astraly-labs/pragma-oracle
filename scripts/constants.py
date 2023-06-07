@@ -4,9 +4,8 @@ from enum import Enum
 from pathlib import Path
 
 from dotenv import load_dotenv
-from eth_keys import keys
-from starknet_py.net.full_node_client import FullNodeClient
 from empiric.core.types import Currency, Pair
+from starknet_py.net.full_node_client import FullNodeClient
 
 load_dotenv()
 

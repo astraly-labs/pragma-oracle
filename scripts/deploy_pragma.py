@@ -3,7 +3,13 @@ import logging
 from asyncio import run
 from math import ceil, log
 
-from scripts.constants import CHAIN_ID, COMPILED_CONTRACTS, RPC_CLIENT, currencies, pairs
+from scripts.constants import (
+    CHAIN_ID,
+    COMPILED_CONTRACTS,
+    RPC_CLIENT,
+    currencies,
+    pairs,
+)
 from scripts.utils.starknet import (
     declare,
     deploy,
@@ -38,7 +44,7 @@ async def main():
 
     # %% Deployments
     class_hash = get_declarations()
-    eth = await get_eth_contract()
+    await get_eth_contract()
 
     deployments = {}
     deployments["publisher_registry"] = await deploy(
@@ -49,17 +55,17 @@ async def main():
         "proxy",
         class_hash["oracle"],  # owner
     )
-   
+
     dump_deployments(deployments)
 
     logger.info("⏳ Configuring Contracts...")
     await invoke(
         "proxy",
         "initializer",
-        admin.address, # admin
-        deployments["publisher_registry"]["address"], # publisher_registry
+        admin.address,  # admin
+        deployments["publisher_registry"]["address"],  # publisher_registry
         currencies,
-        pairs
+        pairs,
     )
     logger.info("✅ Configuration Complete")
 
