@@ -14,6 +14,7 @@ empiric-network = "^1.6.0"
 [tool.poetry.group.dev.dependencies]
 black = "^22.10.0"
 codespell = "^2.2.2"
+isort = "^5.10.1"
 
 [tool.isort]
 profile = "black"
