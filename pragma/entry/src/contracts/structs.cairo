@@ -38,17 +38,18 @@ struct FutureEntry {
     expiration_timestamp: u256,
 }
 
-#[derive(Serde, Drop)]
+#[derive(Serde, Drop, Copy)]
 struct OptionEntry {
+    base: BaseEntry,
     rawParameters: rawSVI,
     essviParameters: eSSVI,
     forwardPrice: u256,
     strikePrice: u256,
     expirationTimestamp: u256,
-    source: @Array<felt252> //array containing all the sources used for the aggregation
+    source: Array<felt252> //array containing all the sources used for the aggregation
 }
 
-#[derive(Serde)]
+#[derive(Serde, Drop, Copy)]
 struct rawSVI {
     a: u256,
     b: u256,
@@ -58,7 +59,7 @@ struct rawSVI {
     decimals: u32
 }
 
-#[derive(Serde)]
+#[derive(Serde, Drop, Copy)]
 struct eSSVI {
     theta: u256,
     rho: u256,
@@ -91,9 +92,9 @@ enum DataType {
 
 #[derive(Serde, Drop)]
 enum PossibleEntries {
-    Spot: SpotEntryStorage,
-    Future: FutureEntryStorage,
-// Option : OptionEntryStorage,
+    Spot: u256, //structure SpotEntryStorage
+    Future: u256, //structure FutureEntryStorage
+    Option: u256, //structure OptionEntryStorage
 }
 
 enum simpleDataType {
@@ -105,18 +106,18 @@ enum simpleDataType {
 enum entryDataType {
     SpotEntry: SpotEntry,
     FutureEntry: FutureEntry,
-    OptionEnty: OptionEntry,
+    OptionEntry: OptionEntry,
 }
 
 
-#[derive(Serde, Drop)]
+#[derive(Serde, Drop, Copy)]
 struct Pair {
     id: felt252, // same as key currently (e.g. str_to_felt("ETH/USD") - force uppercase)
     quote_currency_id: felt252, // currency id - str_to_felt encode the ticker
     base_currency_id: felt252, // currency id - str_to_felt encode the ticker
 }
 
-#[derive(Serde, Drop)]
+#[derive(Serde, Drop, Copy)]
 struct Currency {
     id: felt252,
     decimals: u32,
