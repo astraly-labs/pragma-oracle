@@ -10,7 +10,7 @@ const USD_CURRENCY_ID: felt252 = 'USD';
 
 
 
-#[derive(Copy, Drop, PartialOrd)]
+#[derive(Copy, Drop, PartialOrd, Serde)]
 struct BaseEntry {
     timestamp: u256,
     source: felt252,
@@ -22,7 +22,7 @@ struct GenericEntryStorage {
     timestamp__value: u256, 
 }
 
-#[derive(Copy, Drop, PartialOrd)]
+#[derive(Copy, Drop, PartialOrd, Serde)]
 struct SpotEntry {
     base: BaseEntry,
     price: u256,
@@ -30,7 +30,7 @@ struct SpotEntry {
     volume: u256,
 }
 
-#[derive(Copy, Drop, PartialOrd)]
+#[derive(Copy, Drop, PartialOrd, Serde)]
 struct FutureEntry { 
     base: BaseEntry,
     price: u256,
@@ -39,6 +39,7 @@ struct FutureEntry {
     expiration_timestamp: u256,
 }
 
+#[derive(Serde, Drop)]
 struct OptionEntry { 
     rawParameters : rawSVI,
     essviParameters : eSSVI,
@@ -49,7 +50,7 @@ struct OptionEntry {
 
 }
 
-
+#[derive(Serde)]
 struct rawSVI { 
     a : u256, 
     b : u256,
@@ -60,15 +61,19 @@ struct rawSVI {
 
 }
 
+#[derive(Serde)]
 struct eSSVI { 
     theta : u256,
     rho : u256, 
     phi : u256
 }
+
+#[derive(Serde, Drop )]
 struct SpotEntryStorage {
     timestamp__volume__price: u256, 
 }
 
+#[derive(Serde, Drop)]
 struct FutureEntryStorage {
     timestamp__price: u256,
 }
@@ -83,13 +88,15 @@ struct FutureEntryStorage {
 enum DataType {
     SpotEntry: felt252,
     FutureEntry: (felt252, u256),
-    OptionEntry: felt252
+    OptionEntry: felt252,
 }
 
+
+#[derive(Serde, Drop)]
 enum PossibleEntries { 
     Spot : SpotEntryStorage,
     Future :FutureEntryStorage,
-    Option : OptionEntryStorage,
+    // Option : OptionEntryStorage,
 }
 
 enum simpleDataType { 
@@ -99,20 +106,21 @@ enum simpleDataType {
     }
 
 enum entryDataType { 
-    SpotEntry: (SpotEntry), 
-    FutureEntry : (FutureEntry), 
-    OptionEnty : (OptionEntry)
+    SpotEntry: SpotEntry, 
+    FutureEntry : FutureEntry, 
+    OptionEnty : OptionEntry,
 }
 
 
 
-
+#[derive(Serde, Drop )]
 struct Pair {
     id: felt252, // same as key currently (e.g. str_to_felt("ETH/USD") - force uppercase)
     quote_currency_id: felt252, // currency id - str_to_felt encode the ticker
     base_currency_id: felt252, // currency id - str_to_felt encode the ticker
 }
 
+#[derive(Serde, Drop)]
 struct Currency {
     id: felt252,
     decimals: u32,
@@ -121,6 +129,7 @@ struct Currency {
     ethereum_address: ContractAddress, // optional
 }
 
+#[derive(Serde, Drop)]
 struct Checkpoint {
     timestamp: u256,
     value: u256,

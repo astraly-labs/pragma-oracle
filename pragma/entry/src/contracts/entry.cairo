@@ -2,8 +2,7 @@
 mod Entry {
     use array::ArrayTrait;
     use entry::contracts::structs::{BaseEntry};
-    use alexandria_math::sorting::src::merge_sort::merge;
-    //Change this import to our changed import
+    use pragma::utils::sorting::merge_sort::merge;
     use entry::contracts::structs::SpotEntry;
     use traits::TryInto;
     use traits::Into;

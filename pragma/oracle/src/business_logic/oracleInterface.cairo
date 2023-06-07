@@ -11,9 +11,7 @@ trait IOracle {
         publisher_registry_address: ContractAddress,
         currencies: @Array<Currency>,
         pairs: @Array<Pair>
-    );
-
-    fn only_oracle_controller(); 
+    ); 
     //
     // Getters
     //
@@ -40,8 +38,8 @@ trait IOracle {
     ) -> PragmaPricesResponse;
     fn get_publisher_registry_address() -> ContractAddress;
     fn get_latest_checkpoint_index(key: felt252) -> u256;
-    fn get_checkpoint(key: felt252, index: felt252) -> Checkpoint;
-    fn get_sources_threshold() -> felt252;
+    fn get_checkpoints(data_type : DataType, index: felt252) -> Checkpoint;
+    fn get_sources_threshold() -> u32;
 
     //
     // Setters
@@ -52,8 +50,8 @@ trait IOracle {
     fn set_admin_address(new_admin_address: ContractAddress);
     fn update_publisher_registry_address(new_publisher_registry_address: ContractAddress);
     fn add_currency(currency: Currency);
-    fn update_currency(currency: Currency);
+    fn update_currency(currency: Currency, typeof:felt252);
     fn add_pair(pair: Pair);
-    fn set_checkpoint(paid_id: felt252, aggregation_mode: felt252);
-    fn set_sources_threshold(threshold: felt252);
+    fn set_checkpoint(data_type : DataType, aggregation_mode: felt252);
+    fn set_sources_threshold(threshold: u32);
 }
