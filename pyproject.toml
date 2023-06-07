@@ -15,6 +15,7 @@ empiric-network = "^1.6.0"
 black = "^22.10.0"
 codespell = "^2.2.2"
 isort = "^5.10.1"
+autoflake = "^2.1.1"
 
 [tool.isort]
 profile = "black"

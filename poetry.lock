@@ -169,6 +169,21 @@ tests = ["attrs[tests-no-zope]", "zope-interface"]
 tests-no-zope = ["cloudpickle", "hypothesis", "mypy (>=1.1.1)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "pytest-xdist[psutil]"]
 
 [[package]]
+name = "autoflake"
+version = "2.1.1"
+description = "Removes unused imports and unused variables"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "autoflake-2.1.1-py3-none-any.whl", hash = "sha256:94e330a2bcf5ac01384fb2bf98bea60c6383eaa59ea62be486e376622deba985"},
+    {file = "autoflake-2.1.1.tar.gz", hash = "sha256:75524b48d42d6537041d91f17573b8a98cb645642f9f05c7fcc68de10b1cade3"},
+]
+
+[package.dependencies]
+pyflakes = ">=3.0.0"
+tomli = {version = ">=2.0.1", markers = "python_version < \"3.11\""}
+
+[[package]]
 name = "bitarray"
 version = "2.7.4"
 description = "efficient arrays of booleans -- C extension"
@@ -1658,6 +1673,17 @@ files = [
 ]
 
 [[package]]
+name = "pyflakes"
+version = "3.0.1"
+description = "passive checker of Python programs"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "pyflakes-3.0.1-py2.py3-none-any.whl", hash = "sha256:ec55bf7fe21fff7f1ad2f7da62363d749e2a470500eab1b555334b67aa1ef8cf"},
+    {file = "pyflakes-3.0.1.tar.gz", hash = "sha256:ec8b276a6b60bd80defed25add7e439881c19e64850afd9b346283d4165fd0fd"},
+]
+
+[[package]]
 name = "pyrsistent"
 version = "0.19.3"
 description = "Persistent/Functional/Immutable data structures"
@@ -2296,4 +2322,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.10"
-content-hash = "ba43ae84f661785657f33881cb1b2239f7535c4992b885ba99faa8a50927d5c2"
+content-hash = "5a9cff7258876ede9e832cddf5909055e5c8e882781181de702dd3306f45cc78"

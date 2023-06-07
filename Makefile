@@ -17,6 +17,8 @@ check:
 
 setup:
 	poetry install
+	curl -L https://raw.githubusercontent.com/software-mansion/protostar/master/install.sh | bash
+	curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | sh
 
 test: 
 	cd pragma && protostar test
@@ -25,11 +27,13 @@ deploy: build
 	poetry run python ./scripts/deploy_pragma.py
 
 format:
+  cd pragma && scarb fmt
 	poetry run black scripts/.
 	poetry run isort scripts/.
 	poetry run autoflake . -r
 
 format-check:
+	cd pragma && scarb fmt --check
 	poetry run autoflake . -r -cd
 
 clean:
