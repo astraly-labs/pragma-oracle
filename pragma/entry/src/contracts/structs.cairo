@@ -72,7 +72,7 @@ struct SpotEntryStorage {
 
 #[derive(Serde, Drop)]
 struct FutureEntryStorage {
-    timestamp__price: u256, 
+    timestamp__volume__price: u256, 
 }
 
 /// Data Types
@@ -85,15 +85,14 @@ struct FutureEntryStorage {
 enum DataType {
     SpotEntry: felt252,
     FutureEntry: (felt252, u256),
-    OptionEntry: felt252,
+// OptionEntry: (felt252, felt252),
 }
 
 
-#[derive(Serde, Drop, Copy)]
-struct PossibleEntries {
-    Spot: u256, //structure SpotEntryStorage
-    Future: u256, //structure FutureEntryStorage
-    Option: u256, //structure OptionEntryStorage
+enum PossibleEntryStorage {
+    Spot: SpotEntryStorage , //structure SpotEntryStorage
+    Future: FutureEntryStorage, //structure FutureEntryStorage
+    // Option: OptionEntryStorage, //structure OptionEntryStorage
 }
 
 enum simpleDataType {
@@ -102,10 +101,16 @@ enum simpleDataType {
     OptionEntry: (),
 }
 
+enum possibleEntries { 
+    Spot: SpotEntry,
+    Future: FutureEntry,
+    // Option: OptionEntry,
+}
+
 enum entryDataType {
     SpotEntry: SpotEntry,
     FutureEntry: FutureEntry,
-    OptionEntry: OptionEntry,
+    // OptionEntry: OptionEntry,
 }
 
 
@@ -140,3 +145,7 @@ struct PragmaPricesResponse {
     num_sources_aggregated: u32,
 }
 
+
+enum AggregationMode {
+    Median: (), 
+}

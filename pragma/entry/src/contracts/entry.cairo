@@ -1,7 +1,7 @@
 #[contract]
 mod Entry {
     use array::ArrayTrait;
-    use entry::contracts::structs::{BaseEntry};
+    use entry::contracts::structs::{BaseEntry, AggregationMode};
     use pragma::utils::sorting::merge_sort::merge;
     use entry::contracts::structs::SpotEntry;
     use traits::TryInto;
@@ -47,10 +47,14 @@ mod Entry {
         impl TCopy: Copy<T>,
         impl TDrop: Drop<T>
     >(
-        entries: Array<T>
+        entries: Array<T>, aggregation_mode: AggregationMode
     ) -> u256 {
-        let value = entries_median(entries);
-        value
+        match aggregation_mode {
+            AggregationMode::Median(()) => {
+                let value = entries_median(entries);
+                value
+            }
+        }
     }
 
 
