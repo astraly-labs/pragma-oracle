@@ -162,7 +162,7 @@ fn test_set_decimals() {
     calldata.append(DataType::SPOT(1));
     calldata.append(1);
     let decimals = invoke(oracle_address, 'get_decimals', @calldata).unwrap();
-    
+
     assert(decimals == 18_u32, 'wrong decimals value');
 }
 
@@ -175,7 +175,7 @@ fn test_get_spot_entry() {
     calldata.append(1);
     let entry = invoke(oracle_address, 'get_entry', @calldata).unwrap();
 
-    assert(entry.price == (1 * 10 ** 6).into(), 'wrong price');
+    assert(entry.price == (1 * 10 * *6).into(), 'wrong price');
     assert(entry.base.source == 1, 'wrong source');
 }
 
@@ -188,7 +188,7 @@ fn test_get_future_entry() {
     calldata.append(11111110);
     calldata.append(1);
     let future_entry = invoke(oracle_address, 'get_entry', @calldata).unwrap();
-    
-    assert(future_entry.price == (2 * 10 ** 6).into(), 'wrong price');
+
+    assert(future_entry.price == (2 * 10 * *6).into(), 'wrong price');
     assert(future_entry.base.source == 1, 'wrong source');
 }
