@@ -122,3 +122,42 @@ fn setup() -> (ContractAddress, ContractAddress) {
 
     (oracle_address, publisher_registry_address)
 }
+
+#[test]
+fn test_set_decimals() {
+    let (oracle_address, publisher_registry_address) = setup();
+
+    let mut calldata = ArrayTrait::new();
+    calldata.append(DataType::SPOT(1));
+    calldata.append(1);
+    let decimals = invoke(oracle_address, 'get_decimals', @calldata).unwrap();
+    
+    assert(decimals == 18_u32, 'wrong decimals value');
+}
+
+#[test]
+fn test_get_spot_entry() {
+    let (oracle_address, publisher_registry_address) = setup();
+
+    let mut calldata = ArrayTrait::new();
+    calldata.append(DataType::SPOT(2));
+    calldata.append(1);
+    let entry = invoke(oracle_address, 'get_entry', @calldata).unwrap();
+
+    assert(entry.price == (1 * 10 ** 6).into(), 'wrong price');
+    assert(entry.base.source == 1, 'wrong source');
+}
+
+#[test]
+fn test_get_future_entry() {
+    let (oracle_address, publisher_registry_address) = setup();
+
+    let mut calldata = ArrayTrait::new();
+    calldata.append(DataType::FUTURE(2));
+    calldata.append(11111110);
+    calldata.append(1);
+    let future_entry = invoke(oracle_address, 'get_entry', @calldata).unwrap();
+    
+    assert(future_entry.price == (2 * 10 ** 6).into(), 'wrong price');
+    assert(future_entry.base.source == 1, 'wrong source');
+}
