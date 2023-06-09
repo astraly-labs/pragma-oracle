@@ -272,9 +272,7 @@ mod Oracle {
         }
     }
     // impl PossibleEntryStorageStorageAccess of StorageAccess<PossibleEntryStorage> {
-    //     fn read(
-    //         address_domain: u32, base: StorageBaseAddress
-    //     ) -> SyscallResult<PossibleEntryStorage> {
+    //     fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<PossibleEntryStorage> {
     //         Result::Ok(
     //             PossibleEntryStorage {
     //                 Spot: storage_read_syscall(
