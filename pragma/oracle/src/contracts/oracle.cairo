@@ -313,7 +313,6 @@ mod Oracle {
     //     }
     // }
 
-
     #[event]
     fn UpdatedPublisherRegistryAddress(
         old_publisher_registry_address: ContractAddress,
@@ -428,14 +427,15 @@ mod Oracle {
                     }
                 },
             };
-            let basePPR : PragmaPricesResponse  
-                =IOracle::get_data(
+            let basePPR: PragmaPricesResponse = IOracle::get_data(
                 base_data_type, aggregation_mode, sources
             );
-            let quotePPR : PragmaPricesResponse = IOracle::get_data(
+            let quotePPR: PragmaPricesResponse = IOracle::get_data(
                 quote_data_type, aggregation_mode, sources
             );
-            let decimals = min(IOracle::get_decimals(base_currency_id), IOracle::get_decimals(quote_currency_id));
+            let decimals = min(
+                IOracle::get_decimals(base_currency_id), IOracle::get_decimals(quote_currency_id)
+            );
             let rebased_value = convert_via_usd(basePPR.price, quotePPR.price, decimals);
             let last_updated_timestamp = max(
                 quotePPR.last_updated_timestamp, basePPR.last_updated_timestamp
