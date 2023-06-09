@@ -14,7 +14,7 @@ mod Oracle {
         USD_CURRENCY_ID, SPOT, FUTURE, OPTION, PossibleEntryStorage, FutureEntry, OptionEntry,
         simpleDataType, entryDataType, SpotEntryStorage, FutureEntryStorage, AggregationMode
     };
-    
+
     use oracle::business_logic::oracleInterface::IOracle;
     use pragma::publisher_registry::business_logic::interface::IPublisherRegistry;
     use pragma::bits_manipulation::bits_manipulation::{
@@ -51,7 +51,8 @@ mod Oracle {
         //oracle_sources_len_storage, legacyMap between (pair_id ,(SPOT/FUTURES/OPTIONS), expiration_timestamp) and the len of the sources array
         oracle_sources_len_storage: LegacyMap::<(felt252, felt252, u256), u256>,
         //oracle_data_entry_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), source, expiration_timestamp (0 for SPOT))
-        oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u256), PossibleEntryStorage>,
+        oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u256),
+        PossibleEntryStorage>,
         //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT)) asociated to a checkpoint
         oracle_checkpoints: LegacyMap::<(felt252, felt252, u256, u256), Checkpoint>,
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
@@ -309,7 +310,6 @@ mod Oracle {
     //     }
     // }
 
-
     #[event]
     fn UpdatedPublisherRegistryAddress(
         old_publisher_registry_address: ContractAddress,
@@ -354,7 +354,6 @@ mod Oracle {
         //Getters
         //
 
-    
         fn get_data(
             data_type: DataType, aggregation_mode: AggregationMode, sources: @Array<felt252>
         ) -> PragmaPricesResponse {
@@ -373,7 +372,7 @@ mod Oracle {
                 last_updated_timestamp: last_updated_timestamp,
                 num_sources_aggregated: entries.len()
             };
-        } 
+        }
 
 
         fn get_data_with_USD_hop(
@@ -432,9 +431,10 @@ mod Oracle {
             }
         }
 
-        
 
-        fn get_data_entries(data_type: DataType, sources: @Array<felt252>) -> (Array<PossibleEntries>, u256) {
+        fn get_data_entries(
+            data_type: DataType, sources: @Array<felt252>
+        ) -> (Array<PossibleEntries>, u256) {
             let last_updated_timestamp = get_latest_entry_timestamp(data_type, sources);
             let current_timestamp = get_block_timestamp();
             let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
@@ -480,19 +480,24 @@ mod Oracle {
             }
         }
 
-        fn get_all_entries(data_type : DataType, sources: @Array<felt252>, max_timestamp: u256) -> (Array<PossibleEntries>, u256) {
-                if (sources.len()==0) { 
-                    let all_sources = get_all_sources(data_type);
-                    let entries = build_entries_array(data_type, all_sources, ref entries, max_timestamp);
-                    (entries, entries.len())
-                }
-                else {
-                    let entries = build_entries_array(data_type, sources, ref entries, max_timestamp);
-                    (entries, entries.len())
-                }
+        fn get_all_entries(
+            data_type: DataType, sources: @Array<felt252>, max_timestamp: u256
+        ) -> (Array<PossibleEntries>, u256) {
+            if (sources.len() == 0) {
+                let all_sources = get_all_sources(data_type);
+                let entries = build_entries_array(
+                    data_type, all_sources, ref entries, max_timestamp
+                );
+                (entries, entries.len())
+            } else {
+                let entries = build_entries_array(data_type, sources, ref entries, max_timestamp);
+                (entries, entries.len())
+            }
         }
 
-        fn get_latest_checkpoint_index(data_type: DataType, aggregation_mode: AggregationMode) -> u256 {
+        fn get_latest_checkpoint_index(
+            data_type: DataType, aggregation_mode: AggregationMode
+        ) -> u256 {
             let checkpoint_index = match data_type {
                 DataType::SpotEntry(pair_id) => {
                     oracle_checkpoint_index::read((pair_id, SPOT, 0));
@@ -507,7 +512,9 @@ mod Oracle {
         }
 
         //TODO, ADD AGGREGATION_MODE
-        fn get_latest_checkpoint(data_type: DataType, aggregation_mode: AggregationMode) -> Checkpoint {
+        fn get_latest_checkpoint(
+            data_type: DataType, aggregation_mode: AggregationMode
+        ) -> Checkpoint {
             let cur_idx = get_latest_checkpoint_index(data_type, aggregation_mode);
             let latest_checkpoint = match data_type {
                 DataType::SpotEntry(pair_id) => {
@@ -583,7 +590,9 @@ mod Oracle {
         match new_entry {
             entryDataType::SpotEntry(spot_entry) => {
                 validate_sender_for_source(spot_entry);
-                let entry = get_data_entry(DataType::SpotEntry(spot_entry.pair_id), spot_entry.base.source);
+                let entry = get_data_entry(
+                    DataType::SpotEntry(spot_entry.pair_id), spot_entry.base.source
+                );
                 validate_data_timestamp(new_entry, entry);
                 SubmittedSpotEntry(spot_entry);
                 let element = actual_set_element_at(0, 0, 31, spot_entry.base.timestamp);
@@ -597,13 +606,16 @@ mod Oracle {
             },
             entryDataType::FutureEntry(future_entry) => {
                 validate_sender_for_source(future_entry);
-                let entry = get_data_entry(DataType::FutureEntry(future_entry.pair_id, future_entry.expiration_timestamp), future_entry.base.source);
+                let entry = get_data_entry(
+                    DataType::FutureEntry(future_entry.pair_id, future_entry.expiration_timestamp),
+                    future_entry.base.source
+                );
                 validate_data_timestamp(new_entry, entry);
                 SubmittedFutureEntry(future_entry);
                 let element = actual_set_element_at(0, 0, 31, future_entry.base.timestamp);
                 let element = actual_set_element_at(element, 32, 42, future_entry.volume);
                 let element = actual_set_element_at(element, 75, 128, future_entry.price);
-                let future_entry_storage = FutureEntryStorage {timestamp__volume__price: element };
+                let future_entry_storage = FutureEntryStorage { timestamp__volume__price: element };
                 oracle_data_entry_storage::write(
                     (future_entry.pair_id, FUTURE, future_entry.base.source, expiration_timestamp),
                     PossibleEntryStorage::Future(future_entry_storage)
@@ -656,13 +668,13 @@ mod Oracle {
         return latest_timestamp;
     }
 
-    fn build_entries_array<T>(data_type : DataType, sources : @Array<felt252>, ref entries : Array<T>){
+    fn build_entries_array<T>(
+        data_type: DataType, sources: @Array<felt252>, ref entries: Array<T>
+    ) {
         let mut cur_idx = 0;
-        loop { 
+        loop {
             let source = source.at(cur_idx);
         };
-
-
     }
     fn get_checkpoint_by_index(data_type: DataType, checkpoint_index: u256) -> Checkpoint {
         let checkpoint = match data_type {
