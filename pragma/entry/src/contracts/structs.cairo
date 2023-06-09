@@ -65,12 +65,12 @@ struct eSSVI {
     phi: u256
 }
 
-#[derive(Serde, Drop)]
+#[derive(Serde, Drop, Copy)]
 struct SpotEntryStorage {
     timestamp__volume__price: u256, 
 }
 
-#[derive(Serde, Drop)]
+#[derive(Serde, Drop, Copy)]
 struct FutureEntryStorage {
     timestamp__volume__price: u256, 
 }
@@ -82,17 +82,18 @@ struct FutureEntryStorage {
 /// * `Spot` - Spot price
 /// * `Future` - Future price
 /// * `Generic` - Generic price
+#[derive(Drop, Copy)]
 enum DataType {
     SpotEntry: felt252,
     FutureEntry: (felt252, u256),
 // OptionEntry: (felt252, felt252),
 }
 
-
+#[derive(Drop, Copy)]
 enum PossibleEntryStorage {
-    Spot: SpotEntryStorage , //structure SpotEntryStorage
+    Spot: SpotEntryStorage, //structure SpotEntryStorage
     Future: FutureEntryStorage, //structure FutureEntryStorage
-    // Option: OptionEntryStorage, //structure OptionEntryStorage
+// Option: OptionEntryStorage, //structure OptionEntryStorage
 }
 
 enum simpleDataType {
@@ -101,16 +102,16 @@ enum simpleDataType {
     OptionEntry: (),
 }
 
-enum possibleEntries { 
+enum possibleEntries {
     Spot: SpotEntry,
     Future: FutureEntry,
-    // Option: OptionEntry,
+// Option: OptionEntry,
 }
 
 enum entryDataType {
     SpotEntry: SpotEntry,
     FutureEntry: FutureEntry,
-    // OptionEntry: OptionEntry,
+// OptionEntry: OptionEntry,
 }
 
 
@@ -134,7 +135,7 @@ struct Currency {
 struct Checkpoint {
     timestamp: u256,
     value: u256,
-    aggregation_mode: felt252,
+    aggregation_mode: AggregationMode,
     num_sources_aggregated: u32,
 }
 
@@ -145,7 +146,7 @@ struct PragmaPricesResponse {
     num_sources_aggregated: u32,
 }
 
-
+#[derive(Serde, Drop, Copy)]
 enum AggregationMode {
-    Median: (), 
+    Median: MEDIAN, 
 }

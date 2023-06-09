@@ -117,9 +117,10 @@ mod Entry {
         let mut sum: u256 = 0.into();
         let mut index = 0_usize;
         let entries_len = entries.len();
+        let entries_len_u256 = u256 { low: entries_len.into().try_into().unwrap(), high: 0_u128 };
         loop {
             if index >= entries.len() {
-                break (sum / entries_len);
+                break (sum / entries_len_u256);
             }
             sum = sum + (*entries[index]).get_price();
             index = index + 1;
