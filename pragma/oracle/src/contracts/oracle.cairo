@@ -272,7 +272,9 @@ mod Oracle {
         }
     }
     impl PossibleEntryStorageStorageAccess of StorageAccess<PossibleEntryStorage> {
-        fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<PossibleEntryStorage> {
+        fn read(
+            address_domain: u32, base: StorageBaseAddress
+        ) -> SyscallResult<PossibleEntryStorage> {
             Result::Ok(
                 PossibleEntryStorage {
                     Spot: storage_read_syscall(
@@ -381,7 +383,11 @@ mod Oracle {
 
             if (entries.len() == 0) {
                 return PragmaPricesResponse {
-                    price: 0, decimals: 0, last_updated_timestamp: 0, num_sources_aggregated: 0, expiration_timestamp :0
+                    price: 0,
+                    decimals: 0,
+                    last_updated_timestamp: 0,
+                    num_sources_aggregated: 0,
+                    expiration_timestamp: 0
                 };
             }
             let price = Entry::aggregate_entries(entries, aggregation_mode);
@@ -435,7 +441,9 @@ mod Oracle {
             let quotePPR: PragmaPricesResponse = IOracle::get_data(
                 quote_data_type, aggregation_mode, sources
             );
-            let decimals = min(IOracle::get_decimals(base_currency_id), IOracle::get_decimals(quote_currency_id));
+            let decimals = min(
+                IOracle::get_decimals(base_currency_id), IOracle::get_decimals(quote_currency_id)
+            );
             let rebased_value = convert_via_usd(basePPR.price, quotePPR.price, decimals);
             let last_updated_timestamp = max(
                 quotePPR.last_updated_timestamp, basePPR.last_updated_timestamp
@@ -448,7 +456,7 @@ mod Oracle {
                 decimals: decimals,
                 last_updated_timestamp: last_updated_timestamp,
                 num_sources_aggregated: num_sources_aggregated,
-                expiration_timestamp : expiration_timestamp,
+                expiration_timestamp: expiration_timestamp,
             }
         }
 
@@ -749,8 +757,8 @@ mod Oracle {
                     future_entry
                 }
             };
-            let is_entry_not_initialized : bool = entry.get_base_timestamp() == 0;
-            let condition : bool = is_entry_not_initialized
+            let is_entry_not_initialized: bool = entry.get_base_timestamp() == 0;
+            let condition: bool = is_entry_not_initialized
                 & (entry.get_base_timestamp() < (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
             if !condition {
                 entries.append(entry);

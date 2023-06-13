@@ -35,7 +35,7 @@ struct FutureEntry {
     price: u256,
     pair_id: felt252,
     volume: u256,
-    timestamp : u256,
+    timestamp: u256,
     expiration_timestamp: u256,
 }
 
