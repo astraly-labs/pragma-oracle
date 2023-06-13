@@ -1,6 +1,6 @@
 use entry::contracts::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
-    simpleDataType, AggregationMode, entryDataType,
+    simpleDataType, AggregationMode, entryDataType, possibleEntries
 };
 use array::ArrayTrait;
 use starknet::ContractAddress;
@@ -22,13 +22,13 @@ trait IOracle {
     fn get_data(
         data_type: DataType, aggregation_mode: AggregationMode, sources: @Array<felt252>
     ) -> PragmaPricesResponse;
-    fn get_data_entry<T>(source: felt252, data_type: DataType) -> T;
+    fn get_data_entry(data_type: DataType, source: felt252) -> possibleEntries;
     fn get_data_for_sources(
         data_type: DataType, aggregation_mode: AggregationMode
     ) -> Array<PragmaPricesResponse>;
     fn get_data_entries(
         data_type: DataType, sources: @Array<felt252>
-    ) -> Array<PragmaPricesResponse>;
+    ) -> (Array<possibleEntries>, u256);
     fn get_last_checkpoint_before(timestamp: u256, data_type: DataType) -> (Checkpoint, u256);
     fn get_data_with_USD_hop(
         base_currency_id: felt252,
@@ -39,6 +39,7 @@ trait IOracle {
     ) -> PragmaPricesResponse;
     fn get_publisher_registry_address() -> ContractAddress;
     fn get_latest_checkpoint_index(data_type: DataType, aggregation_mode: AggregationMode) -> u256;
+    fn get_latest_checkpoint(data_type: DataType, aggregation_mode: AggregationMode) -> Checkpoint;
     fn get_checkpoints(data_type: DataType, index: felt252) -> Checkpoint;
     fn get_sources_threshold() -> u32;
     fn get_admin_address() -> ContractAddress;
@@ -47,7 +48,7 @@ trait IOracle {
     // Setters
     //
 
-    fn publish_data(data: entryDataType);
+    fn publish_data(new_entry: entryDataType);
     fn publish_data_entries<T>(data: @Array<T>);
     fn set_admin_address(new_admin_address: ContractAddress);
     fn update_publisher_registry_address(new_publisher_registry_address: ContractAddress);

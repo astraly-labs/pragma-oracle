@@ -35,6 +35,7 @@ struct FutureEntry {
     price: u256,
     pair_id: felt252,
     volume: u256,
+    timestamp : u256,
     expiration_timestamp: u256,
 }
 
@@ -144,9 +145,10 @@ struct PragmaPricesResponse {
     decimals: u32,
     last_updated_timestamp: u256,
     num_sources_aggregated: u32,
+    expiration_timestamp: Option<u256>,
 }
 
 #[derive(Serde, Drop, Copy)]
 enum AggregationMode {
-    Median: MEDIAN, 
+    Median: (), 
 }
