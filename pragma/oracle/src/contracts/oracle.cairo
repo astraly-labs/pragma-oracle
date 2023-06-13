@@ -435,9 +435,7 @@ mod Oracle {
             let quotePPR: PragmaPricesResponse = IOracle::get_data(
                 quote_data_type, aggregation_mode, sources
             );
-            let decimals = min(
-                IOracle::get_decimals(base_data_type), IOracle::get_decimals(quote_data_type)
-            );
+            let decimals = min(IOracle::get_decimals(base_currency_id), IOracle::get_decimals(quote_currency_id));
             let rebased_value = convert_via_usd(basePPR.price, quotePPR.price, decimals);
             let last_updated_timestamp = max(
                 quotePPR.last_updated_timestamp, basePPR.last_updated_timestamp
