@@ -35,7 +35,6 @@ struct FutureEntry {
     price: u256,
     pair_id: felt252,
     volume: u256,
-    timestamp: u256,
     expiration_timestamp: u256,
 }
 
@@ -92,18 +91,19 @@ enum DataType {
 
 #[derive(Drop, Copy)]
 enum PossibleEntryStorage {
-    Spot: SpotEntryStorage, //structure SpotEntryStorage
-    Future: FutureEntryStorage, //structure FutureEntryStorage
+    Spot: u256, //structure SpotEntryStorage
+    Future: u256, //structure FutureEntryStorage
 // Option: OptionEntryStorage, //structure OptionEntryStorage
 }
 
 enum simpleDataType {
     SpotEntry: (),
     FutureEntry: (),
-    OptionEntry: (),
+    // OptionEntry: (),
 }
 
-enum possibleEntries {
+#[derive(Drop, Copy)]
+enum PossibleEntries {
     Spot: SpotEntry,
     Future: FutureEntry,
 // Option: OptionEntry,

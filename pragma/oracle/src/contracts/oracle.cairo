@@ -13,7 +13,7 @@ mod Oracle {
         BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
         USD_CURRENCY_ID, SPOT, FUTURE, OPTION, PossibleEntryStorage, FutureEntry, OptionEntry,
         simpleDataType, entryDataType, SpotEntryStorage, FutureEntryStorage, AggregationMode,
-        possibleEntries
+        PossibleEntries, baseEntry
     };
 
     use oracle::business_logic::oracleInterface::IOracle;
@@ -55,7 +55,7 @@ mod Oracle {
         oracle_sources_len_storage: LegacyMap::<(felt252, felt252, u256), u256>,
         //oracle_data_entry_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), source, expiration_timestamp (0 for SPOT))
         oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u256),
-        PossibleEntryStorage>,
+        u256>,
         //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT)) asociated to a checkpoint
         oracle_checkpoints: LegacyMap::<(felt252, felt252, u256, u256), Checkpoint>,
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
@@ -106,6 +106,7 @@ mod Oracle {
             (*self).base.timestamp
         }
     }
+
 
     impl OptionhasBaseEntry of hasBaseEntry<OptionEntry> {
         fn get_base_entry(self: @OptionEntry) -> BaseEntry {
@@ -287,11 +288,11 @@ mod Oracle {
                     )?
                         .try_into()
                         .unwrap(),
-                    Option: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 2_u8)
-                    )?
-                        .try_into()
-                        .unwrap(),
+                // Option: storage_read_syscall(
+                //     address_domain, storage_address_from_base_and_offset(base, 2_u8)
+                // )?
+                //     .try_into()
+                //     .unwrap(),
                 }
             )
         }
@@ -307,14 +308,33 @@ mod Oracle {
                 storage_address_from_base_and_offset(base, 1_u8),
                 value.Future.into(),
             )?;
-            storage_write_syscall(
-                address_domain,
-                storage_address_from_base_and_offset(base, 2_u8),
-                value.Option.into(),
-            )
+        // storage_write_syscall(
+        //     address_domain,
+        //     storage_address_from_base_and_offset(base, 2_u8),
+        //     value.Option.into(),
+        // )
         }
     }
 
+    // impl HasExpirationTimestamp of SpotEntry {
+    //     fn has_expiration_timestamp(self: @T) -> bool {
+    //         false
+    //     }
+
+    //     fn get_expiration_timestamp(self: @T) -> Option<u256> {
+    //         Option::None(())
+    //     }
+    // }
+
+    // impl HasExpirationTimestamp of FutureEntry {
+    //     fn has_expiration_timestamp(self: @T) -> bool {
+    //         true
+    //     }
+
+    //     fn get_expiration_timestamp(self: @T) -> Option<u256> {
+    //         Option::Some(self.expiration_timestamp)
+    //     }
+    // }
     #[event]
     fn UpdatedPublisherRegistryAddress(
         old_publisher_registry_address: ContractAddress,
@@ -379,7 +399,8 @@ mod Oracle {
         fn get_data(
             data_type: DataType, aggregation_mode: AggregationMode, sources: @Array<felt252>
         ) -> PragmaPricesResponse {
-            let entries = IOracle::get_data_entries(data_type, sources);
+            let mut entries = ArrayTrait::<PossibleEntries>::new();
+            let (entries, entries_len, last_updated_timestamp) = IOracle::get_data_entries(data_type, sources);
 
             if (entries.len() == 0) {
                 return PragmaPricesResponse {
@@ -387,18 +408,38 @@ mod Oracle {
                     decimals: 0,
                     last_updated_timestamp: 0,
                     num_sources_aggregated: 0,
-                    expiration_timestamp: 0
+                    expiration_timestamp: Option::Some(0),
                 };
             }
-            let price = Entry::aggregate_entries(entries, aggregation_mode);
-            let decimals = IOracle::get_decimals(data_type);
-            let last_updated_timestamp = Entry::aggregate_timestamps_max(@entries);
-            return PragmaPricesResponse {
-                price: price,
-                decimals: decimals,
-                last_updated_timestamp: last_updated_timestamp,
-                num_sources_aggregated: entries.len()
-            };
+            match data_type {
+                DataType::SpotEntry(pair_id) => {
+                    let price = Entry::aggregate_entries::<SpotEntry>(entries, aggregation_mode);
+                    let decimals = IOracle::get_decimals(data_type);
+                    let last_updated_timestamp = Entry::aggregate_timestamps_max::<SpotEntry>(@entries);
+                    return PragmaPricesResponse {
+                        price: price,
+                        decimals: decimals,
+                        last_updated_timestamp: last_updated_timestamp,
+                        num_sources_aggregated: entries.len(),
+                        expiration_timestamp: Option::Some(0), 
+                        // Should be None
+                    };
+                },
+                DataType::FutureEntry((
+                    pair_id, expiration_timestamp
+                )) => {
+                    let price = Entry::aggregate_entries::<FutureEntry>(entries, aggregation_mode);
+                    let decimals = IOracle::get_decimals(data_type);
+                    let last_updated_timestamp = Entry::aggregate_timestamps_max::<FutureEntry>(@entries);
+                    return PragmaPricesResponse {
+                        price: price,
+                        decimals: decimals,
+                        last_updated_timestamp: last_updated_timestamp,
+                        num_sources_aggregated: entries.len(),
+                        expiration_timestamp: Option::Some(expiration_timestamp)
+                    };
+                }
+            }
         }
 
 
@@ -430,7 +471,11 @@ mod Oracle {
                         Option::None(_) => {
                             // Handle case where Future data type was provided without an expiration timestamp
                             assert(1 == 1, 'Requires expiration timestamp');
-                            (0, 0, 0)
+                            (
+                                DataType::FutureEntry((base_pair_id,0)),
+                                DataType::FutureEntry((quote_pair_id,0)),
+                                oracle_currencies_storage::read(quote_currency_id)
+                            )
                         }
                     }
                 },
@@ -439,10 +484,10 @@ mod Oracle {
                 base_data_type, aggregation_mode, @sources
             );
             let quotePPR: PragmaPricesResponse = IOracle::get_data(
-                quote_data_type, aggregation_mode, sources
+                quote_data_type, aggregation_mode, @sources
             );
             let decimals = min(
-                IOracle::get_decimals(base_currency_id), IOracle::get_decimals(quote_currency_id)
+                IOracle::get_decimals(base_data_type), IOracle::get_decimals(quote_data_type)
             );
             let rebased_value = convert_via_usd(basePPR.price, quotePPR.price, decimals);
             let last_updated_timestamp = max(
@@ -460,7 +505,7 @@ mod Oracle {
             }
         }
 
-        fn get_data_entry(data_type: DataType, source: felt252) -> possibleEntries {
+        fn get_data_entry(data_type: DataType, source: felt252) -> PossibleEntries {
             let _entry = match data_type {
                 DataType::SpotEntry(pair_id) => {
                     oracle_data_entry_storage::read((pair_id, source, SPOT, 0))
@@ -471,34 +516,70 @@ mod Oracle {
                     oracle_data_entry_storage::read((pair_id, source, FUTURE, expiration_timestamp))
                 },
             };
-            let timestamp = actual_get_element_at(_entry.timestamp__volume__price, 0, 31);
-            let volume = actual_get_element_at(_entry.timestamp__volume__price, 32, 42);
-            let price = actual_get_element_at(_entry.timestamp__volume__price, 75, 128);
+            let timestamp = actual_get_element_at(_entry, 0, 31);
+            let volume = actual_get_element_at(_entry, 32, 42);
+            let price = actual_get_element_at(_entry, 75, 128);
             match data_type {
                 DataType::SpotEntry(pair_id) => {
-                    return possibleEntries::Spot {
+                    PossibleEntries::Spot(SpotEntry {
                         base: BaseEntry {
                             timestamp: timestamp, source: source, publisher: 0
                         }, pair_id: pair_id, price: price, volume: volume
-                    };
+                    })
                 },
                 DataType::FutureEntry((
                     pair_id, expiration_timestamp
                 )) => {
-                    return possibleEntries::Future {
+                    PossibleEntries::Future(FutureEntry {
                         base: BaseEntry {
                             timestamp: timestamp, source: source, publisher: 0
                         },
                         pair_id: pair_id,
                         price: price,
                         volume: volume,
-                        timestamp: timestamp,
                         expiration_timestamp: expiration_timestamp
-                    };
+                    })
                 },
             }
         }
 
+        // fn get_data_entry(data_type: DataType, source: felt252) -> T {
+        //     let _entry = match data_type {
+        //         DataType::SpotEntry(pair_id) => {
+        //             oracle_data_entry_storage::read((pair_id, source, SPOT, 0))
+        //         },
+        //         DataType::FutureEntry((
+        //             pair_id, expiration_timestamp
+        //         )) => {
+        //             oracle_data_entry_storage::read((pair_id, source, FUTURE, expiration_timestamp))
+        //         },
+        //     };
+        //     let timestamp = actual_get_element_at(_entry.timestamp__volume__price, 0, 31);
+        //     let volume = actual_get_element_at(_entry.timestamp__volume__price, 32, 42);
+        //     let price = actual_get_element_at(_entry.timestamp__volume__price, 75, 128);
+        //     match data_type {
+        //         DataType::SpotEntry(pair_id) => {
+        //             return SpotEntry {
+        //                 base: BaseEntry {
+        //                     timestamp: timestamp, source: source, publisher: 0
+        //                 }, pair_id: pair_id, price: price, volume: volume
+        //             };
+        //         },
+        //         DataType::FutureEntry((
+        //             pair_id, expiration_timestamp
+        //         )) => {
+        //             return FutureEntry {
+        //                 base: BaseEntry {
+        //                     timestamp: timestamp, source: source, publisher: 0
+        //                 },
+        //                 pair_id: pair_id,
+        //                 price: price,
+        //                 volume: volume,
+        //                 expiration_timestamp: expiration_timestamp
+        //             };
+        //         },
+        //     }
+        // }
 
         fn get_admin_address() -> ContractAddress {
             return Admin::get_admin_address();
@@ -528,12 +609,14 @@ mod Oracle {
 
         fn get_data_entries(
             data_type: DataType, sources: @Array<felt252>
-        ) -> (Array<possibleEntries>, u256) {
+        ) -> (Array<PossibleEntries>, u32,u256) {
             let last_updated_timestamp = get_latest_entry_timestamp(data_type, sources);
             let current_timestamp = get_block_timestamp();
             let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
-            let entries = get_all_entries(data_type, sources, conservative_current_timestamp);
-            return (entries, last_updated_timestamp);
+            let (entries, entries_len) = get_all_entries(
+                data_type, sources, conservative_current_timestamp
+            );
+            return (entries, entries_len, last_updated_timestamp);
         }
 
 
@@ -558,58 +641,82 @@ mod Oracle {
         //Setters
         //
 
-        fn publish_data(new_entry: entryDataType) {
+        fn publish_data(new_entry: PossibleEntries) {
             match new_entry {
-                entryDataType::SpotEntry(spot_entry) => {
+                PossibleEntries::Spot(spot_entry) => {
                     validate_sender_for_source(spot_entry);
-                    let entry = IOracle::get_data_entry(
+                    let entry: PossibleEntries = IOracle::get_data_entry(
                         DataType::SpotEntry(spot_entry.pair_id), spot_entry.base.source
                     );
-                    validate_data_timestamp(new_entry, entry);
-                    SubmittedSpotEntry(spot_entry);
-                    let element = actual_set_element_at(0, 0, 31, spot_entry.base.timestamp);
-                    let element = actual_set_element_at(element, 32, 42, spot_entry.volume);
-                    let element = actual_set_element_at(element, 75, 128, spot_entry.price);
-                    let spot_entry_storage = SpotEntryStorage { timestamp__volume__price: element };
-                    oracle_data_entry_storage::write(
-                        (spot_entry.pair_id, SPOT, spot_entry.base.source, 0),
-                        PossibleEntryStorage::Spot(spot_entry_storage)
-                    );
+                    match entry {
+                        PossibleEntries::Spot(spot) => {
+                            validate_data_timestamp(new_entry, spot);
+                            SubmittedSpotEntry(spot_entry);
+                            let element = actual_set_element_at(
+                                0, 0, 31, spot_entry.base.timestamp
+                            );
+                            let element = actual_set_element_at(element, 32, 42, spot_entry.volume);
+                            let element = actual_set_element_at(element, 75, 128, spot_entry.price);
+                            let spot_entry_storage = SpotEntryStorage {
+                                timestamp__volume__price: element
+                            };
+                            oracle_data_entry_storage::write(
+                                (spot_entry.pair_id, SPOT, spot_entry.base.source, 0),
+                                element
+                            );
+                        },
+                        PossibleEntries::Future(_) => {
+                            assert(1 == 1, 'Failed fetching spot entry');
+                        },
+                    }
                 },
-                entryDataType::FutureEntry(future_entry) => {
+                PossibleEntries::Future(future_entry) => {
                     validate_sender_for_source(future_entry);
-                    let entry = IOracle::get_data_entry(
+                    let entry: PossibleEntries = IOracle::get_data_entry(
                         DataType::FutureEntry(
                             (future_entry.pair_id, future_entry.expiration_timestamp)
                         ),
                         future_entry.base.source
                     );
-                    validate_data_timestamp(new_entry, entry);
-                    SubmittedFutureEntry(future_entry);
-                    let element = actual_set_element_at(0, 0, 31, future_entry.base.timestamp);
-                    let element = actual_set_element_at(element, 32, 42, future_entry.volume);
-                    let element = actual_set_element_at(element, 75, 128, future_entry.price);
-                    let future_entry_storage = FutureEntryStorage {
-                        timestamp__volume__price: element
-                    };
-                    oracle_data_entry_storage::write(
-                        (
-                            future_entry.pair_id,
-                            FUTURE,
-                            future_entry.base.source,
-                            future_entry.expiration_timestamp
-                        ),
-                        PossibleEntryStorage::Future(future_entry_storage)
-                    );
-                }
+                    match entry {
+                        PossibleEntries::Spot(_) => {
+                            assert(1 == 1, 'Failed fetching future entry');
+                        },
+                        PossibleEntries::Future(future) => {
+                            validate_data_timestamp::<FutureEntry>(new_entry, future);
+                            SubmittedFutureEntry(future_entry);
+                            let element = actual_set_element_at(
+                                0, 0, 31, future_entry.base.timestamp
+                            );
+                            let element = actual_set_element_at(
+                                element, 32, 42, future_entry.volume
+                            );
+                            let element = actual_set_element_at(
+                                element, 75, 128, future_entry.price
+                            );
+                            let future_entry_storage = FutureEntryStorage {
+                                timestamp__volume__price: element
+                            };
+                            oracle_data_entry_storage::write(
+                                (
+                                    future_entry.pair_id,
+                                    FUTURE,
+                                    future_entry.base.source,
+                                    future_entry.expiration_timestamp
+                                ),
+                                element
+                            );
+                        },
+                    }
+                },
             }
             return ();
         }
         fn update_publisher_registry_address(new_publisher_registry_address: ContractAddress) {
             let old_publisher_registry_address = oracle_publisher_registry_address_storage::read();
-            oracle_publisher_registry_address_storage::write(publisher_registry_address);
+            oracle_publisher_registry_address_storage::write(new_publisher_registry_address);
             UpdatedPublisherRegistryAddress(
-                old_publisher_registry_address, publisher_registry_address
+                old_publisher_registry_address, new_publisher_registry_address
             );
             return ();
         }
@@ -674,7 +781,7 @@ mod Oracle {
 
     fn get_decimals_for_currency(currency_id: felt252, typeof: felt252) -> u32 {
         let key_currency = oracle_currencies_storage::read(currency_id);
-        if (key_currency.id.is_zero()) {
+        if (key_currency.id == 0) {
             return 0;
         }
         key_currency.decimals
@@ -721,15 +828,15 @@ mod Oracle {
             if (cur_idx >= sources.len()) {
                 break ();
             }
-            let entry = IOracle::get_data_entry(data_type, (*sources).at(cur_idx));
+            let entry: PossibleEntries = IOracle::get_data_entry(data_type, *sources.at(cur_idx));
             match entry {
-                possibleEntries::Spot(spot_entry) => {
-                    if spot_entry.timestamp > latest_timestamp {
+                PossibleEntries::Spot(spot_entry) => {
+                    if spot_entry.base.timestamp > latest_timestamp {
                         latest_timestamp = spot_entry.base.timestamp;
                     }
                 },
-                possibleEntries::Future(future_entry) => {
-                    if future_entry.timestamp > latest_timestamp {
+                PossibleEntries::Future(future_entry) => {
+                    if future_entry.base.timestamp > latest_timestamp {
                         latest_timestamp = future_entry.base.timestamp;
                     }
                 }
@@ -739,8 +846,11 @@ mod Oracle {
         return latest_timestamp;
     }
 
-    fn build_entries_array<T, impl THasBaseEntry: hasBaseEntry<T>>(
-        data_type: DataType, sources: @Array<felt252>, ref entries: Array<T>, latest_timestamp: u256
+    fn build_entries_array(
+        data_type: DataType,
+        sources: @Array<felt252>,
+        ref entries: Array<PossibleEntries>,
+        latest_timestamp: u256
     ) {
         let mut cur_idx = 0;
         loop {
@@ -748,26 +858,33 @@ mod Oracle {
                 break ();
             }
             let source = *sources.at(cur_idx);
-            let g_entry = IOracle::get_data_entry(data_type, source);
-            let entry: T = match g_entry {
-                possibleEntries::Spot(spot_entry) => {
-                    spot_entry
+            let g_entry: PossibleEntries = IOracle::get_data_entry(data_type, source);
+            match g_entry {
+                PossibleEntries::Spot(spot_entry) => {
+                    let is_entry_not_initialized: bool = spot_entry.get_base_timestamp() == 0;
+                    let condition: bool = is_entry_not_initialized
+                        & (spot_entry
+                            .get_base_timestamp() < (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
+                    if !condition {
+                        entries.append(PossibleEntries::Spot(spot_entry));
+                    }
                 },
-                possibleEntries::Future(future_entry) => {
-                    future_entry
+                PossibleEntries::Future(future_entry) => {
+                    let is_entry_not_initialized: bool = future_entry.get_base_timestamp() == 0;
+                    let condition: bool = is_entry_not_initialized
+                        & (future_entry
+                            .get_base_timestamp() < (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
+                    if !condition {
+                        entries.append(PossibleEntries::Future(future_entry));
+                    }
                 }
             };
-            let is_entry_not_initialized: bool = entry.get_base_timestamp() == 0;
-            let condition: bool = is_entry_not_initialized
-                & (entry.get_base_timestamp() < (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
-            if !condition {
-                entries.append(entry);
-            }
 
             cur_idx += 1;
         };
         return ();
     }
+
 
     fn get_checkpoint_by_index(data_type: DataType, checkpoint_index: u256) -> Checkpoint {
         let checkpoint = match data_type {
@@ -782,6 +899,7 @@ mod Oracle {
         };
         return checkpoint;
     }
+
 
     fn validate_sender_for_source<T, impl THasBaseEntry: hasBaseEntry<T>>(_entry: T) {
         let publisher_registry_address = IOracle::get_publisher_registry_address();
@@ -821,8 +939,8 @@ mod Oracle {
 
     fn get_all_entries(
         data_type: DataType, sources: @Array<felt252>, max_timestamp: u256
-    ) -> (Array<possibleEntries>, u256) {
-        let mut entries = ArrayTrait::<possibleEntries>::new();
+    ) -> (Array<PossibleEntries>, u32) {
+        let mut entries = ArrayTrait::<PossibleEntries>::new();
         if (sources.len() == 0) {
             let all_sources = get_all_sources(data_type);
             build_entries_array(data_type, @all_sources, ref entries, max_timestamp);
@@ -834,10 +952,10 @@ mod Oracle {
     }
 
     fn validate_data_timestamp<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
-        new_entry: entryDataType, last_entry: T
+        new_entry: PossibleEntries, last_entry: T
     ) {
         match new_entry {
-            entryDataType::SpotEntry(spot_entry) => {
+            PossibleEntries::Spot(spot_entry) => {
                 assert(
                     spot_entry.get_base_timestamp() > last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
@@ -855,7 +973,7 @@ mod Oracle {
                     );
                 }
             },
-            entryDataType::FutureEntry(future_entry) => {
+            PossibleEntries::Future(future_entry) => {
                 assert(
                     future_entry.get_base_timestamp() > last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
@@ -879,7 +997,7 @@ mod Oracle {
                     );
                 }
             },
-        // entryDataType::OptionEntry(option_entry) => {}
+        // PossibleEntries::OptionEntry(option_entry) => {}
         }
         return ();
     }
@@ -895,13 +1013,15 @@ mod Oracle {
     }
 
     fn _set_keys_currencies(key_currencies: @Array<Currency>, idx: usize) {
+        let mut idx = 0;
         loop {
             if (idx == key_currencies.len()) {
                 break ();
             }
+
             let key_currency = *key_currencies.at(idx);
             oracle_currencies_storage::write(key_currency.id, key_currency);
-            _set_keys_currencies(key_currencies, idx + 1);
+            idx = idx + 1;
         };
         return ();
     }
