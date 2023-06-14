@@ -54,8 +54,7 @@ mod Oracle {
         //oracle_sources_len_storage, legacyMap between (pair_id ,(SPOT/FUTURES/OPTIONS), expiration_timestamp) and the len of the sources array
         oracle_sources_len_storage: LegacyMap::<(felt252, felt252, u256), u256>,
         //oracle_data_entry_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), source, expiration_timestamp (0 for SPOT))
-        oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u256),
-        u256>,
+        oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u256), u256>,
         //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT)) asociated to a checkpoint
         oracle_checkpoints: LegacyMap::<(felt252, felt252, u256, u256), Checkpoint>,
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
@@ -400,7 +399,9 @@ mod Oracle {
             data_type: DataType, aggregation_mode: AggregationMode, sources: @Array<felt252>
         ) -> PragmaPricesResponse {
             let mut entries = ArrayTrait::<PossibleEntries>::new();
-            let (entries, entries_len, last_updated_timestamp) = IOracle::get_data_entries(data_type, sources);
+            let (entries, entries_len, last_updated_timestamp) = IOracle::get_data_entries(
+                data_type, sources
+            );
 
             if (entries.len() == 0) {
                 return PragmaPricesResponse {
@@ -415,14 +416,16 @@ mod Oracle {
                 DataType::SpotEntry(pair_id) => {
                     let price = Entry::aggregate_entries::<SpotEntry>(entries, aggregation_mode);
                     let decimals = IOracle::get_decimals(data_type);
-                    let last_updated_timestamp = Entry::aggregate_timestamps_max::<SpotEntry>(@entries);
+                    let last_updated_timestamp = Entry::aggregate_timestamps_max::<SpotEntry>(
+                        @entries
+                    );
                     return PragmaPricesResponse {
                         price: price,
                         decimals: decimals,
                         last_updated_timestamp: last_updated_timestamp,
                         num_sources_aggregated: entries.len(),
-                        expiration_timestamp: Option::Some(0), 
-                        // Should be None
+                        expiration_timestamp: Option::Some(0),
+                    // Should be None
                     };
                 },
                 DataType::FutureEntry((
@@ -430,7 +433,9 @@ mod Oracle {
                 )) => {
                     let price = Entry::aggregate_entries::<FutureEntry>(entries, aggregation_mode);
                     let decimals = IOracle::get_decimals(data_type);
-                    let last_updated_timestamp = Entry::aggregate_timestamps_max::<FutureEntry>(@entries);
+                    let last_updated_timestamp = Entry::aggregate_timestamps_max::<FutureEntry>(
+                        @entries
+                    );
                     return PragmaPricesResponse {
                         price: price,
                         decimals: decimals,
@@ -472,8 +477,8 @@ mod Oracle {
                             // Handle case where Future data type was provided without an expiration timestamp
                             assert(1 == 1, 'Requires expiration timestamp');
                             (
-                                DataType::FutureEntry((base_pair_id,0)),
-                                DataType::FutureEntry((quote_pair_id,0)),
+                                DataType::FutureEntry((base_pair_id, 0)),
+                                DataType::FutureEntry((quote_pair_id, 0)),
                                 oracle_currencies_storage::read(quote_currency_id)
                             )
                         }
@@ -521,24 +526,28 @@ mod Oracle {
             let price = actual_get_element_at(_entry, 75, 128);
             match data_type {
                 DataType::SpotEntry(pair_id) => {
-                    PossibleEntries::Spot(SpotEntry {
-                        base: BaseEntry {
-                            timestamp: timestamp, source: source, publisher: 0
-                        }, pair_id: pair_id, price: price, volume: volume
-                    })
+                    PossibleEntries::Spot(
+                        SpotEntry {
+                            base: BaseEntry {
+                                timestamp: timestamp, source: source, publisher: 0
+                            }, pair_id: pair_id, price: price, volume: volume
+                        }
+                    )
                 },
                 DataType::FutureEntry((
                     pair_id, expiration_timestamp
                 )) => {
-                    PossibleEntries::Future(FutureEntry {
-                        base: BaseEntry {
-                            timestamp: timestamp, source: source, publisher: 0
-                        },
-                        pair_id: pair_id,
-                        price: price,
-                        volume: volume,
-                        expiration_timestamp: expiration_timestamp
-                    })
+                    PossibleEntries::Future(
+                        FutureEntry {
+                            base: BaseEntry {
+                                timestamp: timestamp, source: source, publisher: 0
+                            },
+                            pair_id: pair_id,
+                            price: price,
+                            volume: volume,
+                            expiration_timestamp: expiration_timestamp
+                        }
+                    )
                 },
             }
         }
@@ -609,7 +618,7 @@ mod Oracle {
 
         fn get_data_entries(
             data_type: DataType, sources: @Array<felt252>
-        ) -> (Array<PossibleEntries>, u32,u256) {
+        ) -> (Array<PossibleEntries>, u32, u256) {
             let last_updated_timestamp = get_latest_entry_timestamp(data_type, sources);
             let current_timestamp = get_block_timestamp();
             let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
@@ -661,8 +670,7 @@ mod Oracle {
                                 timestamp__volume__price: element
                             };
                             oracle_data_entry_storage::write(
-                                (spot_entry.pair_id, SPOT, spot_entry.base.source, 0),
-                                element
+                                (spot_entry.pair_id, SPOT, spot_entry.base.source, 0), element
                             );
                         },
                         PossibleEntries::Future(_) => {

@@ -99,7 +99,7 @@ enum PossibleEntryStorage {
 enum simpleDataType {
     SpotEntry: (),
     FutureEntry: (),
-    // OptionEntry: (),
+// OptionEntry: (),
 }
 
 #[derive(Drop, Copy)]
