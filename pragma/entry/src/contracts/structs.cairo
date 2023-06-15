@@ -1,4 +1,5 @@
 use starknet::ContractAddress;
+use array::ArrayTrait;
 
 const MEDIAN: felt252 = 'MEDIAN'; // str_to_felt("MEDIAN")
 const SPOT: felt252 = 'SPOT';
@@ -109,10 +110,10 @@ enum PossibleEntries {
 // Option: OptionEntry,
 }
 
-enum entryDataType {
-    SpotEntry: SpotEntry,
-    FutureEntry: FutureEntry,
-// OptionEntry: OptionEntry,
+enum ArrayEntry {
+    SpotEntry: Array<SpotEntry>,
+    FutureEntry: Array<FutureEntry>,
+// OptionEntry: Array<OptionEntry>,
 }
 
 

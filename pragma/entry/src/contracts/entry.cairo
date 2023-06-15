@@ -3,7 +3,7 @@ mod Entry {
     use array::ArrayTrait;
     use entry::contracts::structs::{BaseEntry, AggregationMode};
     use pragma::utils::sorting::merge_sort::merge;
-    use entry::contracts::structs::SpotEntry;
+    use entry::contracts::structs::{SpotEntry, FutureEntry};
     use traits::TryInto;
     use traits::Into;
     use option::OptionTrait;
@@ -21,6 +21,14 @@ mod Entry {
             (*self).base.timestamp
         }
     }
+    impl hasBaseEntryImpl of hasBaseEntry<FutureEntry> {
+        fn get_base_entry(self: @FutureEntry) -> BaseEntry {
+            (*self).base
+        }
+        fn get_base_timestamp(self: @FutureEntry) -> u256 {
+            (*self).base.timestamp
+        }
+    }
 
     trait hasPrice<T> {
         fn get_price(self: @T) -> u256;
@@ -28,6 +36,11 @@ mod Entry {
 
     impl hasPriceImpl of hasPrice<SpotEntry> {
         fn get_price(self: @SpotEntry) -> u256 {
+            (*self).price
+        }
+    }
+    impl hasPriceImpl of hasPrice<FutureEntry> {
+        fn get_price(self: @FutureEntry) -> u256 {
             (*self).price
         }
     }
@@ -42,8 +55,7 @@ mod Entry {
     // @return value: the aggregation value
     fn aggregate_entries<
         T,
-        impl ThasPrice: hasPrice<T>,
-        impl TPartialOrd: PartialOrd<T>,
+        impl ThasPrice: hasPrice<T>, // impl TPartialOrd: PartialOrd<T>,
         impl TCopy: Copy<T>,
         impl TDrop: Drop<T>
     >(
@@ -63,8 +75,7 @@ mod Entry {
     // @return last_updated_timestamp: the latest timestamp from the array
     fn aggregate_timestamps_max<
         T,
-        impl THasBaseEntry: hasBaseEntry<T>,
-        impl TPartialOrd: PartialOrd<T>,
+        impl THasBaseEntry: hasBaseEntry<T>, // impl TPartialOrd: PartialOrd<T>,
         impl TCopy: Copy<T>,
         impl TDrop: Drop<T>
     >(
@@ -96,7 +107,7 @@ mod Entry {
     >(
         entries: Array<T>
     ) -> u256 {
-        let mut sorted_entries = ArrayTrait::<SpotEntry>::new();
+        let mut sorted_entries = ArrayTrait::<T>::new();
         sorted_entries = merge(entries);
         let entries_len = sorted_entries.len();
         assert(entries_len > 0_usize, 'entries must not be empty');
@@ -116,8 +127,8 @@ mod Entry {
     fn entries_mean<T, impl ThasPrice: hasPrice<T>>(entries: @Array<T>) -> u256 {
         let mut sum: u256 = 0.into();
         let mut index = 0_usize;
-        let entries_len = entries.len();
-        let entries_len_u256 = u256 { low: entries_len.into().try_into().unwrap(), high: 0_u128 };
+        let entries_len: u32 = entries.len();
+        let entries_len_u256 = u256 { low: entries_len.into(), high: 0_u128 };
         loop {
             if index >= entries.len() {
                 break (sum / entries_len_u256);

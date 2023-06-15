@@ -13,7 +13,7 @@ mod Oracle {
         BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
         USD_CURRENCY_ID, SPOT, FUTURE, OPTION, PossibleEntryStorage, FutureEntry, OptionEntry,
         simpleDataType, entryDataType, SpotEntryStorage, FutureEntryStorage, AggregationMode,
-        PossibleEntries, baseEntry
+        PossibleEntries, baseEntry, ArrayEntry
     };
 
     use oracle::business_logic::oracleInterface::IOracle;
@@ -402,7 +402,6 @@ mod Oracle {
             let (entries, entries_len, last_updated_timestamp) = IOracle::get_data_entries(
                 data_type, sources
             );
-
             if (entries.len() == 0) {
                 return PragmaPricesResponse {
                     price: 0,
@@ -412,37 +411,73 @@ mod Oracle {
                     expiration_timestamp: Option::Some(0),
                 };
             }
+            let filtered_entries: ArrayEntry = filter_data_array(data_type, entries);
+
             match data_type {
                 DataType::SpotEntry(pair_id) => {
-                    let price = Entry::aggregate_entries::<SpotEntry>(entries, aggregation_mode);
-                    let decimals = IOracle::get_decimals(data_type);
-                    let last_updated_timestamp = Entry::aggregate_timestamps_max::<SpotEntry>(
-                        @entries
-                    );
-                    return PragmaPricesResponse {
-                        price: price,
-                        decimals: decimals,
-                        last_updated_timestamp: last_updated_timestamp,
-                        num_sources_aggregated: entries.len(),
-                        expiration_timestamp: Option::Some(0),
-                    // Should be None
-                    };
+                    match filtered_entries {
+                        ArrayEntry::SpotEntry(array_spot) => {
+                            let price = Entry::aggregate_entries::<SpotEntry>(
+                                array_spot, aggregation_mode
+                            );
+                            let decimals = IOracle::get_decimals(data_type);
+                            let last_updated_timestamp =
+                                Entry::aggregate_timestamps_max::<SpotEntry>(
+                                @array_spot
+                            );
+                            return PragmaPricesResponse {
+                                price: price,
+                                decimals: decimals,
+                                last_updated_timestamp: last_updated_timestamp,
+                                num_sources_aggregated: entries.len(),
+                                expiration_timestamp: Option::Some(0),
+                            // Should be None
+                            };
+                        },
+                        ArrayEntry::FutureEntry(_) => {
+                            assert(1 == 1, 'Wrong data type');
+                            return PragmaPricesResponse {
+                                price: 0,
+                                decimals: 0,
+                                last_updated_timestamp: 0,
+                                num_sources_aggregated: 0,
+                                expiration_timestamp: Option::Some(0),
+                            };
+                        },
+                    }
                 },
                 DataType::FutureEntry((
                     pair_id, expiration_timestamp
                 )) => {
-                    let price = Entry::aggregate_entries::<FutureEntry>(entries, aggregation_mode);
-                    let decimals = IOracle::get_decimals(data_type);
-                    let last_updated_timestamp = Entry::aggregate_timestamps_max::<FutureEntry>(
-                        @entries
-                    );
-                    return PragmaPricesResponse {
-                        price: price,
-                        decimals: decimals,
-                        last_updated_timestamp: last_updated_timestamp,
-                        num_sources_aggregated: entries.len(),
-                        expiration_timestamp: Option::Some(expiration_timestamp)
-                    };
+                    match filtered_entries {
+                        ArrayEntry::FutureEntry(array_future) => {
+                            let price = Entry::aggregate_entries::<FutureEntry>(
+                                array_future, aggregation_mode
+                            );
+                            let decimals = IOracle::get_decimals(data_type);
+                            let last_updated_timestamp =
+                                Entry::aggregate_timestamps_max::<FutureEntry>(
+                                @array_future
+                            );
+                            return PragmaPricesResponse {
+                                price: price,
+                                decimals: decimals,
+                                last_updated_timestamp: last_updated_timestamp,
+                                num_sources_aggregated: entries.len(),
+                                expiration_timestamp: Option::Some(expiration_timestamp)
+                            };
+                        },
+                        ArrayEntry::SpotEntry(_) => {
+                            assert(1 == 1, 'Wrong data type');
+                            return PragmaPricesResponse {
+                                price: 0,
+                                decimals: 0,
+                                last_updated_timestamp: 0,
+                                num_sources_aggregated: 0,
+                                expiration_timestamp: Option::Some(0),
+                            };
+                        },
+                    }
                 }
             }
         }
@@ -959,6 +994,52 @@ mod Oracle {
         }
     }
 
+    fn filter_data_array(data_type: DataType, data: Array<PossibleEntries>) -> ArrayEntry {
+        match data_type {
+            DataType::SpotEntry(pair_id) => {
+                let mut cur_idx = 0;
+                let mut spot_entries = ArrayTrait::<SpotEntry>::new();
+                loop {
+                    if (cur_idx >= data.len()) {
+                        break ();
+                    }
+                    let entry = *data.at(cur_idx);
+                    match entry {
+                        PossibleEntries::Spot(spot_entry) => {
+                            spot_entries.append(spot_entry);
+                        },
+                        PossibleEntries::Future(_) => {
+                            assert(false, 'Invalid entry type');
+                        }
+                    }
+                    cur_idx = cur_idx + 1;
+                };
+                ArrayEntry::SpotEntry(spot_entries)
+            },
+            DataType::FutureEntry((
+                pair_id, expiration_timestamp
+            )) => {
+                let mut cur_idx = 0;
+                let mut future_entries = ArrayTrait::<FutureEntry>::new();
+                loop {
+                    if (cur_idx >= data.len()) {
+                        break ();
+                    }
+                    let entry = *data.at(cur_idx);
+                    match entry {
+                        PossibleEntries::Spot(_) => {
+                            assert(false, 'Invalid entry type');
+                        },
+                        PossibleEntries::Future(future_entry) => {
+                            future_entries.append(future_entry);
+                        }
+                    }
+                    cur_idx = cur_idx + 1;
+                };
+                ArrayEntry::FutureEntry(future_entries)
+            }
+        }
+    }
     fn validate_data_timestamp<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
         new_entry: PossibleEntries, last_entry: T
     ) {
