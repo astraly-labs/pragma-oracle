@@ -97,6 +97,7 @@ enum PossibleEntryStorage {
 // Option: OptionEntryStorage, //structure OptionEntryStorage
 }
 
+#[derive(Drop, Copy)]
 enum simpleDataType {
     SpotEntry: (),
     FutureEntry: (),
