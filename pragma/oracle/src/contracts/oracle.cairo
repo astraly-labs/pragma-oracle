@@ -1,7 +1,6 @@
 #[contract]
 mod Oracle {
     use starknet::get_caller_address;
-    use starknet::ContractAddress;
     use zeroable::Zeroable;
     use cmp::{max, min};
     use entry::contracts::entry::Entry;
@@ -9,11 +8,12 @@ mod Oracle {
     use array::ArrayTrait;
     use traits::Into;
     use traits::TryInto;
+    use result::{ResultTrait, ResultTraitImpl};
     use entry::contracts::structs::{
         BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
         USD_CURRENCY_ID, SPOT, FUTURE, OPTION, PossibleEntryStorage, FutureEntry, OptionEntry,
-        simpleDataType, entryDataType, SpotEntryStorage, FutureEntryStorage, AggregationMode,
-        PossibleEntries, baseEntry, ArrayEntry
+        simpleDataType, SpotEntryStorage, FutureEntryStorage, AggregationMode, PossibleEntries,
+        ArrayEntry
     };
 
     use oracle::business_logic::oracleInterface::IOracle;
@@ -26,14 +26,12 @@ mod Oracle {
     use serde::Serde;
     use serde::deserialize_array_helper;
     use serde::serialize_array_helper;
+    use starknet::{StorageAccess, StorageBaseAddress, SyscallResult};
     use starknet::{
-        SyscallResult,
-        storage_access::{
-            StorageAccess, StorageBaseAddress, storage_address_from_base_and_offset,
-            storage_write_syscall, storage_read_syscall
-        }
+        storage_read_syscall, storage_write_syscall, storage_address_from_base_and_offset,
+        storage_access::storage_base_address_from_felt252
     };
-
+    use starknet::{ContractAddress, Felt252TryIntoContractAddress};
     const BACKWARD_TIMESTAMP_BUFFER: u256 = 7800; // 2 hours and 10 minutes
 
     //Structure
@@ -160,27 +158,47 @@ mod Oracle {
         }
     }
 
+    impl AggregationModeIntoU8 of Into<AggregationMode, u8> {
+        fn into(self: AggregationMode) -> u8 {
+            match self {
+                AggregationMode::Median(()) => 0, 
+            }
+        }
+    }
     impl CheckpointStorageAccess of StorageAccess<Checkpoint> {
         fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<Checkpoint> {
+            let timestamp_base = storage_base_address_from_felt252(
+                storage_address_from_base_and_offset(base, 0_u8).into()
+            );
+            let timestamp = u256 {
+                low: StorageAccess::<u128>::read(address_domain, timestamp_base)?,
+                high: storage_read_syscall(
+                    address_domain, storage_address_from_base_and_offset(timestamp_base, 1_u8)
+                )?
+                    .try_into()
+                    .expect('StorageAccessU256 - non u256')
+            };
+            let value_base = storage_base_address_from_felt252(
+                storage_address_from_base_and_offset(base, 2_u8).into()
+            );
+            let value = u256 {
+                low: StorageAccess::<u128>::read(address_domain, value_base)?,
+                high: storage_read_syscall(
+                    address_domain, storage_address_from_base_and_offset(value_base, 3_u8)
+                )?
+                    .try_into()
+                    .expect('StorageAccessU256 - non u256')
+            };
             Result::Ok(
                 Checkpoint {
-                    timestamp: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 0_u8)
-                    )?
-                        .try_into()
-                        .unwrap(),
-                    value: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 1_u8)
-                    )?
-                        .try_into()
-                        .unwrap(),
+                    timestamp: timestamp,
+                    value: value,
                     aggregation_mode: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 2_u8)
-                    )?
-                        .try_into()
-                        .unwrap(),
+                        address_domain, storage_address_from_base_and_offset(base, 4_u8)
+                    )
+                        .into(),
                     num_sources_aggregated: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 3_u8)
+                        address_domain, storage_address_from_base_and_offset(base, 5_u8)
                     )?
                         .try_into()
                         .unwrap(),
@@ -191,15 +209,23 @@ mod Oracle {
         fn write(
             address_domain: u32, base: StorageBaseAddress, value: Checkpoint
         ) -> SyscallResult<()> {
+            let timestamp_base = storage_base_address_from_felt252(
+                storage_address_from_base_and_offset(base, 0_u8).into()
+            );
+            StorageAccess::write(address_domain, timestamp_base, value.timestamp.low)?;
             storage_write_syscall(
                 address_domain,
-                storage_address_from_base_and_offset(base, 0_u8),
-                value.timestamp.into(),
+                storage_address_from_base_and_offset(timestamp_base, 1_u8),
+                value.timestamp.high.into()
             )?;
+            let value_base = storage_base_address_from_felt252(
+                storage_address_from_base_and_offset(base, 2_u8).into()
+            );
+            StorageAccess::write(address_domain, value_base, value.value.low)?;
             storage_write_syscall(
                 address_domain,
-                storage_address_from_base_and_offset(base, 1_u8),
-                value.value.into(),
+                storage_address_from_base_and_offset(value_base, 3_u8),
+                value.value.high.into()
             )?;
             storage_write_syscall(
                 address_domain,
@@ -216,6 +242,12 @@ mod Oracle {
 
     impl CurrencyStorageAccess of StorageAccess<Currency> {
         fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<Currency> {
+            let mut starknet_address_value = storage_read_syscall(
+                address_domain, storage_address_from_base_and_offset(base, 3_u8)
+            );
+            let mut ethereum_address_value = storage_read_syscall(
+                address_domain, storage_address_from_base_and_offset(base, 4_u8)
+            );
             Result::Ok(
                 Currency {
                     id: storage_read_syscall(
@@ -229,16 +261,14 @@ mod Oracle {
                     is_abstract_currency: storage_read_syscall(
                         address_domain, storage_address_from_base_and_offset(base, 2_u8)
                     )?,
-                    starknet_address: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 3_u8)
-                    )?
+                    starknet_address: starknet_address_value
+                        .unwrap()
                         .try_into()
-                        .unwrap(),
-                    ethereum_address: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 4_u8)
-                    )?
+                        .expect('Invalid starknet address'),
+                    ethereum_address: ethereum_address_value
+                        .unwrap()
                         .try_into()
-                        .unwrap(),
+                        .expect('Invalid ethereum address'),
                 }
             )
         }
@@ -271,49 +301,49 @@ mod Oracle {
             )
         }
     }
-    impl PossibleEntryStorageStorageAccess of StorageAccess<PossibleEntryStorage> {
-        fn read(
-            address_domain: u32, base: StorageBaseAddress
-        ) -> SyscallResult<PossibleEntryStorage> {
-            Result::Ok(
-                PossibleEntryStorage {
-                    Spot: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 0_u8)
-                    )?
-                        .try_into()
-                        .unwrap(),
-                    Future: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 1_u8)
-                    )?
-                        .try_into()
-                        .unwrap(),
-                // Option: storage_read_syscall(
-                //     address_domain, storage_address_from_base_and_offset(base, 2_u8)
-                // )?
-                //     .try_into()
-                //     .unwrap(),
-                }
-            )
-        }
-        #[inline(always)]
-        fn write(
-            address_domain: u32, base: StorageBaseAddress, value: PossibleEntryStorage
-        ) -> SyscallResult<()> {
-            storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 0_u8), value.Spot.into(), 
-            )?;
-            storage_write_syscall(
-                address_domain,
-                storage_address_from_base_and_offset(base, 1_u8),
-                value.Future.into(),
-            )?;
-        // storage_write_syscall(
-        //     address_domain,
-        //     storage_address_from_base_and_offset(base, 2_u8),
-        //     value.Option.into(),
-        // )
-        }
-    }
+    // impl PossibleEntryStorageStorageAccess of StorageAccess<PossibleEntryStorage> {
+    //     fn read(
+    //         address_domain: u32, base: StorageBaseAddress
+    //     ) -> SyscallResult<PossibleEntryStorage> {
+    //         Result::Ok(
+    //             PossibleEntryStorage {
+    //                 Spot: storage_read_syscall(
+    //                     address_domain, storage_address_from_base_and_offset(base, 0_u8)
+    //                 )?
+    //                     .try_into()
+    //                     .unwrap(),
+    //                 Future: storage_read_syscall(
+    //                     address_domain, storage_address_from_base_and_offset(base, 1_u8)
+    //                 )?
+    //                     .try_into()
+    //                     .unwrap(),
+    //             // Option: storage_read_syscall(
+    //             //     address_domain, storage_address_from_base_and_offset(base, 2_u8)
+    //             // )?
+    //             //     .try_into()
+    //             //     .unwrap(),
+    //             }
+    //         )
+    //     }
+    //     #[inline(always)]
+    //     fn write(
+    //         address_domain: u32, base: StorageBaseAddress, value: PossibleEntryStorage
+    //     ) -> SyscallResult<()> {
+    //         storage_write_syscall(
+    //             address_domain, storage_address_from_base_and_offset(base, 0_u8), value.Spot.into(), 
+    //         )?;
+    //         storage_write_syscall(
+    //             address_domain,
+    //             storage_address_from_base_and_offset(base, 1_u8),
+    //             value.Future.into(),
+    //         )?;
+    //     // storage_write_syscall(
+    //     //     address_domain,
+    //     //     storage_address_from_base_and_offset(base, 2_u8),
+    //     //     value.Option.into(),
+    //     // )
+    //     }
+    // }
 
     // impl HasExpirationTimestamp of SpotEntry {
     //     fn has_expiration_timestamp(self: @T) -> bool {
@@ -402,7 +432,7 @@ mod Oracle {
             let (entries, entries_len, last_updated_timestamp) = IOracle::get_data_entries(
                 data_type, sources
             );
-            if (entries.len() == 0) {
+            if (entries_len == 0) {
                 return PragmaPricesResponse {
                     price: 0,
                     decimals: 0,
@@ -418,7 +448,7 @@ mod Oracle {
                     match filtered_entries {
                         ArrayEntry::SpotEntry(array_spot) => {
                             let price = Entry::aggregate_entries::<SpotEntry>(
-                                array_spot, aggregation_mode
+                                @array_spot, aggregation_mode
                             );
                             let decimals = IOracle::get_decimals(data_type);
                             let last_updated_timestamp =
@@ -450,9 +480,19 @@ mod Oracle {
                     pair_id, expiration_timestamp
                 )) => {
                     match filtered_entries {
+                        ArrayEntry::SpotEntry(_) => {
+                            assert(1 == 1, 'Wrong data type');
+                            return PragmaPricesResponse {
+                                price: 0,
+                                decimals: 0,
+                                last_updated_timestamp: 0,
+                                num_sources_aggregated: 0,
+                                expiration_timestamp: Option::Some(0),
+                            };
+                        },
                         ArrayEntry::FutureEntry(array_future) => {
                             let price = Entry::aggregate_entries::<FutureEntry>(
-                                array_future, aggregation_mode
+                                @array_future, aggregation_mode
                             );
                             let decimals = IOracle::get_decimals(data_type);
                             let last_updated_timestamp =
@@ -465,16 +505,6 @@ mod Oracle {
                                 last_updated_timestamp: last_updated_timestamp,
                                 num_sources_aggregated: entries.len(),
                                 expiration_timestamp: Option::Some(expiration_timestamp)
-                            };
-                        },
-                        ArrayEntry::SpotEntry(_) => {
-                            assert(1 == 1, 'Wrong data type');
-                            return PragmaPricesResponse {
-                                price: 0,
-                                decimals: 0,
-                                last_updated_timestamp: 0,
-                                num_sources_aggregated: 0,
-                                expiration_timestamp: Option::Some(0),
                             };
                         },
                     }
@@ -653,14 +683,14 @@ mod Oracle {
 
         fn get_data_entries(
             data_type: DataType, sources: @Array<felt252>
-        ) -> (Array<PossibleEntries>, u32, u256) {
+        ) -> (@Array<PossibleEntries>, u32, u256) {
             let last_updated_timestamp = get_latest_entry_timestamp(data_type, sources);
             let current_timestamp = get_block_timestamp();
             let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
             let (entries, entries_len) = get_all_entries(
                 data_type, sources, conservative_current_timestamp
             );
-            return (entries, entries_len, last_updated_timestamp);
+            return (@entries, entries_len, last_updated_timestamp);
         }
 
 
@@ -994,7 +1024,7 @@ mod Oracle {
         }
     }
 
-    fn filter_data_array(data_type: DataType, data: Array<PossibleEntries>) -> ArrayEntry {
+    fn filter_data_array(data_type: DataType, data: @Array<PossibleEntries>) -> ArrayEntry {
         match data_type {
             DataType::SpotEntry(pair_id) => {
                 let mut cur_idx = 0;

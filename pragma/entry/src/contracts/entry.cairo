@@ -13,7 +13,7 @@ mod Entry {
         fn get_base_timestamp(self: @T) -> u256;
     }
 
-    impl hasBaseEntryImpl of hasBaseEntry<SpotEntry> {
+    impl ShasBaseEntryImpl of hasBaseEntry<SpotEntry> {
         fn get_base_entry(self: @SpotEntry) -> BaseEntry {
             (*self).base
         }
@@ -21,7 +21,7 @@ mod Entry {
             (*self).base.timestamp
         }
     }
-    impl hasBaseEntryImpl of hasBaseEntry<FutureEntry> {
+    impl FhasBaseEntryImpl of hasBaseEntry<FutureEntry> {
         fn get_base_entry(self: @FutureEntry) -> BaseEntry {
             (*self).base
         }
@@ -34,12 +34,12 @@ mod Entry {
         fn get_price(self: @T) -> u256;
     }
 
-    impl hasPriceImpl of hasPrice<SpotEntry> {
+    impl ShasPriceImpl of hasPrice<SpotEntry> {
         fn get_price(self: @SpotEntry) -> u256 {
             (*self).price
         }
     }
-    impl hasPriceImpl of hasPrice<FutureEntry> {
+    impl FhasPriceImpl of hasPrice<FutureEntry> {
         fn get_price(self: @FutureEntry) -> u256 {
             (*self).price
         }
@@ -59,11 +59,11 @@ mod Entry {
         impl TCopy: Copy<T>,
         impl TDrop: Drop<T>
     >(
-        entries: Array<T>, aggregation_mode: AggregationMode
+        entries: @Array<T>, aggregation_mode: AggregationMode
     ) -> u256 {
         match aggregation_mode {
             AggregationMode::Median(()) => {
-                let value = entries_median(entries);
+                let value: u256 = entries_median(entries);
                 value
             }
         }
@@ -98,14 +98,8 @@ mod Entry {
     // @param entries: pointer to first Entry in array
     // @return value: the median value from the array of entries
 
-    fn entries_median<
-        T,
-        impl ThasPrice: hasPrice<T>,
-        impl TPartialOrd: PartialOrd<T>,
-        impl TCopy: Copy<T>,
-        impl TDrop: Drop<T>
-    >(
-        entries: Array<T>
+    fn entries_median<T, impl ThasPrice: hasPrice<T>, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
+        entries: @Array<T>
     ) -> u256 {
         let mut sorted_entries = ArrayTrait::<T>::new();
         sorted_entries = merge(entries);
@@ -124,7 +118,9 @@ mod Entry {
             (median_entry_1 + median_entry_2) / (2.into())
         }
     }
-    fn entries_mean<T, impl ThasPrice: hasPrice<T>>(entries: @Array<T>) -> u256 {
+    fn entries_mean<T, impl ThasPrice: hasPrice<T>, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
+        entries: @Array<T>
+    ) -> u256 {
         let mut sum: u256 = 0.into();
         let mut index = 0_usize;
         let entries_len: u32 = entries.len();
@@ -133,7 +129,7 @@ mod Entry {
             if index >= entries.len() {
                 break (sum / entries_len_u256);
             }
-            sum = sum + (*entries[index]).get_price();
+            sum = sum + (*entries.at(index)).get_price();
             index = index + 1;
         }
     }

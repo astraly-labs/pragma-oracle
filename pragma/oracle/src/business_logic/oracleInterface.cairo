@@ -1,6 +1,6 @@
 use entry::contracts::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
-    simpleDataType, AggregationMode, entryDataType, PossibleEntries
+    simpleDataType, AggregationMode, PossibleEntries
 };
 use array::ArrayTrait;
 use starknet::ContractAddress;
@@ -28,7 +28,7 @@ trait IOracle {
     ) -> Array<PragmaPricesResponse>;
     fn get_data_entries(
         data_type: DataType, sources: @Array<felt252>
-    ) -> (Array<PossibleEntries>, u32, u256);
+    ) -> (@Array<PossibleEntries>, u32, u256);
     fn get_last_checkpoint_before(timestamp: u256, data_type: DataType) -> (Checkpoint, u256);
     fn get_data_with_USD_hop(
         base_currency_id: felt252,

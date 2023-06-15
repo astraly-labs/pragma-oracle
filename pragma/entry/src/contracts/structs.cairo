@@ -110,6 +110,7 @@ enum PossibleEntries {
 // Option: OptionEntry,
 }
 
+
 enum ArrayEntry {
     SpotEntry: Array<SpotEntry>,
     FutureEntry: Array<FutureEntry>,
