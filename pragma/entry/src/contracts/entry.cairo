@@ -63,7 +63,7 @@ mod Entry {
     ) -> u256 {
         match aggregation_mode {
             AggregationMode::Median(()) => {
-                let value: u256 = entries_median(entries);
+                let value :u256 = entries_median(entries);
                 value
             }
         }
@@ -98,7 +98,12 @@ mod Entry {
     // @param entries: pointer to first Entry in array
     // @return value: the median value from the array of entries
 
-    fn entries_median<T, impl ThasPrice: hasPrice<T>, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
+    fn entries_median<
+        T,
+        impl ThasPrice: hasPrice<T>,
+        impl TCopy: Copy<T>,
+        impl TDrop: Drop<T>
+    >(
         entries: @Array<T>
     ) -> u256 {
         let mut sorted_entries = ArrayTrait::<T>::new();
@@ -118,9 +123,7 @@ mod Entry {
             (median_entry_1 + median_entry_2) / (2.into())
         }
     }
-    fn entries_mean<T, impl ThasPrice: hasPrice<T>, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
-        entries: @Array<T>
-    ) -> u256 {
+    fn entries_mean<T, impl ThasPrice: hasPrice<T>, impl TCopy: Copy<T>, impl TDrop : Drop<T>>(entries: @Array<T>) -> u256 {
         let mut sum: u256 = 0.into();
         let mut index = 0_usize;
         let entries_len: u32 = entries.len();

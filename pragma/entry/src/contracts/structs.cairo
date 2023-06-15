@@ -141,7 +141,7 @@ struct Checkpoint {
     aggregation_mode: AggregationMode,
     num_sources_aggregated: u32,
 }
-
+#[derive(Serde, Drop, Copy)]
 struct PragmaPricesResponse {
     price: u256,
     decimals: u32,
