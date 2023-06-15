@@ -686,7 +686,7 @@ mod Oracle {
             data_type: DataType, sources: @Array<felt252>
         ) -> (@Array<PossibleEntries>, u32, u256) {
             let last_updated_timestamp = get_latest_entry_timestamp(data_type, sources);
-            let current_timestamp : u256 = u256 { low: get_block_timestamp().into(), high: 0 };
+            let current_timestamp: u256 = u256 { low: get_block_timestamp().into(), high: 0 };
             let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
             let (entries, entries_len) = get_all_entries(
                 data_type, sources, conservative_current_timestamp
@@ -814,7 +814,7 @@ mod Oracle {
             let priceResponse = IOracle::get_data(data_type, aggregation_mode, @sources);
             let sources_threshold = oracle_sources_threshold_storage::read();
             let cur_checkpoint = IOracle::get_latest_checkpoint(data_type, aggregation_mode);
-            let timestamp : u256 = u256 { low: get_block_timestamp().into(), high: 0 };
+            let timestamp: u256 = u256 { low: get_block_timestamp().into(), high: 0 };
             if (sources_threshold < priceResponse.num_sources_aggregated
                 & (cur_checkpoint.timestamp + 1) < timestamp) {
                 let new_checkpoint = Checkpoint {
