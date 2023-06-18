@@ -2,7 +2,7 @@
 mod Entry {
     use array::ArrayTrait;
     use entry::contracts::structs::{BaseEntry, AggregationMode};
-    use pragma::utils::sorting::merge_sort::merge;
+    use utils::sorting::merge_sort::mergeSort;
     use entry::contracts::structs::{SpotEntry, FutureEntry};
     use traits::TryInto;
     use traits::Into;
@@ -102,7 +102,7 @@ mod Entry {
         entries: @Array<T>
     ) -> u256 {
         let mut sorted_entries = ArrayTrait::<T>::new();
-        sorted_entries = merge(entries);
+        sorted_entries = mergeSort::merge(entries);
         let entries_len = sorted_entries.len();
         assert(entries_len > 0_usize, 'entries must not be empty');
         let is_even = 1 - entries_len % 2_usize;

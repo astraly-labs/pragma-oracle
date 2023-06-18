@@ -11,3 +11,4 @@ summary_stats = { path = "summary_stats" }
 oracle = { path = "oracle" }
 entry = { path = "entry" }
 alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria.git" }
+upgradeable = { path = "upgradeable"}

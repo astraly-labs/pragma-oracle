@@ -9,7 +9,6 @@ trait IPragmaOracle {
     /// # Arguments
     ///
     /// * `aggregation_mode` - Aggregation mode to use for the price
-    /// * `expiry_timestamp` - Expiry timestamp if applicable (Futures)
     /// * `data_type` - Type of the data to get
     ///
     /// # Returns
@@ -18,9 +17,7 @@ trait IPragmaOracle {
     /// * `decimals` - Number of decimals of the price
     /// * `last_updated_timestamp` - Timestamp of the most recent update, UTC epoch
     /// * `num_sources_aggregated` - Number of sources aggregated into this price
-    fn get_data(
-        expiry_timestamp: Option::<felt252>, data_type: DataType, aggregation_mode: felt252
-    ) -> PragmaPricesResponse;
+    fn get_data(data_type: DataType, aggregation_mode: felt252) -> PragmaPricesResponse;
     /// Get a specific data entry e.g spot, future, generic
     /// 
     /// # Arguments
@@ -32,9 +29,7 @@ trait IPragmaOracle {
     /// # Returns
     ///
     /// * `T` - Data entry
-    fn get_data_entry<T>(
-        source: felt252, data_type: DataType, expiration_timestamp: Option::<felt252>
-    ) -> T;
+    fn get_data_entry<T>(source: felt252, data_type: DataType) -> T;
     /// Get the median of some data e.g spot, future, generic
     ///
     /// # Arguments
@@ -45,10 +40,8 @@ trait IPragmaOracle {
     /// # Returns
     ///
     /// * `price` - Median price of the pair
-    fn get_data_median(
-        data_type: DataType, expiration_timestamp: Option::<felt252>
-    ) -> PragmaPricesResponse;
-    ///Get the data entries for a specific data type given sources 
+    fn get_data_median(data_type: DataType, ) -> PragmaPricesResponse;
+    ///Get the data entries for a specific data type for given sources
     ///
     /// # Arguments
     ///
@@ -59,10 +52,10 @@ trait IPragmaOracle {
     /// # Returns
     ///
     /// * `Array::<T>` - Array of data entries
-    fn get_data_entries<T>(
+    fn get_data_entries_for_sources<T>(
         expiration_timestamp: Option::<felt252>, data_type: DataType, sources: @Array<felt252>
-    ) -> Array::<T>; //TODO: need to return the data for all the sources (cf get_data_entries_for_sources)
-    ///Get the data entries for a specific data type given sources 
+    ) -> Array::<T>;
+    ///Get the data entries for a specific data type for all the sources
     ///
     /// # Arguments
     ///
@@ -73,9 +66,7 @@ trait IPragmaOracle {
     /// # Returns
     ///
     /// * `Array::<T>` - Array of data entries
-    fn get_data_entries_for_sources<T>(
-        expiration_timestamp: Option::<felt252>, data_type: DataType, aggregation_mode: felt252
-    ) -> Array::<T>;
+    fn get_data_entries<T>(data_type: DataType, aggregation_mode: felt252) -> Array::<T>;
     /// Get the number of decimals of some data e.g spot, future, generic
     /// # Arguments
     ///

@@ -1,7 +1,7 @@
 [project]
 protostar-version = "0.13.0"
 lib-path = "lib"
-linked-libraries = ["account", "introspection", "admin", "publisher_registry","entry", "oracle", "summary_stats"]
+linked-libraries = ["account", "introspection", "admin", "publisher_registry","entry", "oracle", "summary_stats", "upgradeable"]
 
 [contracts]
 account = ["account/src"]
@@ -11,3 +11,4 @@ publisher_registry = ["publisher_registry/src"]
 entry = ["entry/src"]
 oracle = ["oracle/src"]
 summary_stats = ["summary_stats/src"]
+upgradeable=["upgradeable/src"]

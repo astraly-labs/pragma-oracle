@@ -6,3 +6,5 @@ version = "0.1.0"
 entry = { path = "../entry"}
 publisher_registry = { path = "../publisher_registry" }
 alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria.git" }
+upgradeable = { path = "../upgradeable"}
+ 

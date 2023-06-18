@@ -40,7 +40,7 @@ trait IOracle {
     fn get_publisher_registry_address() -> ContractAddress;
     fn get_latest_checkpoint_index(data_type: DataType, aggregation_mode: AggregationMode) -> u256;
     fn get_latest_checkpoint(data_type: DataType, aggregation_mode: AggregationMode) -> Checkpoint;
-    fn get_checkpoints(data_type: DataType, index: felt252) -> Checkpoint;
+    fn get_checkpoint(data_type: DataType, index: felt252) -> Checkpoint;
     fn get_sources_threshold() -> u32;
     fn get_admin_address() -> ContractAddress;
 
@@ -56,5 +56,6 @@ trait IOracle {
     fn update_currency(currency: Currency, typeof: felt252);
     fn add_pair(pair: Pair);
     fn set_checkpoint(data_type: DataType, aggregation_mode: AggregationMode);
+    fn set_checkpoints(data_types: Array<DataType>, aggregation_mode: AggregationMode);
     fn set_sources_threshold(threshold: u32);
 }
