@@ -443,7 +443,7 @@ mod Oracle {
                     expiration_timestamp: Option::Some(0),
                 };
             }
-            let filtered_entries: ArrayEntry = filter_data_array(data_type, entries);
+            let filtered_entries: ArrayEntry = filter_data_array(data_type, @entries);
 
             match data_type {
                 DataType::SpotEntry(pair_id) => {
@@ -685,14 +685,14 @@ mod Oracle {
 
         fn get_data_entries(
             data_type: DataType, sources: @Array<felt252>
-        ) -> (@Array<PossibleEntries>, u32, u256) {
+        ) -> (Array<PossibleEntries>, u32, u256) {
             let last_updated_timestamp = get_latest_entry_timestamp(data_type, sources);
             let current_timestamp: u256 = u256 { low: get_block_timestamp().into(), high: 0 };
             let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
             let (entries, entries_len) = get_all_entries(
                 data_type, sources, conservative_current_timestamp
             );
-            return (@entries, entries_len, last_updated_timestamp);
+            return (entries, entries_len, last_updated_timestamp);
         }
 
 

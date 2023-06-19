@@ -33,7 +33,7 @@ fn initializer(
 #[view]
 fn get_data_entries_for_sources(
     data_type: DataType, sources: @Array<felt252>
-) -> @Array<PossibleEntries> {
+) -> Array<PossibleEntries> {
     let (entries, _, _) = IOracle::get_data_entries(data_type, sources);
     entries
 }
