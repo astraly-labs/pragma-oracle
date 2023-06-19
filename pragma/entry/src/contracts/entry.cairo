@@ -2,7 +2,7 @@
 mod Entry {
     use array::ArrayTrait;
     use entry::contracts::structs::{BaseEntry, AggregationMode};
-    use utils::sorting::merge_sort::mergeSort;
+    use pragma::sorting::merge_sort::mergeSortImpl;
     use entry::contracts::structs::{SpotEntry, FutureEntry};
     use traits::TryInto;
     use traits::Into;
