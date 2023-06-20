@@ -162,7 +162,7 @@ mod Oracle {
     impl AggregationModeIntoU8 of Into<AggregationMode, u8> {
         fn into(self: AggregationMode) -> u8 {
             match self {
-                AggregationMode::Median(()) => 0_u8, 
+                AggregationMode::Median(()) => 0_u8,
                 AggregationMode::Error(()) => 150_u8,
             }
         }
@@ -171,13 +171,11 @@ mod Oracle {
     fn u8_into_AggregationMode(value: u8) -> AggregationMode {
         if value == 0_u8 {
             return AggregationMode::Median(());
-        } else { 
-            return AggregationMode::Error(()); 
+        } else {
+            return AggregationMode::Error(());
         }
-        
     }
 
-   
 
     impl CheckpointStorageAccess of StorageAccess<Checkpoint> {
         fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<Checkpoint> {
@@ -203,10 +201,16 @@ mod Oracle {
                     .try_into()
                     .expect('StorageAccessU256 - non u256')
             };
-            let u8_aggregation_mode : u8 = StorageAccess::<felt252>::read(address_domain,storage_base_address_from_felt252(
-                storage_address_from_base_and_offset(base, 4_u8).into()))?.try_into().unwrap();
-            
-            let aggregation_mode : AggregationMode = u8_into_AggregationMode(u8_aggregation_mode);
+            let u8_aggregation_mode: u8 = StorageAccess::<felt252>::read(
+                address_domain,
+                storage_base_address_from_felt252(
+                    storage_address_from_base_and_offset(base, 4_u8).into()
+                )
+            )?
+                .try_into()
+                .unwrap();
+
+            let aggregation_mode: AggregationMode = u8_into_AggregationMode(u8_aggregation_mode);
             Result::Ok(
                 Checkpoint {
                     timestamp: timestamp,
@@ -242,8 +246,8 @@ mod Oracle {
                 storage_address_from_base_and_offset(value_base, 3_u8),
                 value.value.high.into()
             )?;
-            
-            let aggregation_mode_u8 : u8 = value.aggregation_mode.into();
+
+            let aggregation_mode_u8: u8 = value.aggregation_mode.into();
             storage_write_syscall(
                 address_domain,
                 storage_address_from_base_and_offset(base, 4_u8),
