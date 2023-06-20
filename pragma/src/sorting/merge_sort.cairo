@@ -1,17 +1,22 @@
 use array::ArrayTrait;
-
+use entry::contracts::structs::{SpotEntry, FutureEntry};
 
 //
 //Traits
 //
 
-trait EntryTrait<T> {
-    fn value(self: @T) -> felt252;
+trait HasPrice<T> {
+    fn get_price(self: @T) -> u256;
 }
 
-impl EntryImpl<T, impl EntryTrait<T>> of EntryTrait<T> {
-    fn value(self: @T) -> felt252 {
-        (*self).value
+impl SHasPriceImpl of HasPrice<SpotEntry> {
+    fn get_price(self: @SpotEntry) -> u256 {
+        (*self).price
+    }
+}
+impl FHasPriceImpl of HasPrice<FutureEntry> {
+    fn get_price(self: @FutureEntry) -> u256 {
+        (*self).price
     }
 }
 
@@ -21,21 +26,28 @@ impl EntryImpl<T, impl EntryTrait<T>> of EntryTrait<T> {
 /// * `arr` - Array to sort
 /// # Returns
 /// * `Array<T>` - Sorted array
-fn merge<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>, impl TPartialOrd: PartialOrd<T>>(
-    mut arr: Array<T>
+fn merge<
+    T,
+    impl TCopy: Copy<T>,
+    impl TDrop: Drop<T>,
+    impl TPartialOrd: PartialOrd<T>,
+    impl THasPrice: HasPrice<T>
+>(
+    arr: @Array<T>
 ) -> Array<T> {
-    let len = arr.len();
-    if len <= 1 {
-        return arr;
+    let mut result_arr = ArrayTrait::<T>::new();
+    if arr.len() > 1_u32 {
+        result_arr.append(*arr.at(0));
+        // Create left and right arrays
+        let middle = arr.len() / 2;
+        let (mut left_arr, mut right_arr) = split_array(arr, middle);
+        // Recursively sort the left and right arrays
+        let mut sorted_left = merge(@left_arr);
+        let mut sorted_right = merge(@right_arr);
+        merge_recursive(sorted_left, sorted_right, ref result_arr, 0, 0);
+    } else {
+        result_arr.append(*arr.at(0));
     }
-    // Create left and right arrays
-    let middle = len / 2;
-    let (mut left_arr, mut right_arr) = split_array(ref arr, middle);
-    // Recursively sort the left and right arrays
-    let mut sorted_left = merge(left_arr);
-    let mut sorted_right = merge(right_arr);
-    let mut result_arr = ArrayTrait::new();
-    merge_recursive(sorted_left, sorted_right, ref result_arr, 0, 0);
     result_arr
 } // Merge two sorted arrays
 /// # Arguments
@@ -46,7 +58,13 @@ fn merge<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>, impl TPartialOrd: PartialO
 /// * `right_arr_ix` - Right array index
 /// # Returns
 /// * `Array<usize>` - Sorted array
-fn merge_recursive<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>, impl TPartialOrd: PartialOrd<T>>(
+fn merge_recursive<
+    T,
+    impl TCopy: Copy<T>,
+    impl TDrop: Drop<T>,
+    impl TPartialOrd: PartialOrd<T>,
+    impl THasPrice: HasPrice<T>
+>(
     mut left_arr: Array<T>,
     mut right_arr: Array<T>,
     ref result_arr: Array<T>,
@@ -67,7 +85,7 @@ fn merge_recursive<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>, impl TPartialOrd
         return merge_recursive(left_arr, right_arr, ref result_arr, left_arr_ix + 1, right_arr_ix);
     }
 
-    if *left_arr[left_arr_ix] < *right_arr[right_arr_ix] {
+    if (*left_arr[left_arr_ix]).get_price() < (*right_arr[right_arr_ix]).get_price() {
         result_arr.append(*left_arr[left_arr_ix]);
         merge_recursive(left_arr, right_arr, ref result_arr, left_arr_ix + 1, right_arr_ix)
     } else {
@@ -82,14 +100,14 @@ fn merge_recursive<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>, impl TPartialOrd
 /// # Returns
 /// * `(Array<T>, Array<T>)` - The two arrays.
 fn split_array<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
-    ref arr: Array<T>, index: usize
+    arr: @Array<T>, index: usize
 ) -> (Array<T>, Array<T>) {
     let mut arr1 = ArrayTrait::new();
     let mut arr2 = ArrayTrait::new();
     let len = arr.len();
 
-    fill_array(ref arr1, ref arr, 0_u32, index);
-    fill_array(ref arr2, ref arr, index, len - index);
+    fill_array(ref arr1, arr, 0_u32, index);
+    fill_array(ref arr2, arr, index, len - index);
 
     (arr1, arr2)
 }
@@ -102,14 +120,14 @@ fn split_array<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
 /// # Returns
 /// * `Array<T>` - The filled array.
 fn fill_array<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
-    ref arr: Array<T>, ref fill_arr: Array<T>, index: usize, count: usize
+    ref arr: Array<T>, fill_arr: @Array<T>, index: usize, count: usize
 ) {
     if count == 0 {
         return ();
     }
 
-    arr.append(*fill_arr[index]);
+    arr.append(*fill_arr.at(index));
 
-    fill_array(ref arr, ref fill_arr, index + 1, count - 1)
+    fill_array(ref arr, fill_arr, index + 1, count - 1)
 }
 
