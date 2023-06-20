@@ -2,7 +2,7 @@
 mod Entry {
     use array::ArrayTrait;
     use entry::contracts::structs::{BaseEntry, AggregationMode};
-    use pragma::sorting::merge_sort::mergeSortImpl;
+    use pragma::sorting::merge_sort::merge;
     use entry::contracts::structs::{SpotEntry, FutureEntry};
     use traits::TryInto;
     use traits::Into;
@@ -98,11 +98,17 @@ mod Entry {
     // @param entries: pointer to first Entry in array
     // @return value: the median value from the array of entries
 
-    fn entries_median<T, impl ThasPrice: hasPrice<T>, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
+    fn entries_median<
+        T,
+        impl ThasPrice: hasPrice<T>,
+        impl TCopy: Copy<T>,
+        impl TDrop: Drop<T>,
+        impl TPartialOrd: PartialOrd<T>
+    >(
         entries: @Array<T>
     ) -> u256 {
         let mut sorted_entries = ArrayTrait::<T>::new();
-        sorted_entries = mergeSort::merge(entries);
+        sorted_entries = merge(entries);
         let entries_len = sorted_entries.len();
         assert(entries_len > 0_usize, 'entries must not be empty');
         let is_even = 1 - entries_len % 2_usize;

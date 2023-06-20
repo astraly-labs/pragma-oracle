@@ -5,7 +5,7 @@ use entry::contracts::structs::{
 use array::ArrayTrait;
 use starknet::ContractAddress;
 
-#[interface]
+
 trait IOracle {
     fn initializer(
         proxy_admin: felt252,

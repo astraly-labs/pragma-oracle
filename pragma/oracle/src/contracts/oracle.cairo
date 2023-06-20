@@ -13,7 +13,7 @@ use array::ArrayTrait;
 use admin::contracts::Admin::Admin;
 use starknet::class_hash::ClassHash;
 use zeroable::Zeroable;
-use upgradeable::contracts::Upgradeable;
+use pragma::upgradeable::contracts::Upgradeable;
 
 #[external]
 fn initializer(
@@ -34,7 +34,7 @@ fn initializer(
 fn get_data_entries_for_sources(
     data_type: DataType, sources: @Array<felt252>
 ) -> Array<PossibleEntries> {
-    let (entries, _, _) = IOracle::get_data_entries(data_type, sources);
+    let (entries, _, _) = Oracle::get_data_entries(data_type, sources);
     entries
 }
 
@@ -43,7 +43,7 @@ fn get_data_entries_for_sources(
 fn get_data_entries(data_type: DataType) -> Array<PossibleEntries> {
     let mut sources = ArrayTrait::<felt252>::new();
     let sources = Oracle::get_all_sources(data_type);
-    let (entries, _, _) = IOracle::get_data_entries(data_type, @sources);
+    let (entries, _, _) = Oracle::get_data_entries(data_type, @sources);
     entries
 }
 
@@ -51,7 +51,7 @@ fn get_data_entries(data_type: DataType) -> Array<PossibleEntries> {
 #[view]
 fn get_data_median(data_type: DataType) -> PragmaPricesResponse {
     let sources = Oracle::get_all_sources(data_type);
-    let prices_response: PragmaPricesResponse = IOracle::get_data(
+    let prices_response: PragmaPricesResponse = Oracle::get_data(
         data_type, AggregationMode::Median(()), @sources
     );
     prices_response
@@ -61,7 +61,7 @@ fn get_data_median(data_type: DataType) -> PragmaPricesResponse {
 fn get_data_median_for_sources(
     data_type: DataType, sources: Array<felt252>
 ) -> PragmaPricesResponse {
-    let prices_response: PragmaPricesResponse = IOracle::get_data(
+    let prices_response: PragmaPricesResponse = Oracle::get_data(
         data_type, AggregationMode::Median(()), @sources
     );
     prices_response
@@ -79,7 +79,7 @@ fn get_data_median_multi(
         }
 
         let data_type = *data_types.at(cur_idx);
-        let cur_prices_response: PragmaPricesResponse = IOracle::get_data(
+        let cur_prices_response: PragmaPricesResponse = Oracle::get_data(
             data_type, AggregationMode::Median(()), @sources
         );
         prices_response.append(cur_prices_response);
@@ -91,25 +91,25 @@ fn get_data_median_multi(
 #[view]
 fn get_data(data_type: DataType, aggregation_mode: AggregationMode) -> PragmaPricesResponse {
     let sources = Oracle::get_all_sources(data_type);
-    IOracle::get_data(data_type, aggregation_mode, @sources)
+    Oracle::get_data(data_type, aggregation_mode, @sources)
 }
 
 #[view]
 fn get_data_for_sources(
     data_type: DataType, aggregationMode: AggregationMode, sources: Array<felt252>
 ) -> PragmaPricesResponse {
-    IOracle::get_data(data_type, aggregationMode, @sources)
+    Oracle::get_data(data_type, aggregationMode, @sources)
 }
 
 
 #[view]
 fn get_publisher_registry_address() -> ContractAddress {
-    IOracle::get_publisher_registry_address()
+    Oracle::get_publisher_registry_address()
 }
 
 #[view]
 fn get_decimals(data_type: DataType) -> u32 {
-    IOracle::get_decimals(data_type)
+    Oracle::get_decimals(data_type)
 }
 
 #[view]
@@ -120,14 +120,14 @@ fn get_data_with_USD_hop(
     typeof: simpleDataType,
     expiration_timestamp: Option<u256>
 ) -> PragmaPricesResponse {
-    IOracle::get_data_with_USD_hop(
+    Oracle::get_data_with_USD_hop(
         base_currency_id, quote_currency_id, aggregation_mode, typeof, expiration_timestamp
     )
 }
 
 #[view]
 fn get_latest_checkpoint_index(data_type: DataType, aggregation_mode: AggregationMode) -> u256 {
-    IOracle::get_latest_checkpoint_index(data_type, aggregation_mode)
+    Oracle::get_latest_checkpoint_index(data_type, aggregation_mode)
 }
 
 #[view]
@@ -137,12 +137,12 @@ fn get_checkpoint(data_type: DataType, checkpoint_index: u256) -> Checkpoint {
 
 #[view]
 fn get_sources_threshold() -> u32 {
-    IOracle::get_sources_threshold()
+    Oracle::get_sources_threshold()
 }
 
 #[view]
 fn get_admin_address() -> ContractAddress {
-    IOracle::get_admin_address()
+    Oracle::get_admin_address()
 }
 
 #[view]
@@ -166,42 +166,42 @@ fn get_last_checkpoint_before(
 
 #[external]
 fn publish_data(new_entry: PossibleEntries) {
-    IOracle::publish_data(new_entry);
+    Oracle::publish_data(new_entry);
 }
 
 
 #[external]
 fn update_publisher_registry_address(new_publisher_registry_addrress: ContractAddress) {
     assert_only_admin();
-    IOracle::update_publisher_registry_address(new_publisher_registry_addrress);
+    Oracle::update_publisher_registry_address(new_publisher_registry_addrress);
 }
 
 #[external]
 fn add_currency(new_currency: Currency) {
     assert_only_admin();
-    IOracle::add_currency(new_currency);
+    Oracle::add_currency(new_currency);
 }
 
 #[external]
 fn update_currency(new_currency: Currency, typeof: felt252) {
     assert_only_admin();
-    IOracle::update_currency(new_currency, typeof);
+    Oracle::update_currency(new_currency, typeof);
 }
 
 #[external]
 fn add_pair(new_pair: Pair) {
     assert_only_admin();
-    IOracle::add_pair(new_pair);
+    Oracle::add_pair(new_pair);
 }
 
 #[external]
 fn set_checkpoint(data_type: DataType, aggregation_mode: AggregationMode) {
-    IOracle::set_checkpoint(data_type, aggregation_mode);
+    Oracle::set_checkpoint(data_type, aggregation_mode);
 }
 
 #[external]
 fn set_checkpoints(data_types: Array<DataType>, aggregation_mode: AggregationMode) {
-    IOracle::set_checkpoints(data_types, aggregation_mode);
+    Oracle::set_checkpoints(data_types, aggregation_mode);
 }
 
 //
@@ -223,7 +223,7 @@ fn set_admin_address(admin_address: ContractAddress) {
 #[external]
 fn set_sources_threshold(threshold: u32) {
     assert_only_admin();
-    IOracle::set_sources_threshold(threshold);
+    Oracle::set_sources_threshold(threshold);
 }
 
 
