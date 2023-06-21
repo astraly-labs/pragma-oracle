@@ -115,11 +115,11 @@ mod Oracle {
         }
     }
 
-    trait hasPrice<T> {
+    trait HasPrice<T> {
         fn get_price(self: @T) -> u256;
     }
 
-    impl hasPriceImpl of hasPrice<SpotEntry> {
+    impl HasPriceImpl of HasPrice<SpotEntry> {
         fn get_price(self: @SpotEntry) -> u256 {
             (*self).price
         }
@@ -156,6 +156,38 @@ mod Oracle {
                 storage_address_from_base_and_offset(base, 2_u8),
                 value.base_currency_id,
             )
+        }
+    }
+
+    impl SpotPartialOrd of PartialOrd<SpotEntry> {
+        #[inline(always)]
+        fn le(lhs: SpotEntry, rhs: SpotEntry) -> bool {
+            lhs.price <= rhs.price
+        }
+        fn ge(lhs: SpotEntry, rhs: SpotEntry) -> bool {
+            lhs.price >= rhs.price
+        }
+        fn lt(lhs: SpotEntry, rhs: SpotEntry) -> bool {
+            lhs.price < rhs.price
+        }
+        fn gt(lhs: SpotEntry, rhs: SpotEntry) -> bool {
+            lhs.price > rhs.price
+        }
+    }
+
+    impl FuturePartialOrd of PartialOrd<FutureEntry> {
+        #[inline(always)]
+        fn le(lhs: FutureEntry, rhs: FutureEntry) -> bool {
+            lhs.price <= rhs.price
+        }
+        fn ge(lhs: FutureEntry, rhs: FutureEntry) -> bool {
+            lhs.price >= rhs.price
+        }
+        fn lt(lhs: FutureEntry, rhs: FutureEntry) -> bool {
+            lhs.price < rhs.price
+        }
+        fn gt(lhs: FutureEntry, rhs: FutureEntry) -> bool {
+            lhs.price > rhs.price
         }
     }
 
@@ -1222,4 +1254,3 @@ mod Oracle {
         return ();
     }
 }
-

@@ -10,7 +10,7 @@ const BOTH_TRUE: felt252 = 2;
 const USD_CURRENCY_ID: felt252 = 'USD';
 
 
-#[derive(Copy, Drop, PartialOrd, Serde)]
+#[derive(Copy, Drop, Serde)]
 struct BaseEntry {
     timestamp: u256,
     source: felt252,
@@ -22,7 +22,7 @@ struct GenericEntryStorage {
     timestamp__value: u256, 
 }
 
-#[derive(Copy, Drop, PartialOrd, Serde)]
+#[derive(Copy, Drop, Serde)]
 struct SpotEntry {
     base: BaseEntry,
     price: u256,

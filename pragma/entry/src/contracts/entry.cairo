@@ -30,16 +30,16 @@ mod Entry {
         }
     }
 
-    trait hasPrice<T> {
+    trait HasPrice<T> {
         fn get_price(self: @T) -> u256;
     }
 
-    impl ShasPriceImpl of hasPrice<SpotEntry> {
+    impl SHasPriceImpl of HasPrice<SpotEntry> {
         fn get_price(self: @SpotEntry) -> u256 {
             (*self).price
         }
     }
-    impl FhasPriceImpl of hasPrice<FutureEntry> {
+    impl FHasPriceImpl of HasPrice<FutureEntry> {
         fn get_price(self: @FutureEntry) -> u256 {
             (*self).price
         }
@@ -55,9 +55,10 @@ mod Entry {
     // @return value: the aggregation value
     fn aggregate_entries<
         T,
-        impl ThasPrice: hasPrice<T>, // impl TPartialOrd: PartialOrd<T>,
+        impl THasPrice: HasPrice<T>,
+        impl TPartialOrd: PartialOrd<T>,
         impl TCopy: Copy<T>,
-        impl TDrop: Drop<T>
+        impl TDrop: Drop<T>,
     >(
         entries: @Array<T>, aggregation_mode: AggregationMode
     ) -> u256 {
@@ -65,6 +66,10 @@ mod Entry {
             AggregationMode::Median(()) => {
                 let value: u256 = entries_median(entries);
                 value
+            },
+            AggregationMode::Error(()) => {
+                panic_with_felt252('Wrong aggregation mode');
+                u256 { low: 0_u128, high: 0_u128 }
             }
         }
     }
@@ -100,10 +105,11 @@ mod Entry {
 
     fn entries_median<
         T,
-        impl ThasPrice: hasPrice<T>,
+        impl THasPrice: HasPrice<T>,
         impl TCopy: Copy<T>,
         impl TDrop: Drop<T>,
-        impl TPartialOrd: PartialOrd<T>
+        impl TPartialOrd: PartialOrd<T>,
+        impl THasPrice: HasPrice<T>
     >(
         entries: @Array<T>
     ) -> u256 {
@@ -124,7 +130,7 @@ mod Entry {
             (median_entry_1 + median_entry_2) / (2.into())
         }
     }
-    fn entries_mean<T, impl ThasPrice: hasPrice<T>, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
+    fn entries_mean<T, impl THasPrice: HasPrice<T>, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
         entries: @Array<T>
     ) -> u256 {
         let mut sum: u256 = 0.into();
