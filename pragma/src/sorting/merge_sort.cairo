@@ -18,7 +18,9 @@ impl FHasPriceImpl of HasPrice<FutureEntry> {
         (*self).price
     }
 }
-impl THasPriceImpl<T, impl THasPrice: HasPrice<T>, impl TCopy : Copy<T>, impl TDrop : Drop<T>> of HasPrice<T> {
+impl THasPriceImpl<
+    T, impl THasPrice: HasPrice<T>, impl TCopy: Copy<T>, impl TDrop: Drop<T>
+> of HasPrice<T> {
     fn get_price(self: @T) -> u256 {
         (*self).get_price()
     }
