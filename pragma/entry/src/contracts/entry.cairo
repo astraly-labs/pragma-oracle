@@ -45,6 +45,7 @@ mod Entry {
         }
     }
 
+
     //
     // Helpers
     //
@@ -105,11 +106,10 @@ mod Entry {
 
     fn entries_median<
         T,
-        impl THasPrice: HasPrice<T>,
         impl TCopy: Copy<T>,
         impl TDrop: Drop<T>,
         impl TPartialOrd: PartialOrd<T>,
-        impl THasPrice: HasPrice<T>
+        impl THasPrice: HasPrice<T>,
     >(
         entries: @Array<T>
     ) -> u256 {

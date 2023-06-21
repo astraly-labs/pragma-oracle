@@ -83,7 +83,7 @@ struct FutureEntryStorage {
 /// * `Spot` - Spot price
 /// * `Future` - Future price
 /// * `Generic` - Generic price
-#[derive(Drop, Copy)]
+#[derive(Drop, Copy, Serde)]
 enum DataType {
     SpotEntry: felt252,
     FutureEntry: (felt252, u256),
@@ -97,14 +97,14 @@ enum PossibleEntryStorage {
 // Option: OptionEntryStorage, //structure OptionEntryStorage
 }
 
-#[derive(Drop, Copy)]
+#[derive(Drop, Copy, Serde)]
 enum simpleDataType {
     SpotEntry: (),
     FutureEntry: (),
 // OptionEntry: (),
 }
 
-#[derive(Drop, Copy)]
+#[derive(Drop, Copy, Serde)]
 enum PossibleEntries {
     Spot: SpotEntry,
     Future: FutureEntry,

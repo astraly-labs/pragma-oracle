@@ -1,13 +1,14 @@
 #[contract]
-mod Oracle {
+mod Library {
     use starknet::get_caller_address;
     use zeroable::Zeroable;
     use cmp::{max, min};
     use entry::contracts::entry::Entry;
     use option::OptionTrait;
-    use array::ArrayTrait;
+    use array::{ArrayTrait, SpanTrait};
     use traits::Into;
     use traits::TryInto;
+    use box::BoxTrait;
     use result::{ResultTrait, ResultTraitImpl};
     use entry::contracts::structs::{
         BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
@@ -119,8 +120,13 @@ mod Oracle {
         fn get_price(self: @T) -> u256;
     }
 
-    impl HasPriceImpl of HasPrice<SpotEntry> {
+    impl SHasPriceImpl of HasPrice<SpotEntry> {
         fn get_price(self: @SpotEntry) -> u256 {
+            (*self).price
+        }
+    }
+    impl FHasPriceImpl of HasPrice<FutureEntry> {
+        fn get_price(self: @FutureEntry) -> u256 {
             (*self).price
         }
     }
@@ -480,7 +486,7 @@ mod Oracle {
     }
 
     fn get_data(
-        data_type: DataType, aggregation_mode: AggregationMode, sources: @Array<felt252>
+        data_type: DataType, aggregation_mode: AggregationMode, sources: Span<felt252>
     ) -> PragmaPricesResponse {
         let mut entries = ArrayTrait::<PossibleEntries>::new();
         let (entries, entries_len, last_updated_timestamp) = get_data_entries(data_type, sources);
@@ -570,7 +576,7 @@ mod Oracle {
         typeof: simpleDataType,
         expiration_timestamp: Option<u256>
     ) -> PragmaPricesResponse {
-        let mut sources = ArrayTrait::<felt252>::new();
+        let mut sources = ArrayTrait::<felt252>::new().span();
         let base_pair_id = oracle_pair_id_storage::read((base_currency_id, USD_CURRENCY_ID));
         let quote_pair_id = oracle_pair_id_storage::read((quote_currency_id, USD_CURRENCY_ID));
         let (base_data_type, quote_data_type, currency) = match typeof {
@@ -600,8 +606,8 @@ mod Oracle {
                 }
             },
         };
-        let basePPR: PragmaPricesResponse = get_data(base_data_type, aggregation_mode, @sources);
-        let quotePPR: PragmaPricesResponse = get_data(quote_data_type, aggregation_mode, @sources);
+        let basePPR: PragmaPricesResponse = get_data(base_data_type, aggregation_mode, sources);
+        let quotePPR: PragmaPricesResponse = get_data(quote_data_type, aggregation_mode, sources);
         let decimals = min(get_decimals(base_data_type), get_decimals(quote_data_type));
         let rebased_value = convert_via_usd(basePPR.price, quotePPR.price, decimals);
         let last_updated_timestamp = max(
@@ -724,7 +730,7 @@ mod Oracle {
 
 
     fn get_data_entries(
-        data_type: DataType, sources: @Array<felt252>
+        data_type: DataType, sources: Span<felt252>
     ) -> (Array<PossibleEntries>, u32, u256) {
         let last_updated_timestamp = get_latest_entry_timestamp(data_type, sources);
         let current_timestamp: u256 = u256 { low: get_block_timestamp().into(), high: 0 };
@@ -844,8 +850,8 @@ mod Oracle {
     }
 
     fn set_checkpoint(data_type: DataType, aggregation_mode: AggregationMode) {
-        let mut sources = ArrayTrait::<felt252>::new();
-        let priceResponse = get_data(data_type, aggregation_mode, @sources);
+        let mut sources = ArrayTrait::<felt252>::new().span();
+        let priceResponse = get_data(data_type, aggregation_mode, sources);
         let sources_threshold = oracle_sources_threshold_storage::read();
         let cur_checkpoint = get_latest_checkpoint(data_type, aggregation_mode);
         let timestamp: u256 = u256 { low: get_block_timestamp().into(), high: 0 };
@@ -884,13 +890,13 @@ mod Oracle {
     }
 
 
-    fn set_checkpoints(data_types: Array<DataType>, aggregation_mode: AggregationMode) {
-        let mut cur_idx = 0;
+    fn set_checkpoints(data_types: Span<DataType>, aggregation_mode: AggregationMode) {
+        let mut cur_idx: u32 = 0;
         loop {
             if (cur_idx == data_types.len()) {
                 break ();
             }
-            let data_type = *data_types.at(cur_idx);
+            let data_type: DataType = *data_types.get(cur_idx).unwrap().unbox();
             set_checkpoint(data_type, aggregation_mode);
             cur_idx += 1;
         }
@@ -939,14 +945,15 @@ mod Oracle {
         }
     }
 
-    fn get_latest_entry_timestamp(data_type: DataType, sources: @Array<felt252>) -> u256 {
+    fn get_latest_entry_timestamp(data_type: DataType, sources: Span<felt252>) -> u256 {
         let mut cur_idx = 0;
         let mut latest_timestamp = 0;
         loop {
             if (cur_idx >= sources.len()) {
                 break ();
             }
-            let entry: PossibleEntries = get_data_entry(data_type, *sources.at(cur_idx));
+            let source: felt252 = *sources.get(cur_idx).unwrap().unbox();
+            let entry: PossibleEntries = get_data_entry(data_type, source);
             match entry {
                 PossibleEntries::Spot(spot_entry) => {
                     if spot_entry.base.timestamp > latest_timestamp {
@@ -966,7 +973,7 @@ mod Oracle {
 
     fn build_entries_array(
         data_type: DataType,
-        sources: @Array<felt252>,
+        sources: Span<felt252>,
         ref entries: Array<PossibleEntries>,
         latest_timestamp: u256
     ) {
@@ -975,7 +982,7 @@ mod Oracle {
             if (cur_idx >= sources.len()) {
                 break ();
             }
-            let source = *sources.at(cur_idx);
+            let source: felt252 = *sources.get(cur_idx).unwrap().unbox();
             let g_entry: PossibleEntries = get_data_entry(data_type, source);
             match g_entry {
                 PossibleEntries::Spot(spot_entry) => {
@@ -1056,12 +1063,12 @@ mod Oracle {
     }
 
     fn get_all_entries(
-        data_type: DataType, sources: @Array<felt252>, max_timestamp: u256
+        data_type: DataType, sources: Span<felt252>, max_timestamp: u256
     ) -> (Array<PossibleEntries>, u32) {
         let mut entries = ArrayTrait::<PossibleEntries>::new();
         if (sources.len() == 0) {
-            let all_sources = get_all_sources(data_type);
-            build_entries_array(data_type, @all_sources, ref entries, max_timestamp);
+            let all_sources = get_all_sources(data_type).span();
+            build_entries_array(data_type, all_sources, ref entries, max_timestamp);
             (entries, entries.len())
         } else {
             build_entries_array(data_type, sources, ref entries, max_timestamp);
