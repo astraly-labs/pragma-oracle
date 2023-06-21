@@ -455,9 +455,7 @@ mod Library {
 
 
     fn initializer(
-        publisher_registry_address: ContractAddress,
-        currencies: @Array<Currency>,
-        pairs: @Array<Pair>
+        publisher_registry_address: ContractAddress, currencies: Span<Currency>, pairs: Span<Pair>
     ) {
         oracle_publisher_registry_address_storage::write(publisher_registry_address);
         _set_keys_currencies(currencies, 0);
@@ -1183,14 +1181,14 @@ mod Library {
         return ();
     }
 
-    fn _set_keys_currencies(key_currencies: @Array<Currency>, idx: usize) {
-        let mut idx = 0;
+    fn _set_keys_currencies(key_currencies: Span<Currency>, idx: usize) {
+        let mut idx: u32 = 0;
         loop {
             if (idx == key_currencies.len()) {
                 break ();
             }
 
-            let key_currency = *key_currencies.at(idx);
+            let key_currency = *key_currencies.get(idx).unwrap().unbox();
             oracle_currencies_storage::write(key_currency.id, key_currency);
             idx = idx + 1;
         };
@@ -1245,13 +1243,13 @@ mod Library {
         }
     }
 
-    fn _set_keys_pairs(key_pairs: @Array<Pair>) {
-        let mut idx: usize = 0;
+    fn _set_keys_pairs(key_pairs: Span<Pair>) {
+        let mut idx: u32 = 0;
         loop {
             if (idx >= key_pairs.len()) {
                 break ();
             }
-            let key_pair = *key_pairs.at(idx);
+            let key_pair = *key_pairs.get(idx).unwrap().unbox();
             oracle_pairs_storage::write(key_pair.id, key_pair);
             oracle_pair_id_storage::write(
                 (key_pair.quote_currency_id, key_pair.base_currency_id), key_pair.id
