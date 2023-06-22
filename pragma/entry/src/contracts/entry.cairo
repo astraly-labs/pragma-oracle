@@ -10,14 +10,14 @@ mod Entry {
 
     trait hasBaseEntry<T> {
         fn get_base_entry(self: @T) -> BaseEntry;
-        fn get_base_timestamp(self: @T) -> u256;
+        fn get_base_timestamp(self: @T) -> u64;
     }
 
     impl ShasBaseEntryImpl of hasBaseEntry<SpotEntry> {
         fn get_base_entry(self: @SpotEntry) -> BaseEntry {
             (*self).base
         }
-        fn get_base_timestamp(self: @SpotEntry) -> u256 {
+        fn get_base_timestamp(self: @SpotEntry) -> u64 {
             (*self).base.timestamp
         }
     }
@@ -25,7 +25,7 @@ mod Entry {
         fn get_base_entry(self: @FutureEntry) -> BaseEntry {
             (*self).base
         }
-        fn get_base_timestamp(self: @FutureEntry) -> u256 {
+        fn get_base_timestamp(self: @FutureEntry) -> u64 {
             (*self).base.timestamp
         }
     }
@@ -86,8 +86,8 @@ mod Entry {
         impl TDrop: Drop<T>
     >(
         entries: @Array<T>
-    ) -> u256 {
-        let mut max_timestamp: u256 = (*entries[0_usize]).get_base_timestamp();
+    ) -> u64 {
+        let mut max_timestamp: u64 = (*entries[0_usize]).get_base_timestamp();
         let mut index = 1_usize;
         loop {
             if index >= entries.len() {
@@ -134,12 +134,11 @@ mod Entry {
         entries: @Array<T>
     ) -> u256 {
         let mut sum: u256 = 0.into();
-        let mut index = 0_usize;
+        let mut index: u32 = 0;
         let entries_len: u32 = entries.len();
-        let entries_len_u256 = u256 { low: entries_len.into(), high: 0_u128 };
         loop {
             if index >= entries.len() {
-                break (sum / entries_len_u256);
+                break (sum / u256 { low: entries_len.into(), high: 0_u128 });
             }
             sum = sum + (*entries.at(index)).get_price();
             index = index + 1;

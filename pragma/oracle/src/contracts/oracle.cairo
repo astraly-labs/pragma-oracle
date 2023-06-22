@@ -12,7 +12,7 @@ use array::{ArrayTrait, SpanTrait};
 use admin::contracts::Admin::Admin;
 use starknet::class_hash::ClassHash;
 use zeroable::Zeroable;
-use upgradeable::contracts::Upgradeable;
+use upgradeable::contracts::upgradeable::Upgradeable;
 use serde::deserialize_array_helper;
 use serde::serialize_array_helper;
 use serde::Serde;
@@ -56,23 +56,23 @@ trait IOracleABI {
     #[view]
     fn get_data_entries(data_type: DataType) -> Array<PossibleEntries>;
     #[view]
-    fn get_last_checkpoint_before(timestamp: u256, data_type: DataType) -> (Checkpoint, u256);
+    fn get_last_checkpoint_before(timestamp: u64, data_type: DataType) -> (Checkpoint, u64);
     #[view]
     fn get_data_with_USD_hop(
         base_currency_id: felt252,
         quote_currency_id: felt252,
         aggregation_mode: AggregationMode,
         typeof: simpleDataType,
-        expiration_timestamp: Option::<u256>
+        expiration_timestamp: Option::<u64>
     ) -> PragmaPricesResponse;
     #[view]
     fn get_publisher_registry_address() -> ContractAddress;
     #[view]
-    fn get_latest_checkpoint_index(data_type: DataType, aggregation_mode: AggregationMode) -> u256;
+    fn get_latest_checkpoint_index(data_type: DataType, aggregation_mode: AggregationMode) -> u64;
     #[view]
     fn get_latest_checkpoint(data_type: DataType, aggregation_mode: AggregationMode) -> Checkpoint;
     #[view]
-    fn get_checkpoint(data_type: DataType, checkpoint_index: u256) -> Checkpoint;
+    fn get_checkpoint(data_type: DataType, checkpoint_index: u64) -> Checkpoint;
     #[view]
     fn get_sources_threshold() -> u32;
     #[view]
@@ -130,14 +130,14 @@ trait IPragmaABI {
     #[view]
     fn get_data_entries(data_type: DataType) -> Array<PossibleEntries>;
     #[view]
-    fn get_last_checkpoint_before(timestamp: u256, data_type: DataType) -> (Checkpoint, u256);
+    fn get_last_checkpoint_before(timestamp: u64, data_type: DataType) -> (Checkpoint, u256);
     #[view]
     fn get_data_with_USD_hop(
         base_currency_id: felt252,
         quote_currency_id: felt252,
         aggregation_mode: AggregationMode,
         typeof: simpleDataType,
-        expiration_timestamp: Option::<u256>
+        expiration_timestamp: Option::<u64>
     ) -> PragmaPricesResponse;
     #[view]
     fn get_latest_checkpoint(data_type: DataType, aggregation_mode: AggregationMode) -> Checkpoint;
@@ -173,9 +173,10 @@ mod Oracle {
     use admin::contracts::Admin::Admin;
     use starknet::class_hash::ClassHash;
     use zeroable::Zeroable;
-    use pragma::upgradeable::contracts::Upgradeable;
+    use upgradeable::contracts::upgradeable::Upgradeable;
     use serde::Serde;
     use serde::ArraySerde;
+
 
     impl IOracleImpl of IOracle {
         #[external]
@@ -283,7 +284,7 @@ mod Oracle {
             quote_currency_id: felt252,
             aggregation_mode: AggregationMode,
             typeof: simpleDataType,
-            expiration_timestamp: Option<u256>
+            expiration_timestamp: Option<u64>
         ) -> PragmaPricesResponse {
             Library::get_data_with_USD_hop(
                 base_currency_id, quote_currency_id, aggregation_mode, typeof, expiration_timestamp
@@ -293,7 +294,7 @@ mod Oracle {
         #[view]
         fn get_latest_checkpoint_index(
             data_type: DataType, aggregation_mode: AggregationMode
-        ) -> u256 {
+        ) -> u64 {
             Library::get_latest_checkpoint_index(data_type, aggregation_mode)
         }
 
@@ -309,7 +310,7 @@ mod Oracle {
 
 
         #[view]
-        fn get_checkpoint(data_type: DataType, checkpoint_index: u256) -> Checkpoint {
+        fn get_checkpoint(data_type: DataType, checkpoint_index: u64) -> Checkpoint {
             Library::get_checkpoint_by_index(data_type, checkpoint_index)
         }
 
@@ -324,14 +325,14 @@ mod Oracle {
         }
 
         #[view]
-        fn get_implementation_hash() -> ContractAddress {
+        fn get_implementation_hash() -> ClassHash {
             Upgradeable::get_implementation_hash()
         }
 
         #[view]
         fn get_last_checkpoint_before(
-            data_type: DataType, aggregation_mode: AggregationMode, timestamp: u256
-        ) -> (Checkpoint, u256) {
+            data_type: DataType, aggregation_mode: AggregationMode, timestamp: u64
+        ) -> (Checkpoint, u64) {
             let idx = Library::find_startpoint(data_type, aggregation_mode, timestamp);
             let checkpoint = Library::get_checkpoint_by_index(data_type, idx);
             (checkpoint, idx)

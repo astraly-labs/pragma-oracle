@@ -12,7 +12,7 @@ const USD_CURRENCY_ID: felt252 = 'USD';
 
 #[derive(Copy, Drop, Serde)]
 struct BaseEntry {
-    timestamp: u256,
+    timestamp: u64,
     source: felt252,
     publisher: felt252,
 }
@@ -36,7 +36,7 @@ struct FutureEntry {
     price: u256,
     pair_id: felt252,
     volume: u256,
-    expiration_timestamp: u256,
+    expiration_timestamp: u64,
 }
 
 #[derive(Serde, Drop, Copy)]
@@ -46,7 +46,7 @@ struct OptionEntry {
     essviParameters: eSSVI,
     forwardPrice: u256,
     strikePrice: u256,
-    expirationTimestamp: u256,
+    expirationTimestamp: u64,
 }
 
 #[derive(Serde, Drop, Copy)]
@@ -86,7 +86,7 @@ struct FutureEntryStorage {
 #[derive(Drop, Copy, Serde)]
 enum DataType {
     SpotEntry: felt252,
-    FutureEntry: (felt252, u256),
+    FutureEntry: (felt252, u64),
 // OptionEntry: (felt252, felt252),
 }
 
@@ -137,7 +137,7 @@ struct Currency {
 
 #[derive(Serde, Drop)]
 struct Checkpoint {
-    timestamp: u256,
+    timestamp: u64,
     value: u256,
     aggregation_mode: AggregationMode,
     num_sources_aggregated: u32,
@@ -146,9 +146,9 @@ struct Checkpoint {
 struct PragmaPricesResponse {
     price: u256,
     decimals: u32,
-    last_updated_timestamp: u256,
+    last_updated_timestamp: u64,
     num_sources_aggregated: u32,
-    expiration_timestamp: Option<u256>,
+    expiration_timestamp: Option<u64>,
 }
 
 #[derive(Serde, Drop, Copy)]

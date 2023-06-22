@@ -1,3 +1,25 @@
+use starknet::ContractAddress;
+
+#[abi]
+trait IPublisherRegistry {
+    #[internal]
+    fn add_publisher(publisher: felt252, publisher_address: ContractAddress);
+    #[internal]
+    fn update_publisher_address(publisher: felt252, new_publisher_address: ContractAddress);
+    #[internal]
+    fn remove_publisher(publisher: felt252);
+    #[internal]
+    fn add_source_for_publisher(publisher: felt252, source: felt252);
+    #[internal]
+    fn add_sources_for_publisher(publisher: felt252, sources: @Array<felt252>);
+    #[internal]
+    fn remove_source_for_publisher(publisher: felt252, source: felt252);
+    #[external]
+    fn can_publish_source(publisher: felt252, source: felt252) -> bool;
+    #[external]
+    fn get_publisher_address(publisher: felt252) -> ContractAddress;
+}
+
 #[contract]
 mod PublisherRegistry {
     use starknet::get_caller_address;

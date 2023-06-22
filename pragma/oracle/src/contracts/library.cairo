@@ -18,7 +18,8 @@ mod Library {
     };
 
     use oracle::business_logic::oracleInterface::IOracle;
-    use pragma::publisher_registry::business_logic::interface::IPublisherRegistry;
+    use publisher_registry::business_logic::interface::IPublisherRegistry;
+    use publisher_registry::contracts::publisher_registry::PublisherRegistry;
     use pragma::bits_manipulation::bits_manipulation::{
         actual_set_element_at, actual_get_element_at
     };
@@ -34,7 +35,8 @@ mod Library {
     };
     use starknet::{ContractAddress, Felt252TryIntoContractAddress};
     use starknet::{get_block_timestamp};
-    const BACKWARD_TIMESTAMP_BUFFER: u256 = 7800; // 2 hours and 10 minutes
+    use super::Call;
+    const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
 
     //Structure
 
@@ -50,15 +52,15 @@ mod Library {
         //oracle_currencies_storage, legacy Map between (currency_id) and the currency
         oracle_currencies_storage: LegacyMap::<felt252, Currency>,
         //oralce_sources_storage, legacyMap between (pair_id ,(SPOT/FUTURES/OPTIONS), index, expiration_timestamp ) and the source
-        oracle_sources_storage: LegacyMap::<(felt252, felt252, u256, u256), felt252>,
+        oracle_sources_storage: LegacyMap::<(felt252, felt252, u64, u64), felt252>,
         //oracle_sources_len_storage, legacyMap between (pair_id ,(SPOT/FUTURES/OPTIONS), expiration_timestamp) and the len of the sources array
-        oracle_sources_len_storage: LegacyMap::<(felt252, felt252, u256), u256>,
+        oracle_sources_len_storage: LegacyMap::<(felt252, felt252, u64), u64>,
         //oracle_data_entry_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), source, expiration_timestamp (0 for SPOT))
-        oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u256), u256>,
+        oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u64), u256>,
         //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT)) asociated to a checkpoint
-        oracle_checkpoints: LegacyMap::<(felt252, felt252, u256, u256), Checkpoint>,
+        oracle_checkpoints: LegacyMap::<(felt252, felt252, u64, u64), Checkpoint>,
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
-        oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u256), u256>,
+        oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u64), u64>,
         oracle_sources_threshold_storage: u32,
     }
 
@@ -85,14 +87,14 @@ mod Library {
 
     trait hasBaseEntry<T> {
         fn get_base_entry(self: @T) -> BaseEntry;
-        fn get_base_timestamp(self: @T) -> u256;
+        fn get_base_timestamp(self: @T) -> u64;
     }
 
     impl SpothasBaseEntry of hasBaseEntry<SpotEntry> {
         fn get_base_entry(self: @SpotEntry) -> BaseEntry {
             (*self).base
         }
-        fn get_base_timestamp(self: @SpotEntry) -> u256 {
+        fn get_base_timestamp(self: @SpotEntry) -> u64 {
             (*self).base.timestamp
         }
     }
@@ -101,7 +103,7 @@ mod Library {
         fn get_base_entry(self: @FutureEntry) -> BaseEntry {
             (*self).base
         }
-        fn get_base_timestamp(self: @FutureEntry) -> u256 {
+        fn get_base_timestamp(self: @FutureEntry) -> u64 {
             (*self).base.timestamp
         }
     }
@@ -111,7 +113,7 @@ mod Library {
         fn get_base_entry(self: @OptionEntry) -> BaseEntry {
             (*self).base
         }
-        fn get_base_timestamp(self: @OptionEntry) -> u256 {
+        fn get_base_timestamp(self: @OptionEntry) -> u64 {
             (*self).base.timestamp
         }
     }
@@ -214,22 +216,18 @@ mod Library {
         }
     }
 
-
+    //TODO change timestmap
     impl CheckpointStorageAccess of StorageAccess<Checkpoint> {
         fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<Checkpoint> {
             let timestamp_base = storage_base_address_from_felt252(
                 storage_address_from_base_and_offset(base, 0_u8).into()
             );
-            let timestamp = u256 {
-                low: StorageAccess::<u128>::read(address_domain, timestamp_base)?,
-                high: storage_read_syscall(
-                    address_domain, storage_address_from_base_and_offset(timestamp_base, 1_u8)
-                )?
-                    .try_into()
-                    .expect('StorageAccessU256 - non u256')
-            };
+            let timestamp: u64 = StorageAccess::<u128>::read(address_domain, timestamp_base)?
+                .try_into()
+                .unwrap();
+
             let value_base = storage_base_address_from_felt252(
-                storage_address_from_base_and_offset(base, 2_u8).into()
+                storage_address_from_base_and_offset(base, 1_u8).into()
             );
             let value = u256 {
                 low: StorageAccess::<u128>::read(address_domain, value_base)?,
@@ -269,31 +267,26 @@ mod Library {
             let timestamp_base = storage_base_address_from_felt252(
                 storage_address_from_base_and_offset(base, 0_u8).into()
             );
-            StorageAccess::write(address_domain, timestamp_base, value.timestamp.low)?;
-            storage_write_syscall(
-                address_domain,
-                storage_address_from_base_and_offset(timestamp_base, 1_u8),
-                value.timestamp.high.into()
-            )?;
+            StorageAccess::write(address_domain, timestamp_base, value.timestamp)?;
             let value_base = storage_base_address_from_felt252(
-                storage_address_from_base_and_offset(base, 2_u8).into()
+                storage_address_from_base_and_offset(base, 1_u8).into()
             );
             StorageAccess::write(address_domain, value_base, value.value.low)?;
             storage_write_syscall(
                 address_domain,
-                storage_address_from_base_and_offset(value_base, 3_u8),
+                storage_address_from_base_and_offset(value_base, 1_u8),
                 value.value.high.into()
             )?;
 
             let aggregation_mode_u8: u8 = value.aggregation_mode.into();
             storage_write_syscall(
                 address_domain,
-                storage_address_from_base_and_offset(base, 4_u8),
+                storage_address_from_base_and_offset(base, 3_u8),
                 aggregation_mode_u8.into(),
             )?;
             storage_write_syscall(
                 address_domain,
-                storage_address_from_base_and_offset(base, 5_u8),
+                storage_address_from_base_and_offset(base, 4_u8),
                 value.num_sources_aggregated.into(),
             )
         }
@@ -451,7 +444,7 @@ mod Library {
     fn CheckpointSpotEntry(pair_id: felt252) {}
 
     #[event]
-    fn CheckpointFutureEntry(pair_id: felt252, expiration_timestamp: u256) {}
+    fn CheckpointFutureEntry(pair_id: felt252, expiration_timestamp: u64) {}
 
 
     fn initializer(
@@ -572,7 +565,7 @@ mod Library {
         quote_currency_id: felt252,
         aggregation_mode: AggregationMode,
         typeof: simpleDataType,
-        expiration_timestamp: Option<u256>
+        expiration_timestamp: Option<u64>
     ) -> PragmaPricesResponse {
         let mut sources = ArrayTrait::<felt252>::new().span();
         let base_pair_id = oracle_pair_id_storage::read((base_currency_id, USD_CURRENCY_ID));
@@ -634,7 +627,7 @@ mod Library {
                 oracle_data_entry_storage::read((pair_id, source, FUTURE, expiration_timestamp))
             },
         };
-        let timestamp = actual_get_element_at(_entry, 0, 31);
+        let timestamp: u64 = actual_get_element_at(_entry, 0, 31);
         let volume = actual_get_element_at(_entry, 32, 42);
         let price = actual_get_element_at(_entry, 75, 128);
         match data_type {
@@ -712,7 +705,7 @@ mod Library {
         return publisher_registry_address;
     }
 
-    fn get_latest_checkpoint_index(data_type: DataType, aggregation_mode: AggregationMode) -> u256 {
+    fn get_latest_checkpoint_index(data_type: DataType, aggregation_mode: AggregationMode) -> u64 {
         let checkpoint_index = match data_type {
             DataType::SpotEntry(pair_id) => {
                 oracle_checkpoint_index::read((pair_id, SPOT, 0))
@@ -729,9 +722,9 @@ mod Library {
 
     fn get_data_entries(
         data_type: DataType, sources: Span<felt252>
-    ) -> (Array<PossibleEntries>, u32, u256) {
+    ) -> (Array<PossibleEntries>, u32, u64) {
         let last_updated_timestamp = get_latest_entry_timestamp(data_type, sources);
-        let current_timestamp: u256 = u256 { low: get_block_timestamp().into(), high: 0 };
+        let current_timestamp: u64 = get_block_timestamp();
         let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
         let (entries, entries_len) = get_all_entries(
             data_type, sources, conservative_current_timestamp
@@ -852,7 +845,7 @@ mod Library {
         let priceResponse = get_data(data_type, aggregation_mode, sources);
         let sources_threshold = oracle_sources_threshold_storage::read();
         let cur_checkpoint = get_latest_checkpoint(data_type, aggregation_mode);
-        let timestamp: u256 = u256 { low: get_block_timestamp().into(), high: 0 };
+        let timestamp: u64 = get_block_timestamp();
         if (sources_threshold < priceResponse.num_sources_aggregated
             & (cur_checkpoint.timestamp + 1) < timestamp) {
             let new_checkpoint = Checkpoint {
@@ -864,7 +857,7 @@ mod Library {
             match data_type {
                 DataType::SpotEntry(pair_id) => {
                     let cur_idx = oracle_checkpoint_index::read((pair_id, SPOT, 0));
-                    oracle_checkpoints::write((pair_id, SPOT, cur_idx, 0.into()), new_checkpoint);
+                    oracle_checkpoints::write((pair_id, SPOT, cur_idx, 0), new_checkpoint);
                     oracle_checkpoint_index::write((pair_id, SPOT, 0), cur_idx + 1);
                     CheckpointSpotEntry(pair_id);
                 },
@@ -926,7 +919,7 @@ mod Library {
     //
     //Internal
     //
-    fn build_sources_array(data_type: DataType, ref sources: Array<felt252>, idx: u256) {
+    fn build_sources_array(data_type: DataType, ref sources: Array<felt252>, idx: u64) {
         match data_type {
             DataType::SpotEntry(pair_id) => {
                 let new_source = oracle_sources_storage::read((pair_id, SPOT, idx, 0));
@@ -943,7 +936,7 @@ mod Library {
         }
     }
 
-    fn get_latest_entry_timestamp(data_type: DataType, sources: Span<felt252>) -> u256 {
+    fn get_latest_entry_timestamp(data_type: DataType, sources: Span<felt252>) -> u64 {
         let mut cur_idx = 0;
         let mut latest_timestamp = 0;
         loop {
@@ -973,7 +966,7 @@ mod Library {
         data_type: DataType,
         sources: Span<felt252>,
         ref entries: Array<PossibleEntries>,
-        latest_timestamp: u256
+        latest_timestamp: u64
     ) {
         let mut cur_idx = 0;
         loop {
@@ -1009,7 +1002,7 @@ mod Library {
     }
 
 
-    fn get_checkpoint_by_index(data_type: DataType, checkpoint_index: u256) -> Checkpoint {
+    fn get_checkpoint_by_index(data_type: DataType, checkpoint_index: u64) -> Checkpoint {
         let checkpoint = match data_type {
             DataType::SpotEntry(pair_id) => {
                 oracle_checkpoints::read((pair_id, SPOT, checkpoint_index, 0))
@@ -1027,11 +1020,14 @@ mod Library {
     fn validate_sender_for_source<T, impl THasBaseEntry: hasBaseEntry<T>>(_entry: T) {
         let publisher_registry_address = get_publisher_registry_address();
         let publisher_address = IPublisherRegistry::get_publisher_address(
-            publisher_registry_address, _entry.base.source
+            publisher_registry_address, _entry.get_base_entry().source
         );
         let _can_publish_source = IPublisherRegistry::can_publish_source(
-            publisher_registry_address, _entry.base.publisher, _entry.base.source
+            publisher_registry_address,
+            _entry.get_base_entry().publisher,
+            _entry.get_base_entry().source
         );
+        //CHECK IF THIS VERIFICATION WORKS 
         let caller_address = get_caller_address();
         assert(publisher_address != 0, 'Publisher is not registered');
         assert(!caller_address.is_zero(), 'Caller must not be zero address');
@@ -1061,7 +1057,7 @@ mod Library {
     }
 
     fn get_all_entries(
-        data_type: DataType, sources: Span<felt252>, max_timestamp: u256
+        data_type: DataType, sources: Span<felt252>, max_timestamp: u64
     ) -> (Array<PossibleEntries>, u32) {
         let mut entries = ArrayTrait::<PossibleEntries>::new();
         if (sources.len() == 0) {
@@ -1147,7 +1143,7 @@ mod Library {
                     future_entry.get_base_timestamp() > last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
                 );
-                if (last_entry.get_base_timestamp() == 0.into()) {
+                if (last_entry.get_base_timestamp() == 0) {
                     let sources_len = oracle_sources_len_storage::read(
                         (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp)
                     );
@@ -1201,8 +1197,8 @@ mod Library {
     }
 
     fn find_startpoint(
-        data_type: DataType, aggregation_mode: AggregationMode, timestamp: u256
-    ) -> u256 {
+        data_type: DataType, aggregation_mode: AggregationMode, timestamp: u64
+    ) -> u64 {
         let last_checkpoint_index = get_latest_checkpoint_index(data_type, aggregation_mode);
         let latest_checkpoint_index = get_latest_checkpoint_index(data_type, aggregation_mode);
         let cp = get_checkpoint_by_index(data_type, latest_checkpoint_index - 1);
@@ -1218,7 +1214,7 @@ mod Library {
         return startpoint;
     }
 
-    fn _binary_search(data_type: DataType, low: u256, high: u256, target: u256) -> u256 {
+    fn _binary_search(data_type: DataType, low: u64, high: u64, target: u64) -> u64 {
         let midpoint = (low + high) / 2;
 
         if (high == low) {
