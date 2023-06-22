@@ -18,8 +18,9 @@ mod Library {
     };
 
     use oracle::business_logic::oracleInterface::IOracle;
-    use publisher_registry::business_logic::interface::IPublisherRegistry;
-    use publisher_registry::contracts::publisher_registry::PublisherRegistry;
+    use publisher_registry::contracts::publisher_registry::{
+        IPublisherRegistryDispatcher, IPublisherRegistryDispatcherTrait
+    };
     use pragma::bits_manipulation::bits_manipulation::{
         actual_set_element_at, actual_get_element_at
     };
@@ -35,7 +36,7 @@ mod Library {
     };
     use starknet::{ContractAddress, Felt252TryIntoContractAddress};
     use starknet::{get_block_timestamp};
-    use super::Call;
+
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
 
     //Structure
@@ -1019,17 +1020,16 @@ mod Library {
 
     fn validate_sender_for_source<T, impl THasBaseEntry: hasBaseEntry<T>>(_entry: T) {
         let publisher_registry_address = get_publisher_registry_address();
-        let publisher_address = IPublisherRegistry::get_publisher_address(
-            publisher_registry_address, _entry.get_base_entry().source
-        );
-        let _can_publish_source = IPublisherRegistry::can_publish_source(
-            publisher_registry_address,
-            _entry.get_base_entry().publisher,
-            _entry.get_base_entry().source
-        );
+        let registry_dispatcher = IPublisherRegistryDispatcher {
+            contract_address: publisher_registry_address, 
+        };
+        let publisher_address = registry_dispatcher
+            .get_publisher_address(_entry.get_base_entry().source);
+        let _can_publish_source = registry_dispatcher
+            .can_publish_source(_entry.get_base_entry().publisher, _entry.get_base_entry().source);
         //CHECK IF THIS VERIFICATION WORKS 
         let caller_address = get_caller_address();
-        assert(publisher_address != 0, 'Publisher is not registered');
+        assert(!publisher_address.is_zero(), 'Publisher is not registered');
         assert(!caller_address.is_zero(), 'Caller must not be zero address');
         assert(caller_address == publisher_address, 'Transaction not from publisher');
         assert(_can_publish_source == true, 'Not allowed for source');

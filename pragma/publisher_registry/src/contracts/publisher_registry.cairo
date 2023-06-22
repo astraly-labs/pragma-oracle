@@ -2,21 +2,21 @@ use starknet::ContractAddress;
 
 #[abi]
 trait IPublisherRegistry {
-    #[internal]
+    #[external]
     fn add_publisher(publisher: felt252, publisher_address: ContractAddress);
-    #[internal]
+    #[external]
     fn update_publisher_address(publisher: felt252, new_publisher_address: ContractAddress);
-    #[internal]
+    #[external]
     fn remove_publisher(publisher: felt252);
-    #[internal]
+    #[external]
     fn add_source_for_publisher(publisher: felt252, source: felt252);
-    #[internal]
-    fn add_sources_for_publisher(publisher: felt252, sources: @Array<felt252>);
-    #[internal]
+    #[external]
+    fn add_sources_for_publisher(publisher: felt252, sources: Array<felt252>);
+    #[external]
     fn remove_source_for_publisher(publisher: felt252, source: felt252);
-    #[external]
+    #[view]
     fn can_publish_source(publisher: felt252, source: felt252) -> bool;
-    #[external]
+    #[view]
     fn get_publisher_address(publisher: felt252) -> ContractAddress;
 }
 
@@ -127,7 +127,7 @@ mod PublisherRegistry {
             publishers_sources_idx::write(publisher, cur_idx + 1);
         }
 
-        fn add_sources_for_publisher(publisher: felt252, sources: @Array<felt252>) {
+        fn add_sources_for_publisher(publisher: felt252, sources: Array<felt252>) {
             let mut idx = 0;
 
             loop {
@@ -213,12 +213,38 @@ mod PublisherRegistry {
 
     #[external]
     fn add_publisher(publisher: felt252, publisher_address: ContractAddress) {
+        Admin::assert_only_admin();
         PublisherRegistryImpl::add_publisher(publisher, publisher_address)
     }
 
     #[external]
     fn update_publisher_address(publisher: felt252, new_publisher_address: ContractAddress) {
+        Admin::assert_only_admin();
         PublisherRegistryImpl::update_publisher_address(publisher, new_publisher_address)
+    }
+
+    #[external]
+    fn remove_publisher(publisher: felt252) {
+        Admin::assert_only_admin();
+        PublisherRegistryImpl::remove_publisher(publisher)
+    }
+
+    #[external]
+    fn add_source_for_publisher(publisher: felt252, source: felt252) {
+        Admin::assert_only_admin();
+        PublisherRegistryImpl::add_source_for_publisher(publisher, source)
+    }
+
+    #[external]
+    fn add_sources_for_publisher(publisher: felt252, sources: Array<felt252>) {
+        Admin::assert_only_admin();
+        PublisherRegistryImpl::add_sources_for_publisher(publisher, sources)
+    }
+
+    #[external]
+    fn remove_source_for_publisher(publisher: felt252, source: felt252) {
+        Admin::assert_only_admin();
+        PublisherRegistryImpl::remove_source_for_publisher(publisher, source)
     }
 
     //
