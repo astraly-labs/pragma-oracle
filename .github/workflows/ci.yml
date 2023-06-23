@@ -38,9 +38,8 @@ jobs:
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: make setup
-      - name: Update env variables
-        run: |
-          source /home/runner/.bashrc | bash
+      - name: Activate protostar
+        run: echo "/home/runner/.protostar/dist/protostar" >> $GITHUB_PATH
 
       # Build artifacts
       - name: Event name
@@ -56,6 +55,6 @@ jobs:
           git add -A
           git diff-index --quiet HEAD || (git commit -m "${{ env.CI_COMMIT_MESSAGE }}" && git push)
       - name: Compile smart contracts
-        run: cd pragma && /home/runner/.protostar/dist/protostar/protostar build
+        run: cd pragma && protostar build
       - name: Run protostar tests
-        run: cd pragma && /home/runner/.protostar/dist/protostar/protostar test
+        run: cd pragma && protostar test
