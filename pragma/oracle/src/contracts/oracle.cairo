@@ -5,7 +5,7 @@ use entry::contracts::structs::{
     ArrayEntry
 };
 
-use oracle::contracts::library::Library;
+use oracle::business_logic::library::Library;
 use oracle::business_logic::oracleInterface::IOracle;
 use starknet::{ContractAddress, get_caller_address};
 use array::{ArrayTrait, SpanTrait};
@@ -151,7 +151,7 @@ mod Oracle {
         ArrayEntry
     };
 
-    use oracle::contracts::library::Library;
+    use oracle::business_logic::library::Library;
     use oracle::business_logic::oracleInterface::IOracle;
     use starknet::{ContractAddress, get_caller_address};
     use array::{ArrayTrait, SpanTrait};

@@ -72,7 +72,7 @@ fn generate_mask(position: u256, number_of_bits: u256) -> u256 {
     mask
 }
 
-// @notice Will set the input at tjhe given position
+// @notice Will set the input at the given position
 // @dev Cannot fail
 // @param position: The position of the element that needs to be set, starts a 0
 // @param element: The element that needs to be encoded

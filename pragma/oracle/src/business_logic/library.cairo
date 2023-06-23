@@ -57,7 +57,7 @@ mod Library {
         oracle_sources_len_storage: LegacyMap::<(felt252, felt252, u64), u64>,
         //oracle_data_entry_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), source, expiration_timestamp (0 for SPOT))
         oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u64), u256>,
-        //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT)) asociated to a checkpoint
+        //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT)) associated to a checkpoint
         oracle_checkpoints: LegacyMap::<(felt252, felt252, u64, u64), Checkpoint>,
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
         oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u64), u64>,
@@ -228,7 +228,7 @@ mod Library {
         }
     }
 
-    //TODO change timestmap
+    // TODO: change timestamp
     impl CheckpointStorageAccess of StorageAccess<Checkpoint> {
         fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<Checkpoint> {
             let timestamp_base = storage_base_address_from_felt252(

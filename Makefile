@@ -17,8 +17,8 @@ check:
 
 setup:
 	poetry install
-	curl -L https://raw.githubusercontent.com/software-mansion/protostar/master/install.sh | bash
 	curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | sh
+	curl -L https://raw.githubusercontent.com/software-mansion/protostar/master/install.sh | bash
 
 test: 
 	cd pragma && protostar test

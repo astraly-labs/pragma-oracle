@@ -38,7 +38,7 @@ fn test_register_non_admin_fail() {
     match invoke(publisher_registry_address, 'add_publisher', @invoke_calldata) {
         Result::Ok(x) => assert(false, 'Shouldnt have succeeded'),
         Result::Err(x) => {
-            assert(x.first() == 'Admin: unauthorized', 'first datum doesnt match');
+            assert(x.first() == 'Admin: unauthorized', 'first datum does not match');
         }
     }
 }
@@ -89,7 +89,7 @@ fn test_rotate_fails_for_unregistered_publisher() {
     match invoke(publisher_registry_address, 'update_publisher_address', @invoke_calldata) {
         Result::Ok(x) => assert(false, 'Shouldnt have succeeded'),
         Result::Err(x) => {
-            assert(x.first() == 'Name not registered', 'first datum doesnt match');
+            assert(x.first() == 'Name not registered', 'first datum does not match');
         }
     }
 }
@@ -137,7 +137,7 @@ fn test_re_register_fail() {
     match invoke(publisher_registry_address, 'add_publisher', @invoke_calldata) {
         Result::Ok(x) => assert(false, 'Shouldnt have succeeded'),
         Result::Err(x) => {
-            assert(x.first() == 'Name already registered', 'first datum doesnt match');
+            assert(x.first() == 'Name already registered', 'first datum does not match');
         }
     }
 
