@@ -1,3 +1,25 @@
+use array::ArrayTrait;
+use entry::contracts::structs::{BaseEntry, AggregationMode};
+use pragma::sorting::merge_sort::merge;
+use entry::contracts::structs::{SpotEntry, FutureEntry};
+use traits::TryInto;
+use traits::Into;
+use option::OptionTrait;
+
+trait HasPrice<T> {
+    fn get_price(self: @T) -> u256;
+}
+
+impl SHasPriceImpl of HasPrice<SpotEntry> {
+    fn get_price(self: @SpotEntry) -> u256 {
+        (*self).price
+    }
+}
+impl FHasPriceImpl of HasPrice<FutureEntry> {
+    fn get_price(self: @FutureEntry) -> u256 {
+        (*self).price
+    }
+}
 #[contract]
 mod Entry {
     use array::ArrayTrait;
@@ -7,6 +29,7 @@ mod Entry {
     use traits::TryInto;
     use traits::Into;
     use option::OptionTrait;
+    use super::HasPrice;
 
     trait hasBaseEntry<T> {
         fn get_base_entry(self: @T) -> BaseEntry;
@@ -27,21 +50,6 @@ mod Entry {
         }
         fn get_base_timestamp(self: @FutureEntry) -> u64 {
             (*self).base.timestamp
-        }
-    }
-
-    trait HasPrice<T> {
-        fn get_price(self: @T) -> u256;
-    }
-
-    impl SHasPriceImpl of HasPrice<SpotEntry> {
-        fn get_price(self: @SpotEntry) -> u256 {
-            (*self).price
-        }
-    }
-    impl FHasPriceImpl of HasPrice<FutureEntry> {
-        fn get_price(self: @FutureEntry) -> u256 {
-            (*self).price
         }
     }
 

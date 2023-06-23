@@ -1,26 +1,10 @@
 use array::ArrayTrait;
 use entry::contracts::structs::{SpotEntry, FutureEntry};
-
+use entry::contracts::entry::HasPrice;
 
 //
 //Traits
 //
-
-trait HasPrice<T> {
-    fn get_price(self: @T) -> u256;
-}
-
-impl SHasPriceImpl of HasPrice<SpotEntry> {
-    fn get_price(self: @SpotEntry) -> u256 {
-        (*self).price
-    }
-}
-impl FHasPriceImpl of HasPrice<FutureEntry> {
-    fn get_price(self: @FutureEntry) -> u256 {
-        (*self).price
-    }
-}
-
 
 // // Merge Sort
 // /// # Arguments
@@ -106,7 +90,7 @@ fn merge_recursive<
 /// * `index` - The index to split the array at.
 /// # Returns
 /// * `(Array<T>, Array<T>)` - The two arrays.
-fn split_array<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>, impl THasPrice: HasPrice<T>>(
+fn split_array<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
     arr: @Array<T>, index: usize
 ) -> (Array<T>, Array<T>) {
     let mut arr1 = ArrayTrait::new();
@@ -125,7 +109,7 @@ fn split_array<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>, impl THasPrice: HasP
 /// * `count` - The number of elements to fill.
 /// # Returns
 /// * `Array<T>` - The filled array.
-fn fill_array<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>, impl THasPrice: HasPrice<T>>(
+fn fill_array<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
     ref arr: Array<T>, fill_arr: @Array<T>, index: usize, count: usize
 ) {
     if count == 0 {
