@@ -18,15 +18,12 @@ mod Library {
     };
 
     use oracle::business_logic::oracleInterface::IOracle;
-    use publisher_registry::contracts::publisher_registry::{
-        IPublisherRegistryDispatcher, IPublisherRegistryDispatcherTrait
-    };
     use pragma::bits_manipulation::bits_manipulation::{
         actual_set_element_at, actual_get_element_at
     };
     use pragma::time_series::convert::convert_via_usd;
     use admin::contracts::Admin::Admin;
-    use serde::Serde;
+    use serde::{Serde};
     use serde::deserialize_array_helper;
     use serde::serialize_array_helper;
     use starknet::{StorageAccess, StorageBaseAddress, SyscallResult};
@@ -36,7 +33,9 @@ mod Library {
     };
     use starknet::{ContractAddress, Felt252TryIntoContractAddress};
     use starknet::{get_block_timestamp};
-
+    use publisher_registry::contracts::publisher_registry::{
+        IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
+    };
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
 
     //Structure
@@ -64,7 +63,19 @@ mod Library {
         oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u64), u64>,
         oracle_sources_threshold_storage: u32,
     }
-
+    impl SpanSerde<
+        T, impl TSerde: Serde<T>, impl TCopy: Copy<T>, impl TDrop: Drop<T>
+    > of Serde<Span<T>> {
+        fn serialize(self: @Span<T>, ref output: Array<felt252>) {
+            (*self).len().serialize(ref output);
+            serialize_array_helper(*self, ref output);
+        }
+        fn deserialize(ref serialized: Span<felt252>) -> Option<Span<T>> {
+            let length = *serialized.pop_front()?;
+            let mut arr = ArrayTrait::new();
+            Option::Some(deserialize_array_helper(ref serialized, arr, length)?.span())
+        }
+    }
 
     //ORACLE DATA ENTRY STORAGE -> CHECK 
     trait workingEntry<T> {
@@ -1018,18 +1029,21 @@ mod Library {
     }
 
 
-    fn validate_sender_for_source<T, impl THasBaseEntry: hasBaseEntry<T>>(_entry: T) {
+    fn validate_sender_for_source<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
+        _entry: T
+    ) {
         let publisher_registry_address = get_publisher_registry_address();
-        let registry_dispatcher = IPublisherRegistryDispatcher {
-            contract_address: publisher_registry_address, 
+        let publisher_registry_dispatcher = IPublisherRegistryABIDispatcher {
+            contract_address: publisher_registry_address
         };
-        let publisher_address = registry_dispatcher
-            .get_publisher_address(_entry.get_base_entry().source);
-        let _can_publish_source = registry_dispatcher
+        let publisher_address = publisher_registry_dispatcher
+            .get_publisher_address(_entry.get_base_entry().publisher);
+
+        let _can_publish_source = publisher_registry_dispatcher
             .can_publish_source(_entry.get_base_entry().publisher, _entry.get_base_entry().source);
         //CHECK IF THIS VERIFICATION WORKS 
         let caller_address = get_caller_address();
-        assert(!publisher_address.is_zero(), 'Publisher is not registered');
+        assert(publisher_address.is_zero(), 'Publisher is not registered');
         assert(!caller_address.is_zero(), 'Caller must not be zero address');
         assert(caller_address == publisher_address, 'Transaction not from publisher');
         assert(_can_publish_source == true, 'Not allowed for source');

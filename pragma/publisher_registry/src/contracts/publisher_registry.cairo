@@ -1,7 +1,8 @@
 use starknet::ContractAddress;
 
+
 #[abi]
-trait IPublisherRegistry {
+trait IPublisherRegistryABI {
     #[external]
     fn add_publisher(publisher: felt252, publisher_address: ContractAddress);
     #[external]
@@ -11,7 +12,7 @@ trait IPublisherRegistry {
     #[external]
     fn add_source_for_publisher(publisher: felt252, source: felt252);
     #[external]
-    fn add_sources_for_publisher(publisher: felt252, sources: Array<felt252>);
+    fn add_sources_for_publisher(publisher: felt252, sources: Span<felt252>);
     #[external]
     fn remove_source_for_publisher(publisher: felt252, source: felt252);
     #[view]
@@ -26,14 +27,29 @@ mod PublisherRegistry {
     use starknet::ContractAddress;
     use zeroable::Zeroable;
     use option::OptionTrait;
-    use array::ArrayTrait;
-    use array::ArrayTCloneImpl;
+    use box::BoxTrait;
+    use array::{ArrayTrait, SpanTrait};
+    use serde::Serde;
+    use serde::deserialize_array_helper;
+    use serde::serialize_array_helper;
     use traits::Into;
     use traits::TryInto;
     use admin::contracts::Admin::Admin;
-
     use publisher_registry::business_logic::interface::IPublisherRegistry;
 
+    impl SpanSerde<
+        T, impl TSerde: Serde<T>, impl TCopy: Copy<T>, impl TDrop: Drop<T>
+    > of Serde<Span<T>> {
+        fn serialize(self: @Span<T>, ref output: Array<felt252>) {
+            (*self).len().serialize(ref output);
+            serialize_array_helper(*self, ref output);
+        }
+        fn deserialize(ref serialized: Span<felt252>) -> Option<Span<T>> {
+            let length = *serialized.pop_front()?;
+            let mut arr = ArrayTrait::new();
+            Option::Some(deserialize_array_helper(ref serialized, arr, length)?.span())
+        }
+    }
     struct Storage {
         publisher_address_storage: LegacyMap::<felt252, ContractAddress>,
         publishers_storage_len: usize,
@@ -127,15 +143,15 @@ mod PublisherRegistry {
             publishers_sources_idx::write(publisher, cur_idx + 1);
         }
 
-        fn add_sources_for_publisher(publisher: felt252, sources: Array<felt252>) {
-            let mut idx = 0;
+        fn add_sources_for_publisher(publisher: felt252, sources: Span<felt252>) {
+            let mut idx: u32 = 0;
 
             loop {
                 if (idx == sources.len()) {
                     break ();
                 }
-
-                PublisherRegistryImpl::add_source_for_publisher(publisher, *sources[idx]);
+                let source: felt252 = *sources.get(idx).unwrap().unbox();
+                PublisherRegistryImpl::add_source_for_publisher(publisher, source);
                 idx += 1;
             }
         }
@@ -163,6 +179,24 @@ mod PublisherRegistry {
                 publishers_sources::write((publisher, source_idx), last_source);
             }
         }
+        fn can_publish_source(publisher: felt252, source: felt252) -> bool {
+            let cur_idx = publishers_sources_idx::read(publisher);
+
+            if (cur_idx == 0) {
+                return true;
+            }
+
+            let mut sources_arr = ArrayTrait::new();
+
+            _iter_publisher_sources(0_usize, cur_idx, publisher, ref sources_arr);
+
+            let (_, found) = _find_source_idx(0_usize, source, @sources_arr);
+
+            found
+        }
+        fn get_publisher_address(publisher: felt252) -> ContractAddress {
+            publisher_address_storage::read(publisher)
+        }
     }
 
     //
@@ -176,7 +210,7 @@ mod PublisherRegistry {
 
     #[view]
     fn get_publisher_address(publisher: felt252) -> ContractAddress {
-        publisher_address_storage::read(publisher)
+        PublisherRegistryImpl::get_publisher_address(publisher)
     }
 
     #[view]
@@ -191,19 +225,7 @@ mod PublisherRegistry {
 
     #[view]
     fn can_publish_source(publisher: felt252, source: felt252) -> bool {
-        let cur_idx = publishers_sources_idx::read(publisher);
-
-        if (cur_idx == 0) {
-            return true;
-        }
-
-        let mut sources_arr = ArrayTrait::new();
-
-        _iter_publisher_sources(0_usize, cur_idx, publisher, ref sources_arr);
-
-        let (_, found) = _find_source_idx(0_usize, source, @sources_arr);
-
-        found
+        PublisherRegistryImpl::can_publish_source(publisher, source)
     }
 
 
@@ -236,7 +258,7 @@ mod PublisherRegistry {
     }
 
     #[external]
-    fn add_sources_for_publisher(publisher: felt252, sources: Array<felt252>) {
+    fn add_sources_for_publisher(publisher: felt252, sources: Span<felt252>) {
         Admin::assert_only_admin();
         PublisherRegistryImpl::add_sources_for_publisher(publisher, sources)
     }
