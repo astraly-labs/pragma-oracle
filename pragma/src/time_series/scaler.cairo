@@ -1,16 +1,19 @@
+use core::traits::TryInto;
 use pragma::time_series::structs::TickElem;
 use array::ArrayTrait;
-use alexandria_math::math::signed_integers::i129;
+use alexandria_math::signed_integers::i129;
 use zeroable::Zeroable;
+use traits::Into;
+use option::OptionTrait;
 
 fn calculate_slope(x1: i129, x2: i129, y1: i129, y2: i129) -> i129 {
     (y2 - y1) / (x2 - x1)
 }
 
 fn scale_data(
-    start_tick: u32, end_tick: u32, tick_array: @Array<TickElem>, num_intervals: u32
+    start_tick: u64, end_tick: u64, tick_array: @Array<TickElem>, num_intervals: u32
 ) -> Array<TickElem> {
-    let interval = (end_tick - start_tick) / (num_intervals - 1);
+    let interval = (end_tick - start_tick) / (num_intervals.into() - 1);
     let mut output: Array<TickElem> = ArrayTrait::new();
 
     let mut cur_index: u32 = 0;
@@ -21,11 +24,12 @@ fn scale_data(
             break ();
         }
 
-        let mut tick: u32 = 0;
+        let mut tick: u64 = 0;
         if cur_index == num_intervals - 1 {
             tick = end_tick;
         } else {
-            tick = start_tick + (cur_index * interval);
+            let conv_cur_idx: felt252 = cur_index.into();
+            tick = start_tick + (conv_cur_idx.try_into().unwrap() * interval);
         }
 
         let (idx, _before, _after) = get_bounded_tick_idx(tick, index, tick_array);
@@ -40,23 +44,25 @@ fn scale_data(
             let z = tick_array.len() - 1;
             slope =
                 calculate_slope(
-                    tick_array[z - 1].tick,
-                    tick_array[z].tick,
-                    tick_array[z - 1].value,
-                    tick_array[z].value
+                    i129 { inner: (*tick_array[z - 1].tick).into(), sign: false },
+                    i129 { inner: (*tick_array[z].tick).into(), sign: false },
+                    i129 { inner: (*tick_array[z - 1].value), sign: false },
+                    i129 { inner: (*tick_array[z].value), sign: false }
                 );
         } else {
-            let x1 = tick_array[idx].tick;
-            let x2 = tick_array[idx + 1].tick;
-            let y1 = tick_array[idx].value;
-            let y2 = tick_array[idx + 1].value;
+            let x1 = i129 { inner: (*tick_array[idx].tick).into(), sign: false };
+            let x2 = i129 { inner: (*tick_array[idx + 1].tick).into(), sign: false };
+            let y1 = i129 { inner: (*tick_array[idx].value), sign: false };
+            let y2 = i129 { inner: (*tick_array[idx + 1].value), sign: false };
             slope = calculate_slope(x1, x2, y1, y2);
         }
 
-        let offset = tick_array[index].value - (slope * tick_array[index].tick);
-        let z = slope * tick + offset;
+        let offset = i129 {
+            inner: (*tick_array[index].value), sign: false
+        } - (slope * i129 { inner: (*tick_array[index].tick).into(), sign: false });
+        let z = slope * i129 { inner: tick.into(), sign: false } + offset;
 
-        output.append(TickElem { tick, value: z });
+        output.append(TickElem { tick, value: z.inner });
 
         cur_index += 1;
         index = idx;
@@ -66,7 +72,7 @@ fn scale_data(
 }
 
 fn get_bounded_tick_idx(
-    cur_position: u32, cur_index: u32, tick_array: @Array<TickElem>
+    cur_position: u64, cur_index: u32, tick_array: @Array<TickElem>
 ) -> (u32, bool, bool) {
     if cur_index == tick_array.len() {
         return (cur_index - 1, false, true);

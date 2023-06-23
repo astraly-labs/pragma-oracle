@@ -1,8 +1,8 @@
 use array::ArrayTrait;
-
+use integer::u32;
 #[derive(Drop, Copy)]
 struct TickElem {
-    tick: u32,
+    tick: u64,
     value: u128
 }
 

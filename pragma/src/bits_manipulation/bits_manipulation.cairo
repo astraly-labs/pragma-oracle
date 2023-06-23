@@ -9,6 +9,7 @@ fn actual_get_element_at(input: u256, at: u256, number_of_bits: u256) -> u256 {
     response
 }
 
+
 // @notice Will return the a new felt with the felt encoded at a certain position on a certain number of bits
 // @dev This method can fail
 // @param input: The felt from which it needs to be included in
@@ -23,6 +24,7 @@ fn actual_set_element_at(input: u256, at: u256, number_of_bits: u256, element: u
     unsafe_set_element_at(masked_input, at, element)
 }
 
+
 // @notice Will check that the given element isn't to big to be stored
 // @dev Will fail if the felt is too big, which is relative to number_of_bits
 // @param element: the element that needs to be checked
@@ -32,12 +34,17 @@ fn assert_valid_felt(element: u256, number_of_bits: u256) {
     assert(element <= max_element, 'Error felt too big');
 }
 
+
 // @notice Will check that the given position finumber_of_bitsts within the 251 bits available
 // @dev Will fail if the position is too big +
 // @param position: The position of the element, starts a 0
 // @param number_of_bits: the number of bits on which each element is encoded
 fn assert_within_range(position: u256, number_of_bits: u256) {
     assert(position + number_of_bits <= 251.into(), 'Error out of bound');
+}
+
+fn asset_within_range_64(position: u64, number_of_bits: u64) {
+    assert(position + number_of_bits <= 251, 'Error out of bound');
 }
 
 // @notice Will generate a bit mask to be able to insert a felt within another felt

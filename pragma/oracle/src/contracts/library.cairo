@@ -639,7 +639,8 @@ mod Library {
                 oracle_data_entry_storage::read((pair_id, source, FUTURE, expiration_timestamp))
             },
         };
-        let timestamp: u64 = actual_get_element_at(_entry, 0, 31);
+        let u256_timestamp = actual_get_element_at(_entry, 0, 31);
+        let timestamp: u64 = u256_timestamp.try_into().unwrap().try_into().unwrap();
         let volume = actual_get_element_at(_entry, 32, 42);
         let price = actual_get_element_at(_entry, 75, 128);
         match data_type {
@@ -778,7 +779,10 @@ mod Library {
                     PossibleEntries::Spot(spot) => {
                         validate_data_timestamp(new_entry, spot);
                         SubmittedSpotEntry(spot_entry);
-                        let element = actual_set_element_at(0, 0, 31, spot_entry.base.timestamp);
+                        let conv_timestamp: u256 = u256 {
+                            low: spot_entry.base.timestamp.into(), high: 0
+                        };
+                        let element = actual_set_element_at(0, 0, 31, conv_timestamp);
                         let element = actual_set_element_at(element, 32, 42, spot_entry.volume);
                         let element = actual_set_element_at(element, 75, 128, spot_entry.price);
                         let spot_entry_storage = SpotEntryStorage {
@@ -808,7 +812,10 @@ mod Library {
                     PossibleEntries::Future(future) => {
                         validate_data_timestamp::<FutureEntry>(new_entry, future);
                         SubmittedFutureEntry(future_entry);
-                        let element = actual_set_element_at(0, 0, 31, future_entry.base.timestamp);
+                        let conv_timestamp: u256 = u256 {
+                            low: future_entry.base.timestamp.into(), high: 0
+                        };
+                        let element = actual_set_element_at(0, 0, 31, conv_timestamp);
                         let element = actual_set_element_at(element, 32, 42, future_entry.volume);
                         let element = actual_set_element_at(element, 75, 128, future_entry.price);
                         let future_entry_storage = FutureEntryStorage {
