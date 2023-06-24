@@ -35,7 +35,7 @@ trait IOracle {
     fn get_data_entries(data_type: DataType) -> Array<PossibleEntries>;
     fn get_data_entries_for_sources(
         data_type: DataType, sources: Span<felt252>
-    ) -> Array<PossibleEntries>;
+    ) -> (Array<PossibleEntries>, u32, u64);
     fn get_last_checkpoint_before(
         data_type: DataType, aggregation_mode: AggregationMode, timestamp: u64
     ) -> (Checkpoint, u64);
@@ -58,7 +58,7 @@ trait IOracle {
     fn set_admin_address(new_admin_address: ContractAddress);
     fn update_publisher_registry_address(new_publisher_registry_address: ContractAddress);
     fn add_currency(new_currency: Currency);
-    fn update_currency(currency: Currency, typeof: felt252);
+    fn update_currency(currency: Currency);
     fn add_pair(new_pair: Pair);
     fn set_checkpoint(data_type: DataType, aggregation_mode: AggregationMode);
     fn set_checkpoints(data_types: Span<DataType>, aggregation_mode: AggregationMode);
