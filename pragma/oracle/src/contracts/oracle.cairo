@@ -1447,10 +1447,15 @@ mod Oracle {
             return midpoint;
         }
 
-        if (target <= timestamp) {
-            return _binary_search(data_type, low, midpoint - 1, target);
+        if (timestamp < target) {
+            let next_timestamp = get_checkpoint_by_index(data_type, midpoint + 1).timestamp;
+            if (target < next_timestamp) {
+                return midpoint;
+            } else {
+                return _binary_search(data_type, midpoint + 1, high, target);
+            }
         } else {
-            return _binary_search(data_type, midpoint + 1, high, target);
+            return _binary_search(data_type, low, midpoint - 1, target);
         }
     }
     #[internal]
