@@ -1417,12 +1417,12 @@ mod Oracle {
         let last_checkpoint_index = get_latest_checkpoint_index(data_type, aggregation_mode);
         let latest_checkpoint_index = get_latest_checkpoint_index(data_type, aggregation_mode);
         let cp = get_checkpoint_by_index(data_type, latest_checkpoint_index - 1);
-        let first_cp = get_checkpoint_by_index(data_type, 0);
-        if (cp.timestamp < timestamp) {
+        if (cp.timestamp <= timestamp) {
             return latest_checkpoint_index - 1;
         }
 
-        if (timestamp < first_cp.timestamp) {
+        let first_cp = get_checkpoint_by_index(data_type, 0);
+        if (timestamp <= first_cp.timestamp) {
             return 0;
         }
         let startpoint = _binary_search(data_type, 0, latest_checkpoint_index, timestamp);
