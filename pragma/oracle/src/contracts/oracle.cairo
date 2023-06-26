@@ -26,7 +26,7 @@ use upgradeable::contracts::upgradeable::Upgradeable;
 
 #[abi]
 trait IOracleABI {
-    #[internal]
+    #[external]
     fn initializer(
         proxy_admin: felt252,
         publisher_registry_address: ContractAddress,
@@ -462,6 +462,9 @@ mod Oracle {
             let mut ethereum_address_value = storage_read_syscall(
                 address_domain, storage_address_from_base_and_offset(base, 4_u8)
             );
+            let bool_base = storage_base_address_from_felt252(
+                storage_address_from_base_and_offset(base, 2_u8).into()
+            );
             Result::Ok(
                 Currency {
                     id: storage_read_syscall(
@@ -472,9 +475,9 @@ mod Oracle {
                     )?
                         .try_into()
                         .unwrap(),
-                    is_abstract_currency: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 2_u8)
-                    )?,
+                    is_abstract_currency: StorageAccess::<felt252>::read(
+                        address_domain, bool_base
+                    )? != 0,
                     starknet_address: starknet_address_value
                         .unwrap()
                         .try_into()
@@ -498,11 +501,21 @@ mod Oracle {
                 storage_address_from_base_and_offset(base, 1_u8),
                 value.decimals.into(),
             )?;
-            storage_write_syscall(
-                address_domain,
-                storage_address_from_base_and_offset(base, 2_u8),
-                value.is_abstract_currency.into(),
-            )?;
+            // storage_write_syscall(
+            //     address_domain,
+            //     storage_address_from_base_and_offset(base, 2_u8),
+            //     value.is_abstract_currency.into(),
+            // )?;
+            let bool_base = storage_base_address_from_felt252(
+                storage_address_from_base_and_offset(base, 2_u8).into()
+            );
+            StorageAccess::<felt252>::write(
+                address_domain, bool_base, if value.is_abstract_currency {
+                    1
+                } else {
+                    0
+                }
+            );
             storage_write_syscall(
                 address_domain,
                 storage_address_from_base_and_offset(base, 3_u8),
@@ -546,7 +559,6 @@ mod Oracle {
     fn CheckpointFutureEntry(pair_id: felt252, expiration_timestamp: u64) {}
 
     impl IOracleImpl of IOracle {
-        #[external]
         fn initializer(
             proxy_admin: felt252,
             publisher_registry_address: ContractAddress,
@@ -563,7 +575,6 @@ mod Oracle {
         // Getters
         //
 
-        #[view]
         fn get_data_entries_for_sources(
             data_type: DataType, sources: Span<felt252>
         ) -> (Array<PossibleEntries>, u32, u64) {
@@ -577,7 +588,6 @@ mod Oracle {
         }
 
 
-        #[view]
         fn get_data_entries(data_type: DataType) -> Array<PossibleEntries> {
             let mut sources = ArrayTrait::<felt252>::new();
             let sources = get_all_sources(data_type).span();
@@ -586,7 +596,6 @@ mod Oracle {
         }
 
 
-        #[view]
         fn get_data_median(data_type: DataType) -> PragmaPricesResponse {
             let sources = get_all_sources(data_type).span();
             let prices_response: PragmaPricesResponse = IOracle::get_data_for_sources(
@@ -595,7 +604,7 @@ mod Oracle {
             prices_response
         }
 
-        #[view]
+
         fn get_data_median_for_sources(
             data_type: DataType, sources: Span<felt252>
         ) -> PragmaPricesResponse {
@@ -605,7 +614,7 @@ mod Oracle {
             prices_response
         }
 
-        #[view]
+
         fn get_data_median_multi(
             data_types: Span<DataType>, sources: Span<felt252>
         ) -> Array<PragmaPricesResponse> {
@@ -626,7 +635,7 @@ mod Oracle {
             prices_response
         }
 
-        #[view]
+
         fn get_data(
             data_type: DataType, aggregation_mode: AggregationMode
         ) -> PragmaPricesResponse {
@@ -637,7 +646,7 @@ mod Oracle {
             prices_response
         }
 
-        #[view]
+
         fn get_data_for_sources(
             data_type: DataType, aggregation_mode: AggregationMode, sources: Span<felt252>
         ) -> PragmaPricesResponse {
@@ -727,30 +736,33 @@ mod Oracle {
         }
 
 
-        #[view]
         fn get_publisher_registry_address() -> ContractAddress {
             get_publisher_registry_address()
         }
 
-        #[view]
+
         fn get_decimals(data_type: DataType) -> u32 {
-            let currency = match data_type {
+            let (base_currency, quote_currency) = match data_type {
                 DataType::SpotEntry(pair_id) => {
                     let pair = oracle_pairs_storage::read(pair_id);
-                    oracle_currencies_storage::read(pair.base_currency_id)
+                    let base_cur = oracle_currencies_storage::read(pair.base_currency_id);
+                    let quote_cur = oracle_currencies_storage::read(pair.quote_currency_id);
+                    (base_cur, quote_cur)
                 },
                 DataType::FutureEntry((
                     pair_id, expiration_timestamp
                 )) => {
                     let pair = oracle_pairs_storage::read(pair_id);
-                    oracle_currencies_storage::read(pair.base_currency_id)
+                    let base_cur = oracle_currencies_storage::read(pair.base_currency_id);
+                    let quote_cur = oracle_currencies_storage::read(pair.quote_currency_id);
+                    (base_cur, quote_cur)
                 },
             // DataType::OptionEntry((pair_id, expiration_timestamp)) => {}
             };
-            currency.decimals
+            min(base_currency.decimals, quote_currency.decimals)
         }
 
-        #[view]
+
         fn get_data_with_USD_hop(
             base_currency_id: felt252,
             quote_currency_id: felt252,
@@ -814,14 +826,13 @@ mod Oracle {
         }
 
 
-        #[view]
         fn get_latest_checkpoint_index(
             data_type: DataType, aggregation_mode: AggregationMode
         ) -> u64 {
             get_latest_checkpoint_index(data_type, aggregation_mode)
         }
 
-        #[view]
+
         fn get_latest_checkpoint(
             data_type: DataType, aggregation_mode: AggregationMode
         ) -> Checkpoint {
@@ -830,27 +841,26 @@ mod Oracle {
         }
 
 
-        #[view]
         fn get_checkpoint(data_type: DataType, checkpoint_index: u64) -> Checkpoint {
             get_checkpoint_by_index(data_type, checkpoint_index)
         }
 
-        #[view]
+
         fn get_sources_threshold() -> u32 {
             get_sources_threshold()
         }
 
-        #[view]
+
         fn get_admin_address() -> ContractAddress {
             Admin::get_admin_address()
         }
 
-        #[view]
+
         fn get_implementation_hash() -> ClassHash {
             Upgradeable::get_implementation_hash()
         }
 
-        #[view]
+
         fn get_last_checkpoint_before(
             data_type: DataType, aggregation_mode: AggregationMode, timestamp: u64
         ) -> (Checkpoint, u64) {
@@ -859,7 +869,7 @@ mod Oracle {
             (checkpoint, idx)
         }
 
-        #[view]
+
         fn get_data_entry(data_type: DataType, source: felt252) -> PossibleEntries {
             let _entry = match data_type {
                 DataType::SpotEntry(pair_id) => {
@@ -907,7 +917,6 @@ mod Oracle {
         // Setters
         //
 
-        #[external]
         fn publish_data(new_entry: PossibleEntries) {
             match new_entry {
                 PossibleEntries::Spot(spot_entry) => {
@@ -982,7 +991,6 @@ mod Oracle {
         }
 
 
-        #[external]
         fn publish_data_entries(new_entries: Span<PossibleEntries>) {
             let mut cur_idx = 0;
             loop {
@@ -996,7 +1004,6 @@ mod Oracle {
         }
 
 
-        #[external]
         fn update_publisher_registry_address(new_publisher_registry_address: ContractAddress) {
             assert_only_admin();
             let old_publisher_registry_address = oracle_publisher_registry_address_storage::read();
@@ -1007,7 +1014,7 @@ mod Oracle {
             return ();
         }
 
-        #[external]
+
         fn add_currency(new_currency: Currency) {
             assert_only_admin();
             let existing_currency = oracle_currencies_storage::read(new_currency.id);
@@ -1017,7 +1024,7 @@ mod Oracle {
             return ();
         }
 
-        #[external]
+
         fn update_currency(currency: Currency) {
             assert_only_admin();
             oracle_currencies_storage::write(currency.id, currency);
@@ -1025,7 +1032,7 @@ mod Oracle {
             return ();
         }
 
-        #[external]
+
         fn add_pair(new_pair: Pair) {
             assert_only_admin();
             let check_pair = oracle_pairs_storage::read(new_pair.id);
@@ -1038,7 +1045,7 @@ mod Oracle {
             return ();
         }
 
-        #[external]
+
         fn set_checkpoint(data_type: DataType, aggregation_mode: AggregationMode) {
             let mut sources = ArrayTrait::<felt252>::new().span();
             let priceResponse = IOracle::get_data_for_sources(data_type, aggregation_mode, sources);
@@ -1079,7 +1086,7 @@ mod Oracle {
             return ();
         }
 
-        #[external]
+
         fn set_checkpoints(data_types: Span<DataType>, aggregation_mode: AggregationMode) {
             let mut cur_idx: u32 = 0;
             loop {
@@ -1093,18 +1100,172 @@ mod Oracle {
         }
 
 
-        #[external]
         fn set_admin_address(new_admin_address: ContractAddress) {
             assert_only_admin();
             Admin::set_admin_address(new_admin_address);
         }
 
-        #[external]
+
         fn set_sources_threshold(threshold: u32) {
             assert_only_admin();
             set_sources_threshold(threshold);
         }
     }
+
+
+    //
+    //Initializer
+    //
+    #[external]
+    fn initializer(
+        proxy_admin: felt252,
+        publisher_registry_address: ContractAddress,
+        currencies: Span<Currency>,
+        pairs: Span<Pair>
+    ) {
+        IOracleImpl::initializer(proxy_admin, publisher_registry_address, currencies, pairs);
+    }
+
+    //
+    //Views
+    //
+    #[view]
+    fn get_decimals(data_type: DataType) -> u32 {
+        IOracleImpl::get_decimals(data_type)
+    }
+
+    #[view]
+    fn get_data_entries_for_sources(
+        data_type: DataType, sources: Span<felt252>
+    ) -> (Array<PossibleEntries>, u32, u64) {
+        IOracleImpl::get_data_entries_for_sources(data_type, sources)
+    }
+
+    #[view]
+    fn get_data_entries(data_type: DataType) -> Array<PossibleEntries> {
+        IOracleImpl::get_data_entries(data_type)
+    }
+
+    #[view]
+    fn get_data_median(data_type: DataType) -> PragmaPricesResponse {
+        IOracleImpl::get_data_median(data_type)
+    }
+
+    #[view]
+    fn get_data_median_for_sources(
+        data_type: DataType, sources: Span<felt252>
+    ) -> PragmaPricesResponse {
+        IOracleImpl::get_data_median_for_sources(data_type, sources)
+    }
+
+    #[view]
+    fn get_data_median_multi(
+        data_types: Span<DataType>, sources: Span<felt252>
+    ) -> Array<PragmaPricesResponse> {
+        IOracleImpl::get_data_median_multi(data_types, sources)
+    }
+
+    #[view]
+    fn get_data(data_type: DataType, aggregation_mode: AggregationMode) -> PragmaPricesResponse {
+        IOracleImpl::get_data(data_type, aggregation_mode)
+    }
+
+    #[view]
+    fn get_data_for_sources(
+        data_type: DataType, aggregation_mode: AggregationMode, sources: Span<felt252>
+    ) -> PragmaPricesResponse {
+        IOracleImpl::get_data_for_sources(data_type, aggregation_mode, sources)
+    }
+
+    #[view]
+    fn get_data_with_USD_hop(
+        base_currency_id: felt252,
+        quote_currency_id: felt252,
+        aggregation_mode: AggregationMode,
+        typeof: simpleDataType,
+        expiration_timestamp: Option<u64>
+    ) -> PragmaPricesResponse {
+        IOracleImpl::get_data_with_USD_hop(
+            base_currency_id, quote_currency_id, aggregation_mode, typeof, expiration_timestamp
+        )
+    }
+
+    #[view]
+    fn get_latest_checkpoint(data_type: DataType, aggregation_mode: AggregationMode) -> Checkpoint {
+        IOracleImpl::get_latest_checkpoint(data_type, aggregation_mode)
+    }
+
+    #[view]
+    fn get_data_entry(data_type: DataType, source: felt252) -> PossibleEntries {
+        IOracleImpl::get_data_entry(data_type, source)
+    }
+
+    #[view]
+    fn get_last_checkpoint_before(
+        data_type: DataType, aggregation_mode: AggregationMode, timestamp: u64
+    ) -> (Checkpoint, u64) {
+        IOracleImpl::get_last_checkpoint_before(data_type, aggregation_mode, timestamp)
+    }
+
+    #[view]
+    fn get_checkpoint(data_type: DataType, checkpoint_index: u64) -> Checkpoint {
+        IOracleImpl::get_checkpoint(data_type, checkpoint_index)
+    }
+
+    #[view]
+    fn get_admin_address() -> ContractAddress {
+        IOracleImpl::get_admin_address()
+    }
+
+    #[view]
+    fn get_implementation_hash() -> ClassHash {
+        IOracleImpl::get_implementation_hash()
+    }
+
+    //
+    // Setters
+    //
+
+    #[external]
+    fn publish_data(new_entry: PossibleEntries) {
+        IOracleImpl::publish_data(new_entry);
+    }
+
+    #[external]
+    fn publish_data_entries(new_entries: Span<PossibleEntries>) {
+        IOracleImpl::publish_data_entries(new_entries);
+    }
+
+    #[external]
+    fn update_publisher_registry_address(new_publisher_registry_address: ContractAddress) {
+        IOracleImpl::update_publisher_registry_address(new_publisher_registry_address);
+    }
+
+    #[external]
+    fn add_currency(new_currency: Currency) {
+        IOracleImpl::add_currency(new_currency);
+    }
+
+    #[external]
+    fn update_currency(currency: Currency) {
+        IOracleImpl::update_currency(currency);
+    }
+
+    #[external]
+    fn set_checkpoint(data_type: DataType, aggregation_mode: AggregationMode) {
+        IOracleImpl::set_checkpoint(data_type, aggregation_mode);
+    }
+
+    #[external]
+    fn set_checkpoints(data_types: Span<DataType>, aggregation_mode: AggregationMode) {
+        IOracleImpl::set_checkpoints(data_types, aggregation_mode);
+    }
+
+    #[external]
+    fn set_admin_address(new_admin_address: ContractAddress) {
+        IOracleImpl::set_admin_address(new_admin_address);
+    }
+
     #[internal]
     fn get_all_sources(data_type: DataType) -> Array<felt252> {
         let mut sources = ArrayTrait::<felt252>::new();
@@ -1140,12 +1301,12 @@ mod Oracle {
         return checkpoint;
     }
 
-    #[internal]
+    #[view]
     fn get_sources_threshold() -> u32 {
         oracle_sources_threshold_storage::read()
     }
 
-    #[internal]
+    #[view]
     fn get_latest_checkpoint_index(data_type: DataType, aggregation_mode: AggregationMode) -> u64 {
         let checkpoint_index = match data_type {
             DataType::SpotEntry(pair_id) => {
@@ -1263,7 +1424,7 @@ mod Oracle {
         assert(caller == admin, 'Admin: unauthorized');
     }
 
-    #[internal]
+    #[view]
     fn get_publisher_registry_address() -> ContractAddress {
         let publisher_registry_address = oracle_publisher_registry_address_storage::read();
         return publisher_registry_address;
@@ -1382,7 +1543,7 @@ mod Oracle {
         return ();
     }
 
-    #[internal]
+    #[external]
     fn add_pair(pair: Pair) {
         let check_pair = oracle_pairs_storage::read(pair.id);
         assert(check_pair.id == 0, 'Pair with this key registered');
@@ -1406,6 +1567,7 @@ mod Oracle {
         return ();
     }
 
+    #[external]
     fn set_sources_threshold(threshold: u32) {
         oracle_sources_threshold_storage::write(threshold);
         return ();

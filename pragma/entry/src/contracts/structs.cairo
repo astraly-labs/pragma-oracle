@@ -130,7 +130,7 @@ struct Pair {
 struct Currency {
     id: felt252,
     decimals: u32,
-    is_abstract_currency: felt252, // True (1) if not a specific token but abstract, e.g. USD or ETH as a whole
+    is_abstract_currency: bool, // True (1) if not a specific token but abstract, e.g. USD or ETH as a whole
     starknet_address: ContractAddress, // optional, e.g. can have synthetics for non-bridged assets
     ethereum_address: ContractAddress, // optional
 }

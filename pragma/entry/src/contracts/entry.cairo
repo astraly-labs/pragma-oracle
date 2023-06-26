@@ -20,7 +20,7 @@ impl FHasPriceImpl of HasPrice<FutureEntry> {
         (*self).price
     }
 }
-#[contract]
+
 mod Entry {
     use array::ArrayTrait;
     use entry::contracts::structs::{BaseEntry, AggregationMode};
