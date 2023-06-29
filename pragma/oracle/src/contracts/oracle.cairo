@@ -551,7 +551,7 @@ mod Oracle {
             CurrencyStorageAccess::write_at_offset_internal(address_domain, base, offset, value)
         }
         fn size_internal(value: Currency) -> u8 {
-            3_u8
+            5_u8
         }
     }
     #[event]

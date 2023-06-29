@@ -39,15 +39,15 @@ fn setup() {
 
     // let mut oracle = IOracleABIDispatcher { contract_address: oracle_address };
 
+    starknet::testing::set_chain_id('SN_MAIN');
     let mut constructor_calldata = ArrayTrait::new();
     constructor_calldata.append(oracle_admin_address);
-    let (publisher_registry_address, _) = deploy_syscall(
+    let deployed_contract = deploy_syscall(
         PublisherRegistry::TEST_CLASS_HASH.try_into().unwrap(),
         0,
         constructor_calldata.span(),
         false
-    )
-        .unwrap();
+    ).unwrap();
     // let mut publisher_registry = IPublisherRegistryABIDispatcher {
     //     contract_address: 0.try_into().unwrap()
     // };
