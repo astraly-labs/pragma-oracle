@@ -1,17 +1,18 @@
 use core::traits::TryInto;
 use pragma::time_series::structs::TickElem;
-use array::ArrayTrait;
+use array::{ArrayTrait, SpanTrait};
 use alexandria_math::signed_integers::i129;
 use zeroable::Zeroable;
 use traits::Into;
 use option::OptionTrait;
+use box::BoxTrait;
 
 fn calculate_slope(x1: i129, x2: i129, y1: i129, y2: i129) -> i129 {
     (y2 - y1) / (x2 - x1)
 }
 
 fn scale_data(
-    start_tick: u64, end_tick: u64, tick_array: @Array<TickElem>, num_intervals: u32
+    start_tick: u64, end_tick: u64, tick_array: Span<TickElem>, num_intervals: u32
 ) -> Array<TickElem> {
     let interval = (end_tick - start_tick) / (num_intervals.into() - 1);
     let mut output: Array<TickElem> = ArrayTrait::new();
@@ -34,8 +35,8 @@ fn scale_data(
 
         let (idx, _before, _after) = get_bounded_tick_idx(tick, index, tick_array);
 
-        if *tick_array[idx].tick == tick {
-            output.append(*tick_array[idx]);
+        if *tick_array.get(idx).unwrap().unbox().tick == tick {
+            output.append(*tick_array.get(idx).unwrap().unbox());
             continue;
         }
 
@@ -44,22 +45,31 @@ fn scale_data(
             let z = tick_array.len() - 1;
             slope =
                 calculate_slope(
-                    i129 { inner: (*tick_array[z - 1].tick).into(), sign: false },
-                    i129 { inner: (*tick_array[z].tick).into(), sign: false },
-                    i129 { inner: (*tick_array[z - 1].value), sign: false },
-                    i129 { inner: (*tick_array[z].value), sign: false }
+                    i129 {
+                        inner: (*tick_array.get(z - 1).unwrap().unbox().tick).into(), sign: false
+                    },
+                    i129 { inner: (*tick_array.get(z).unwrap().unbox().tick).into(), sign: false },
+                    i129 { inner: (*tick_array.get(z - 1).unwrap().unbox().value), sign: false },
+                    i129 { inner: (*tick_array.get(z).unwrap().unbox().value), sign: false }
                 );
         } else {
-            let x1 = i129 { inner: (*tick_array[idx].tick).into(), sign: false };
-            let x2 = i129 { inner: (*tick_array[idx + 1].tick).into(), sign: false };
-            let y1 = i129 { inner: (*tick_array[idx].value), sign: false };
-            let y2 = i129 { inner: (*tick_array[idx + 1].value), sign: false };
+            let x1 = i129 {
+                inner: (*tick_array.get(idx).unwrap().unbox().tick).into(), sign: false
+            };
+            let x2 = i129 {
+                inner: (*tick_array.get(idx + 1).unwrap().unbox().tick).into(), sign: false
+            };
+            let y1 = i129 { inner: (*tick_array.get(idx).unwrap().unbox().value), sign: false };
+            let y2 = i129 { inner: (*tick_array.get(idx + 1).unwrap().unbox().value), sign: false };
             slope = calculate_slope(x1, x2, y1, y2);
         }
 
         let offset = i129 {
-            inner: (*tick_array[index].value), sign: false
-        } - (slope * i129 { inner: (*tick_array[index].tick).into(), sign: false });
+            inner: (*tick_array.get(index).unwrap().unbox().value), sign: false
+        }
+            - (slope * i129 {
+                inner: (*tick_array.get(index).unwrap().unbox().tick).into(), sign: false
+            });
         let z = slope * i129 { inner: tick.into(), sign: false } + offset;
 
         output.append(TickElem { tick, value: z.inner });
@@ -72,7 +82,7 @@ fn scale_data(
 }
 
 fn get_bounded_tick_idx(
-    cur_position: u64, cur_index: u32, tick_array: @Array<TickElem>
+    cur_position: u64, cur_index: u32, tick_array: Span<TickElem>
 ) -> (u32, bool, bool) {
     if cur_index == tick_array.len() {
         return (cur_index - 1, false, true);
@@ -82,14 +92,14 @@ fn get_bounded_tick_idx(
         return (tick_array.len() - 1, false, true);
     }
 
-    let _is_before_start = cur_position < *tick_array[0].tick;
+    let _is_before_start = cur_position < *tick_array.get(0).unwrap().unbox().tick;
     let _is_zero = cur_position == 0;
     if _is_before_start & _is_zero {
         return (0, true, false);
     }
-
-    if *tick_array[cur_index].tick <= cur_position & cur_position <= *tick_array[cur_index
-        + 1].tick {
+    let cur_tick: u64 = *tick_array.get(cur_index).unwrap().unbox().tick;
+    let next_tick: u64 = *tick_array.get(cur_index + 1).unwrap().unbox().tick;
+    if cur_tick <= cur_position && cur_position <= next_tick {
         return (cur_index, false, false);
     }
 

@@ -15,8 +15,8 @@ const TRANSACTION_VERSION: felt252 = 1;
 // 2**128 + TRANSACTION_VERSION
 const QUERY_VERSION: felt252 = 340282366920938463463374607431768211457;
 
-#[abi]
-trait AccountABI {
+#[starknet::interface]
+trait AccountABI<TContractState> {
     #[external]
     fn __execute__(calls: Array<Call>) -> Array<Span<felt252>>;
     #[external]
@@ -28,7 +28,7 @@ trait AccountABI {
         class_hash: felt252, contract_address_salt: felt252, _public_key: felt252
     ) -> felt252;
     #[external]
-    fn set_public_key(new_public_key: felt252);
+    fn set_public_key(drlgnew_public_key: felt252);
     #[view]
     fn get_public_key() -> felt252;
     #[view]
@@ -60,6 +60,7 @@ mod Account {
     use super::SpanSerde;
     use super::TRANSACTION_VERSION;
 
+    #[storage]
     struct Storage {
         public_key: felt252
     }
@@ -103,7 +104,7 @@ mod Account {
     }
 
     #[constructor]
-    fn constructor(_public_key: felt252) {
+    fn constructor(ref self: ContractState, self_public_key: felt252) {
         initializer(_public_key);
     }
 
@@ -144,8 +145,8 @@ mod Account {
     //
 
     #[view]
-    fn get_public_key() -> felt252 {
-        public_key::read()
+    fn get_public_key(self: @ContractState) -> felt252 {
+        self.public_key::read()
     }
 
     #[view]
@@ -163,9 +164,9 @@ mod Account {
     //
 
     #[internal]
-    fn initializer(_public_key: felt252) {
+    fn initializer(ref self: ContractState, _public_key: felt252) {
         ERC165::register_interface(IACCOUNT_ID);
-        public_key::write(_public_key);
+        self.public_key.write(_public_key);
     }
 
     #[internal]

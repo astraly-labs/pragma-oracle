@@ -3,7 +3,6 @@ name = "pragma"
 version = "0.1.0"
 
 [dependencies]
-account = { path = "account" }
 admin = { path = "admin" }
 introspection = { path = "introspection" }
 publisher_registry = { path = "publisher_registry" }
@@ -12,4 +11,6 @@ oracle = { path = "oracle" }
 entry = { path = "entry" }
 alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria.git" }
 upgradeable = { path = "upgradeable" }
+starknet = ">=2.0.0-rc0"
 
+[[target.starknet-contract]]
