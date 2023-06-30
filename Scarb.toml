@@ -1,0 +1,9 @@
+[package]
+name = "pragma"
+version = "0.1.0"
+
+[dependencies]
+alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria.git" }
+starknet = ">=2.0.0-rc0"
+
+[[target.starknet-contract]]

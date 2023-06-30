@@ -1,5 +1,0 @@
-[package]
-name = "summary_stats"
-version = "0.1.0"
-
-[dependencies]
