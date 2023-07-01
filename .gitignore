@@ -1,6 +1,7 @@
 # IDE
 .vscode
 .idea
+.DS_Store
 
 # Python
 __pycache__
@@ -38,3 +39,6 @@ docs/callgraphs/*
 .hypothesis/*
 node_modules
 tmp
+
+# scarb
+target
