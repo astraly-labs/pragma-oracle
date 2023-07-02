@@ -30,10 +30,6 @@ mod ERC165 {
         }
     }
 
-    #[view]
-    fn supports_interface(interface_id: u32) -> bool {
-        supports_interface(interface_id)
-    }
 
     #[internal]
     fn register_interface(ref self: ContractState, interface_id: u32) {

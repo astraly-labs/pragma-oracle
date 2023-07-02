@@ -1,13 +1,15 @@
 [package]
 name = "pragma"
 version = "0.1.0"
+cairo-version = "2.0.0-rc5"
 
 [lib]
 name = "pragma"
 
 [dependencies]
 alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria.git" }
-starknet = ">=2.0.0-rc0"
+cubit = { git = "https://github.com/influenceth/cubit" }
+starknet = ">=2.0.0-rc5"
 
 [[target.starknet-contract]]
 # Enable Sierra codegen.

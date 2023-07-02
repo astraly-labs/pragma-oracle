@@ -36,7 +36,7 @@ mod SummaryStats {
     use pragma::summary_stats::interface::ISummaryStats;
     use pragma::entry::structs::{DataType, AggregationMode};
     use pragma::operations::time_series::structs::TickElem;
-    // use pragma::time_series::metrics::volatility;
+    use pragma::operations::time_series::metrics::volatility;
 
     #[storage]
     struct Storage {
