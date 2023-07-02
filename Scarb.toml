@@ -11,7 +11,14 @@ starknet = ">=2.0.0-rc0"
 
 [[target.starknet-contract]]
 # Enable Sierra codegen.
+# Enable Sierra codegen.
 sierra = true
-
 # Enable CASM codegen.
 casm = true
+name = "compiled"
+
+[scripts]
+gen-project = "sh scripts/generate_cairo_project.sh"
+sierra = "cairo-compile . -r"
+test-cairo = "cairo-test --starknet ."
+test-devnet = "npm test"

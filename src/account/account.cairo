@@ -1,6 +1,5 @@
 //Account contract extracted from this github repoitory: https://github.com/software-mansion-labs/cairo/blob/d8a940d3d3ff3a721bdad20097729fa64a6289cf/crates/cairo-lang-starknet/test_data/account.cairo
 
-
 #[starknet::contract]
 mod Account {
     use array::{ArrayTrait, SpanTrait};

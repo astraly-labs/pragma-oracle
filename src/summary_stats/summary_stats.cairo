@@ -5,8 +5,7 @@ use result::ResultTrait;
 
 #[starknet::interface]
 trait SummaryStatsABI<TContractState> {
-
-    fn calculate_mean(self : @TContractState, data_type: DataType, start: u64, stop: u64) -> u128;
+    fn calculate_mean(self: @TContractState, data_type: DataType, start: u64, stop: u64) -> u128;
 
     fn calculate_volatility(
         self: @TContractState,
@@ -45,15 +44,18 @@ mod SummaryStats {
     }
 
     #[constructor]
-    fn constructor(ref self : ContractState,oracle_address: ContractAddress) {
+    fn constructor(ref self: ContractState, oracle_address: ContractAddress) {
         self.oracle_address.write(oracle_address);
     }
 
     #[external(v0)]
     impl SummaryStatsImpl of ISummaryStats<ContractState> {
         fn calculate_mean(
-            self : @ContractState,
-            oracle_address: ContractAddress, key: felt252, start: u64, stop: u64
+            self: @ContractState,
+            oracle_address: ContractAddress,
+            key: felt252,
+            start: u64,
+            stop: u64
         ) -> u128 {
             // let oracle = IOracle { contract_address: oracle_address };
             // let latest_checkpoint_index = oracle.get_latest_checkpoint_index(key);
@@ -70,7 +72,7 @@ mod SummaryStats {
         }
 
         fn calculate_volatility(
-            self : @ContractState,
+            self: @ContractState,
             oracle_address: ContractAddress,
             data_type: DataType,
             start_tick: u64,
@@ -105,8 +107,8 @@ mod SummaryStats {
                 }
                 let cp = oracle_dispatcher
                     .get_checkpoint(data_type, idx * skip_frequency + start_index);
-                let val =  cp.value.into();
-                tick_arr.append(TickElem { tick: cp.timestamp, value:val.low  });
+                let val = cp.value.into();
+                tick_arr.append(TickElem { tick: cp.timestamp, value: val.low });
             };
 
             // let volatility_ = volatility(tick_arr.span());
@@ -118,20 +120,19 @@ mod SummaryStats {
     // Views
     //
 
-
-    fn get_oracle_address(self : @ContractState) -> ContractAddress {
+    fn get_oracle_address(self: @ContractState) -> ContractAddress {
         self.oracle_address.read()
     }
 
 
-    fn calculate_mean(self : @ContractState,key: felt252, start: u64, stop: u64) -> u128 {
+    fn calculate_mean(self: @ContractState, key: felt252, start: u64, stop: u64) -> u128 {
         let oracle_address = self.oracle_address.read();
-        SummaryStatsImpl::calculate_mean(self,oracle_address, key, start, stop)
+        SummaryStatsImpl::calculate_mean(self, oracle_address, key, start, stop)
     }
 
 
     fn calculate_volatility(
-        self :@ContractState,
+        self: @ContractState,
         data_type: DataType,
         start_tick: u64,
         end_tick: u64,
@@ -139,8 +140,8 @@ mod SummaryStats {
         aggregation_mode: AggregationMode
     ) -> u128 {
         let oracle_address = self.oracle_address.read();
-        let volatility: u128 = SummaryStatsImpl::calculate_volatility(self,
-            oracle_address, data_type, start_tick, end_tick, num_samples, aggregation_mode
+        let volatility: u128 = SummaryStatsImpl::calculate_volatility(
+            self, oracle_address, data_type, start_tick, end_tick, num_samples, aggregation_mode
         );
 
         volatility * 100

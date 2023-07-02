@@ -1,3 +1,3 @@
 mod bits_manipulation;
-mod sorting; 
+mod sorting;
 mod time_series;

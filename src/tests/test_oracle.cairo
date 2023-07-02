@@ -27,7 +27,7 @@ use starknet::Felt252TryIntoContractAddress;
 // use starknet::class_hash::class_hash_try_from_felt252;
 use starknet::contract_address::contract_address_const;
 const ONE_ETH: felt252 = 1000000000000000000;
-const CHAIN_ID : felt252 =  'SN_MAIN';
+const CHAIN_ID: felt252 = 'SN_MAIN';
 const BLOCK_TIMESTAMP: u64 = '103374042_u64';
 
 fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
@@ -37,9 +37,10 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
     // setup chain id to compute vouchers hashes
     testing::set_chain_id(CHAIN_ID);
     let now = 100000;
-    let (oracle_address, _) =deploy_syscall(
+    let (oracle_address, _) = deploy_syscall(
         Oracle::TEST_CLASS_HASH.try_into().unwrap(), 0, ArrayTrait::new().span(), false
-    ).unwrap_syscall();
+    )
+        .unwrap_syscall();
 
     let mut oracle = IOracleABIDispatcher { contract_address: oracle_address };
 
@@ -50,7 +51,8 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         0,
         constructor_calldata.span(),
         false
-    ).unwrap_syscall();
+    )
+        .unwrap_syscall();
     let mut publisher_registry = IPublisherRegistryABIDispatcher {
         contract_address: publisher_registry_address
     };
@@ -154,28 +156,25 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                 base_currency_id: 222, // currency id - str_to_felt encode the ticker
             }
         );
-oracle
-    .initializer(
-        publisher_registry_address.into(), currencies.span(), pairs.span()
-    );
+    oracle.initializer(publisher_registry_address.into(), currencies.span(), pairs.span());
     let decimals_1 = oracle.get_decimals(DataType::SpotEntry(1));
-publisher_registry.get_publisher_address(1).print();
+    publisher_registry.get_publisher_address(1).print();
 
-(publisher_registry, oracle)
+    (publisher_registry, oracle)
 }
 
 #[test]
 #[available_gasx(2000000000)]
 fn test_get_decimals() {
-     let (publisher_registry, oracle) = setup();
+    let (publisher_registry, oracle) = setup();
     assert(1 == 1, 'no');
-let decimals_1 = oracle.get_decimals(DataType::SpotEntry(1));
-decimals_1.print();
-assert(decimals_1 == 18_u32, 'wrong decimals value');
-let decimals_2 = oracle.get_decimals(DataType::SpotEntry(2));
-assert(decimals_2 == 6_u32, 'wrong decimals value');
-let decimals_3 = oracle.get_decimals(DataType::SpotEntry(10));
-assert(decimals_3 == 0, 'wrong decimals value');
+    let decimals_1 = oracle.get_decimals(DataType::SpotEntry(1));
+    decimals_1.print();
+    assert(decimals_1 == 18_u32, 'wrong decimals value');
+    let decimals_2 = oracle.get_decimals(DataType::SpotEntry(2));
+    assert(decimals_2 == 6_u32, 'wrong decimals value');
+    let decimals_3 = oracle.get_decimals(DataType::SpotEntry(10));
+    assert(decimals_3 == 0, 'wronsg decimals value');
 }
 // #[test]
 // #[available_gas(2000000000)]
