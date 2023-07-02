@@ -26,14 +26,6 @@ use pragma::upgradeable::upgradeable::Upgradeable;
 
 #[starknet::interface]
 trait IOracleABI<TContractState> {
-    #[internal]
-    fn initializer(
-        ref self: TContractState,
-        publisher_registry_address: ContractAddress,
-        currencies: Span<Currency>,
-        pairs: Span<Pair>
-    );
-
     fn get_decimals(self: @TContractState, data_type: DataType) -> u32;
 
     fn get_data_median(self: @TContractState, data_type: DataType) -> PragmaPricesResponse;
@@ -212,6 +204,7 @@ mod Oracle {
         IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
     };
     use starknet::ClassHash;
+    use hash::LegacyHash;
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
     #[storage]
     struct Storage {
@@ -630,77 +623,65 @@ mod Oracle {
     #[derive(Drop, starknet::Event)]
     fn CheckpointFutureEntry(pair_id: felt252, expiration_timestamp: u64) {}
 
+    #[constructor]
+    fn constructor(
+        ref self: ContractState,
+        publisher_registry_address: ContractAddress,
+        currencies: Span<Currency>,
+        pairs: Span<Pair>
+    ) {
+        self.oracle_publisher_registry_address_storage.write(publisher_registry_address);
+        self._set_keys_currencies(currencies);
+        self._set_keys_pairs(pairs);
+        return ();
+    }
 
-    // #[generate_trait]
-    // impl IPOracleImpl of IPOracleTrait { 
-    //     fn initializer(
-    //         ref self : ContractState,
-    //         publisher_registry_address: ContractAddress,
-    //         currencies: Span<Currency>,
-    //         pairs: Span<Pair>
-    //     ) {
-    //         self.oracle_publisher_registry_address_storage.write(publisher_registry_address);
-    //         _set_keys_currencies(ref self,currencies, 0);
-    //         _set_keys_pairs(ref self,pairs);
-    //         return ();
-    //     }
-    //     fn _set_keys_currencies(ref self :ContractState, key_currencies: Span<Currency>, idx: usize) {
-    //     let mut idx: u32 = 0;
-    //     loop {
-    //         if (idx == key_currencies.len()) {
-    //             break ();
-    //         }
+    #[generate_trait]
+    impl IOracleInternal of IOracleInternalTrait {
+        fn _set_keys_currencies(ref self: ContractState, key_currencies: Span<Currency>) {
+            let mut idx: u32 = 0;
+            loop {
+                if (idx == key_currencies.len()) {
+                    break ();
+                }
 
-    //         let key_currency = *key_currencies.get(idx).unwrap().unbox();
-    //         self.oracle_currencies_storage.write(key_currency.id, key_currency);
-    //         idx = idx + 1;
-    //     };
-    //     return ();
-    // }
-    // fn assert_only_admin(){
-    //     let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-    //     let admin = Admin::get_admin_address(@state);
-    //     let caller = get_caller_address();
-    //     assert(caller == admin, 'Admin: unauthorized');
-    // }
-    // fn _set_keys_pairs(ref self : ContractState, key_pairs: Span<Pair>) {
-    //     let mut idx: u32 = 0;
-    //     loop {
-    //         if (idx >= key_pairs.len()) {
-    //             break ();
-    //         }
-    //         let key_pair = *key_pairs.get(idx).unwrap().unbox();
-    //         self.oracle_pairs_storage.write(key_pair.id, key_pair);
-    //         self.oracle_pair_id_storage.write(
-    //             (key_pair.quote_currency_id, key_pair.base_currency_id), key_pair.id
-    //         );
-    //         idx = idx + 1;
-    //     };
-    //     return ();
-
-    // }
-
-    // fn upgrade(impl_hash: ClassHash) {
-    //     self.assert_only_admin();
-    //     let mut upstate : Upgradeable::ContractState= Upgradeable::unsafe_new_contract_state();
-    //         Upgradeable::upgrade(ref upstate, impl_hash);
-
-    // }
-
-    #[external(v0)]
-    impl IOracleImpl of IOracle<ContractState> {
-        fn initializer(
-            ref self: ContractState,
-            publisher_registry_address: ContractAddress,
-            currencies: Span<Currency>,
-            pairs: Span<Pair>
-        ) {
-            self.oracle_publisher_registry_address_storage.write(publisher_registry_address);
-            _set_keys_currencies(ref self, currencies, 0);
-            _set_keys_pairs(ref self, pairs);
+                let key_currency = *key_currencies.get(idx).unwrap().unbox();
+                self.oracle_currencies_storage.write(key_currency.id, key_currency);
+                idx = idx + 1;
+            };
+            return ();
+        }
+        fn assert_only_admin(self: @ContractState) {
+            let state: Admin::ContractState = Admin::unsafe_new_contract_state();
+            let admin = Admin::get_admin_address(@state);
+            let caller = get_caller_address();
+            assert(caller == admin, 'Admin: unauthorized');
+        }
+        fn _set_keys_pairs(ref self: ContractState, key_pairs: Span<Pair>) {
+            let mut idx: u32 = 0;
+            loop {
+                if (idx >= key_pairs.len()) {
+                    break ();
+                }
+                let key_pair = *key_pairs.get(idx).unwrap().unbox();
+                self.oracle_pairs_storage.write(key_pair.id, key_pair);
+                self
+                    .oracle_pair_id_storage
+                    .write((key_pair.quote_currency_id, key_pair.base_currency_id), key_pair.id);
+                idx = idx + 1;
+            };
             return ();
         }
 
+        fn upgrade(self: @ContractState, impl_hash: ClassHash) {
+            self.assert_only_admin();
+            let mut upstate: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
+            Upgradeable::upgrade(ref upstate, impl_hash);
+        }
+    }
+
+    #[external(v0)]
+    impl IOracleImpl of IOracle<ContractState> {
         //
         // Getters
         //
@@ -870,7 +851,7 @@ mod Oracle {
 
 
         fn get_publisher_registry_address(self: @ContractState) -> ContractAddress {
-            get_publisher_registry_address(self)
+            self.oracle_publisher_registry_address_storage.read()
         }
 
 
@@ -992,7 +973,7 @@ mod Oracle {
 
 
         fn get_sources_threshold(self: @ContractState) -> u32 {
-            get_sources_threshold(self)
+            self.oracle_sources_threshold_storage.read()
         }
 
 
@@ -1166,7 +1147,7 @@ mod Oracle {
         fn update_publisher_registry_address(
             ref self: ContractState, new_publisher_registry_address: ContractAddress
         ) {
-            assert_only_admin();
+            self.assert_only_admin();
             let old_publisher_registry_address = self
                 .oracle_publisher_registry_address_storage
                 .read();
@@ -1179,7 +1160,7 @@ mod Oracle {
 
 
         fn add_currency(ref self: ContractState, new_currency: Currency) {
-            assert_only_admin();
+            self.assert_only_admin();
             let existing_currency = self.oracle_currencies_storage.read(new_currency.id);
             assert(existing_currency.id == 0, 'Currency already exists for key');
             SubmittedCurrency(new_currency);
@@ -1189,7 +1170,7 @@ mod Oracle {
 
 
         fn update_currency(ref self: ContractState, currency: Currency) {
-            assert_only_admin();
+            self.assert_only_admin();
             self.oracle_currencies_storage.write(currency.id, currency);
             UpdatedCurrency(currency);
             return ();
@@ -1197,7 +1178,7 @@ mod Oracle {
 
 
         fn add_pair(ref self: ContractState, new_pair: Pair) {
-            assert_only_admin();
+            self.assert_only_admin();
             let check_pair = self.oracle_pairs_storage.read(new_pair.id);
             assert(check_pair.id == 0, 'Pair with this key registered');
             SubmittedPair(new_pair);
@@ -1280,181 +1261,12 @@ mod Oracle {
 
 
         fn set_sources_threshold(ref self: ContractState, threshold: u32) {
-            assert_only_admin();
-            set_sources_threshold(ref self, threshold);
+            self.assert_only_admin();
+            self.oracle_sources_threshold_storage.write(threshold);
         }
     }
 
 
-    //
-    //Initializer
-    //
-    #[internal]
-    fn initializer(
-        ref self: ContractState,
-        publisher_registry_address: ContractAddress,
-        currencies: Span<Currency>,
-        pairs: Span<Pair>
-    ) {
-        IOracleImpl::initializer(ref self, publisher_registry_address, currencies, pairs);
-    }
-
-    //
-    //Views
-    //
-
-    fn get_decimals(self: @ContractState, data_type: DataType) -> u32 {
-        IOracleImpl::get_decimals(self, data_type)
-    }
-
-
-    fn get_data_entries_for_sources(
-        self: @ContractState, data_type: DataType, sources: Span<felt252>
-    ) -> (Array<PossibleEntries>, u32, u64) {
-        IOracleImpl::get_data_entries_for_sources(self, data_type, sources)
-    }
-
-
-    fn get_data_entries(self: @ContractState, data_type: DataType) -> Array<PossibleEntries> {
-        IOracleImpl::get_data_entries(self, data_type)
-    }
-
-
-    fn get_data_median(self: @ContractState, data_type: DataType) -> PragmaPricesResponse {
-        IOracleImpl::get_data_median(self, data_type)
-    }
-
-
-    fn get_data_median_for_sources(
-        self: @ContractState, data_type: DataType, sources: Span<felt252>
-    ) -> PragmaPricesResponse {
-        IOracleImpl::get_data_median_for_sources(self, data_type, sources)
-    }
-
-
-    fn get_data_median_multi(
-        self: @ContractState, data_types: Span<DataType>, sources: Span<felt252>
-    ) -> Array<PragmaPricesResponse> {
-        IOracleImpl::get_data_median_multi(self, data_types, sources)
-    }
-
-
-    fn get_data(
-        self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
-    ) -> PragmaPricesResponse {
-        IOracleImpl::get_data(self, data_type, aggregation_mode)
-    }
-
-
-    fn get_data_for_sources(
-        self: @ContractState,
-        data_type: DataType,
-        aggregation_mode: AggregationMode,
-        sources: Span<felt252>
-    ) -> PragmaPricesResponse {
-        IOracleImpl::get_data_for_sources(self, data_type, aggregation_mode, sources)
-    }
-
-
-    fn get_data_with_USD_hop(
-        self: @ContractState,
-        base_currency_id: felt252,
-        quote_currency_id: felt252,
-        aggregation_mode: AggregationMode,
-        typeof: simpleDataType,
-        expiration_timestamp: Option<u64>
-    ) -> PragmaPricesResponse {
-        IOracleImpl::get_data_with_USD_hop(
-            self,
-            base_currency_id,
-            quote_currency_id,
-            aggregation_mode,
-            typeof,
-            expiration_timestamp
-        )
-    }
-
-
-    fn get_latest_checkpoint(
-        self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
-    ) -> Checkpoint {
-        IOracleImpl::get_latest_checkpoint(self, data_type, aggregation_mode)
-    }
-
-
-    fn get_data_entry(
-        self: @ContractState, data_type: DataType, source: felt252
-    ) -> PossibleEntries {
-        IOracleImpl::get_data_entry(self, data_type, source)
-    }
-
-
-    fn get_last_checkpoint_before(
-        self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode, timestamp: u64
-    ) -> (Checkpoint, u64) {
-        IOracleImpl::get_last_checkpoint_before(self, data_type, aggregation_mode, timestamp)
-    }
-
-
-    fn get_checkpoint(
-        self: @ContractState, data_type: DataType, checkpoint_index: u64
-    ) -> Checkpoint {
-        IOracleImpl::get_checkpoint(self, data_type, checkpoint_index)
-    }
-
-
-    fn get_admin_address(self: @ContractState) -> ContractAddress {
-        IOracleImpl::get_admin_address(self)
-    }
-
-
-    fn get_implementation_hash(self: @ContractState) -> ClassHash {
-        IOracleImpl::get_implementation_hash(self)
-    }
-
-    //
-    // Setters
-    //
-
-    fn publish_data(ref self: ContractState, new_entry: PossibleEntries) {
-        IOracleImpl::publish_data(ref self, new_entry);
-    }
-
-    fn publish_data_entries(ref self: ContractState, new_entries: Span<PossibleEntries>) {
-        IOracleImpl::publish_data_entries(ref self, new_entries);
-    }
-
-    fn update_publisher_registry_address(
-        ref self: ContractState, new_publisher_registry_address: ContractAddress
-    ) {
-        IOracleImpl::update_publisher_registry_address(ref self, new_publisher_registry_address);
-    }
-
-    fn add_currency(ref self: ContractState, new_currency: Currency) {
-        IOracleImpl::add_currency(ref self, new_currency);
-    }
-
-    fn update_currency(ref self: ContractState, currency: Currency) {
-        IOracleImpl::update_currency(ref self, currency);
-    }
-
-    fn set_checkpoint(
-        ref self: ContractState, data_type: DataType, aggregation_mode: AggregationMode
-    ) {
-        IOracleImpl::set_checkpoint(ref self, data_type, aggregation_mode);
-    }
-
-    fn set_checkpoints(
-        ref self: ContractState, data_types: Span<DataType>, aggregation_mode: AggregationMode
-    ) {
-        IOracleImpl::set_checkpoints(ref self, data_types, aggregation_mode);
-    }
-
-    fn set_admin_address(ref self: ContractState, new_admin_address: ContractAddress) {
-        IOracleImpl::set_admin_address(ref self, new_admin_address);
-    }
-
-    #[internal]
     fn get_all_sources(self: @ContractState, data_type: DataType) -> Array<felt252> {
         let mut sources = ArrayTrait::<felt252>::new();
         match data_type {
@@ -1474,7 +1286,7 @@ mod Oracle {
             },
         }
     }
-    #[internal]
+
     fn get_checkpoint_by_index(
         self: @ContractState, data_type: DataType, checkpoint_index: u64
     ) -> Checkpoint {
@@ -1491,11 +1303,6 @@ mod Oracle {
             },
         };
         return checkpoint;
-    }
-
-
-    fn get_sources_threshold(self: @ContractState, ) -> u32 {
-        self.oracle_sources_threshold_storage.read()
     }
 
 
@@ -1606,28 +1413,6 @@ mod Oracle {
         return ();
     }
 
-
-    #[internal]
-    fn upgrade(impl_hash: ClassHash) {
-        assert_only_admin();
-        let mut upstate: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
-        Upgradeable::upgrade(ref upstate, impl_hash);
-    }
-
-
-    #[internal]
-    fn assert_only_admin() {
-        let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-        let admin = Admin::get_admin_address(@state);
-        let caller = get_caller_address();
-        assert(caller == admin, 'Admin: unauthorized');
-    }
-
-
-    fn get_publisher_registry_address(self: @ContractState) -> ContractAddress {
-        let publisher_registry_address = self.oracle_publisher_registry_address_storage.read();
-        return publisher_registry_address;
-    }
 
     #[internal]
     fn get_all_entries(
@@ -1756,26 +1541,12 @@ mod Oracle {
         self.oracle_pair_id_storage.write((pair.quote_currency_id, pair.base_currency_id), pair.id);
         return ();
     }
-    #[internal]
-    fn _set_keys_currencies(ref self: ContractState, key_currencies: Span<Currency>, idx: usize) {
-        let mut idx: u32 = 0;
-        loop {
-            if (idx == key_currencies.len()) {
-                break ();
-            }
 
-            let key_currency = *key_currencies.get(idx).unwrap().unbox();
-            self.oracle_currencies_storage.write(key_currency.id, key_currency);
-            idx = idx + 1;
-        };
-        return ();
-    }
 
     fn set_sources_threshold(ref self: ContractState, threshold: u32) {
         self.oracle_sources_threshold_storage.write(threshold);
         return ();
     }
-    #[internal]
     fn find_startpoint(
         self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode, timestamp: u64
     ) -> u64 {
@@ -1795,7 +1566,6 @@ mod Oracle {
         let startpoint = _binary_search(self, data_type, 0, latest_checkpoint_index, timestamp);
         return startpoint;
     }
-    #[internal]
     fn _binary_search(
         self: @ContractState, data_type: DataType, low: u64, high: u64, target: u64
     ) -> u64 {
@@ -1827,23 +1597,7 @@ mod Oracle {
             return _binary_search(self, data_type, low, midpoint - 1, target);
         }
     }
-    #[internal]
-    fn _set_keys_pairs(ref self: ContractState, key_pairs: Span<Pair>) {
-        let mut idx: u32 = 0;
-        loop {
-            if (idx >= key_pairs.len()) {
-                break ();
-            }
-            let key_pair = *key_pairs.get(idx).unwrap().unbox();
-            self.oracle_pairs_storage.write(key_pair.id, key_pair);
-            self
-                .oracle_pair_id_storage
-                .write((key_pair.quote_currency_id, key_pair.base_currency_id), key_pair.id);
-            idx = idx + 1;
-        };
-        return ();
-    }
-    #[internal]
+
     fn build_sources_array(
         self: @ContractState, data_type: DataType, ref sources: Array<felt252>, idx: u64
     ) {

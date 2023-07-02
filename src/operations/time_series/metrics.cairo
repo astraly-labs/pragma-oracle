@@ -6,7 +6,7 @@ use array::{ArrayTrait, SpanTrait};
 use traits::{Into, TryInto};
 use option::OptionTrait;
 use box::BoxTrait;
-const ONE_YEAR_IN_SECONDS : u128 = 31536000_u128;
+const ONE_YEAR_IN_SECONDS: u128 = 31536000_u128;
 #[derive(Copy, Drop)]
 enum Operations {
     SUBSTRACTION: (),
@@ -92,7 +92,7 @@ fn volatility(arr: Span<TickElem>) -> Fixed {
     let _volatility_sum = _sum_volatility(arr);
     let arr_len = arr.len();
     let fixed_len = FixedTrait::new(arr_len.into(), false);
-    let _volatility = _volatility_sum /fixed_len;
+    let _volatility = _volatility_sum / fixed_len;
     let sqrt_vol = sqrt(_volatility);
     return sqrt_vol;
 }

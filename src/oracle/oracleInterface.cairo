@@ -13,12 +13,6 @@ struct Call {
 }
 
 trait IOracle<TContractState> {
-    fn initializer(
-        ref self: TContractState,
-        publisher_registry_address: ContractAddress,
-        currencies: Span<Currency>,
-        pairs: Span<Pair>
-    );
     fn get_decimals(self: @TContractState, data_type: DataType) -> u32;
     fn get_data_median(self: @TContractState, data_type: DataType) -> PragmaPricesResponse;
     fn get_data_median_for_sources(

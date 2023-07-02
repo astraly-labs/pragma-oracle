@@ -31,37 +31,6 @@ const CHAIN_ID: felt252 = 'SN_MAIN';
 const BLOCK_TIMESTAMP: u64 = '103374042_u64';
 
 fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
-    let admin = contract_address_const::<0x123456789>();
-    // testing::set_block_timestamp(BLOCK_TIMESTAMP);
-    // testing::set_chain_id(CHAIN_ID);
-    let now = 100000;
-    let (oracle_address, _) = deploy_syscall(
-        Oracle::TEST_CLASS_HASH.try_into().unwrap(), 0, ArrayTrait::new().span(), false
-    )
-        .expect('DEPLOY_ORACLE_FAILED');
-
-    let mut oracle = IOracleABIDispatcher { contract_address: oracle_address };
-
-    let mut constructor_calldata = ArrayTrait::new();
-    constructor_calldata.append(admin.into());
-    let (publisher_registry_address, _) = deploy_syscall(
-        PublisherRegistry::TEST_CLASS_HASH.try_into().unwrap(),
-        0,
-        constructor_calldata.span(),
-        false
-    )
-        .expect('DEPLOY_REGISTRY_FAILED');
-    let mut publisher_registry = IPublisherRegistryABIDispatcher {
-        contract_address: publisher_registry_address
-    };
-
-    publisher_registry.add_publisher(1, admin);
-
-    // Add source 1 for publisher 1
-    publisher_registry.add_source_for_publisher(1, 1);
-    // Add source 2 for publisher 1
-    publisher_registry.add_source_for_publisher(1, 2);
-
     let mut currencies = ArrayTrait::<Currency>::new();
     currencies
         .append(
@@ -154,9 +123,155 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                 base_currency_id: 222, // currency id - str_to_felt encode the ticker
             }
         );
-    oracle.initializer(publisher_registry_address.into(), currencies.span(), pairs.span());
-    let decimals_1 = oracle.get_decimals(DataType::SpotEntry(1));
-    publisher_registry.get_publisher_address(1).print();
+
+    let admin = contract_address_const::<0x123456789>();
+    testing::set_block_timestamp(BLOCK_TIMESTAMP);
+    testing::set_chain_id(CHAIN_ID);
+    let now = 100000;
+
+    //Deploy the registry
+    let mut constructor_calldata = ArrayTrait::new();
+    constructor_calldata.append(admin.into());
+    let (publisher_registry_address, _) = deploy_syscall(
+        PublisherRegistry::TEST_CLASS_HASH.try_into().unwrap(), 0, constructor_calldata.span(), true
+    )
+        .expect('DEPLOY_REGISTRY_FAILED');
+    let mut publisher_registry = IPublisherRegistryABIDispatcher {
+        contract_address: publisher_registry_address
+    };
+
+    //Deploy the oracle
+    let mut oracle_calldata = ArrayTrait::new();
+    oracle_calldata.append(publisher_registry_address.into());
+    //Serialization ? 
+    // oracle_calldata.append(currencies.span().into());
+    // oracle_calldata.append(pairs.span());
+    oracle_calldata.append(0);
+    oracle_calldata.append(0);
+
+    let (oracle_address, _) = deploy_syscall(
+        Oracle::TEST_CLASS_HASH.try_into().unwrap(), 0, oracle_calldata.span(), true
+    )
+        .expect('DEPLOY_ORACLE_FAILED');
+
+    let mut oracle = IOracleABIDispatcher { contract_address: oracle_address };
+
+    publisher_registry.add_publisher(1, admin);
+
+    // Add source 1 for publisher 1
+    publisher_registry.add_source_for_publisher(1, 1);
+    // Add source 2 for publisher 1
+    publisher_registry.add_source_for_publisher(1, 2);
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry {
+                        timestamp: now, source: 1, publisher: 1
+                    }, pair_id: 2, price: 2 * 1000000, volume: 0
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry {
+                        timestamp: now, source: 2, publisher: 1
+                    }, pair_id: 2, price: 3 * 1000000, volume: 0
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry {
+                        timestamp: now, source: 1, publisher: 1
+                    }, pair_id: 3, price: 8 * 1000000, volume: 0
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry {
+                        timestamp: now, source: 1, publisher: 1
+                    }, pair_id: 4, price: 8 * 1000000, volume: 0
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry {
+                        timestamp: now, source: 1, publisher: 1
+                    }, pair_id: 4, price: 3 * 1000000, volume: 0
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry {
+                        timestamp: now, source: 1, publisher: 1
+                    }, pair_id: 5, price: 5 * 1000000, volume: 0
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry {
+                        timestamp: now, source: 1, publisher: 1
+                    }, pair_id: 2, price: 2 * 1000000, volume: 0, expiration_timestamp: 11111110
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry {
+                        timestamp: now, source: 2, publisher: 1
+                    }, pair_id: 2, price: 2 * 1000000, volume: 0, expiration_timestamp: 11111110
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry {
+                        timestamp: now, source: 1, publisher: 1
+                    }, pair_id: 3, price: 3 * 1000000, volume: 0, expiration_timestamp: 11111110
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry {
+                        timestamp: now, source: 1, publisher: 1
+                    }, pair_id: 4, price: 4 * 1000000, volume: 0, expiration_timestamp: 11111110
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry {
+                        timestamp: now, source: 1, publisher: 1
+                    }, pair_id: 5, price: 5 * 1000000, volume: 0, expiration_timestamp: 11111110
+                }
+            )
+        );
 
     (publisher_registry, oracle)
 }
@@ -172,7 +287,7 @@ fn test_get_decimals() {
     let decimals_2 = oracle.get_decimals(DataType::SpotEntry(2));
     assert(decimals_2 == 6_u32, 'wrong decimals value');
     let decimals_3 = oracle.get_decimals(DataType::SpotEntry(10));
-    assert(decimals_3 == 0, 'wronsg decimals value');
+    assert(decimals_3 == 0, 'wrong decimals value');
 }
 
 
@@ -192,5 +307,4 @@ fn test_get_future_entry() {
     assert(entry.price == (2 * 1000000).into(), 'wrong price');
     assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
 }
-
 
