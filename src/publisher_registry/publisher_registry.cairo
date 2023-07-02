@@ -9,10 +9,9 @@ trait IPublisherRegistryABI<TContractState> {
     fn add_source_for_publisher(ref self: TContractState,publisher: felt252, source: felt252);
     fn add_sources_for_publisher(ref self: TContractState, publisher: felt252, sources: Span<felt252>);
     fn remove_source_for_publisher(ref self : TContractState,publisher: felt252, source: felt252);
-    fn can_publish_source(self: @TContractState,publisher: felt252, source: felt252) -> bool;
     fn get_publisher_address(self : @TContractState, publisher: felt252) -> ContractAddress;
+    fn can_publish_source(self: @TContractState,publisher: felt252, source: felt252) -> bool;
 }
-
 #[starknet::contract]
 mod PublisherRegistry {
     use starknet::get_caller_address;

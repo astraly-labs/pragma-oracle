@@ -11,3 +11,4 @@ trait IPublisherRegistry<TContractState> {
     fn get_publisher_address(self : @TContractState, publisher: felt252) -> ContractAddress;
     fn can_publish_source(self : @TContractState, publisher: felt252, source: felt252) -> bool;
 }
+

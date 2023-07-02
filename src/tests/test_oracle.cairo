@@ -4,60 +4,63 @@ use result::ResultTrait;
 // use cheatcodes::RevertedTransactionTrait;
 // use protostar_print::PrintTrait;
 use starknet::ContractAddress;
-use entry::contracts::structs::{
+use pragma::entry::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
     USD_CURRENCY_ID, SPOT, FUTURE, OPTION, PossibleEntries, FutureEntry, OptionEntry,
     AggregationMode
 };
 use traits::Into;
 use traits::TryInto;
-use oracle::contracts::oracle::Oracle;
-use oracle::contracts::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
-use publisher_registry::contracts::publisher_registry::{
+use pragma::oracle::oracle::Oracle;
+use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
+use pragma::publisher_registry::publisher_registry::{
     IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
 };
-use publisher_registry::contracts::publisher_registry::PublisherRegistry;
+use pragma::publisher_registry::publisher_registry::PublisherRegistry;
 use debug::PrintTrait;
 use starknet::ClassHash;
 use starknet::SyscallResultTrait;
+use starknet::testing;
 use starknet::syscalls::deploy_syscall;
 use starknet::class_hash::{Felt252TryIntoClassHash};
 use starknet::Felt252TryIntoContractAddress;
 // use starknet::class_hash::class_hash_try_from_felt252;
+use starknet::contract_address::contract_address_const;
 const ONE_ETH: felt252 = 1000000000000000000;
-const admin_address: felt252 = 1234;
+const CHAIN_ID : felt252 =  'SN_MAIN';
+const BLOCK_TIMESTAMP: u64 = '103374042_u64';
 
+fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
+    let admin = contract_address_const::<0x123456789>();
+    testing::set_block_timestamp(BLOCK_TIMESTAMP);
 
-fn setup() {
-    let oracle_admin_address = admin_address;
+    // setup chain id to compute vouchers hashes
+    testing::set_chain_id(CHAIN_ID);
     let now = 100000;
-    // let (deployed_contract, _) =deploy_syscall(
-    //     Oracle::TEST_CLASS_HASH.try_into().unwrap(), 0, ArrayTrait::new().span(), false
-    // ).unwrap_syscall();
+    let (oracle_address, _) =deploy_syscall(
+        Oracle::TEST_CLASS_HASH.try_into().unwrap(), 0, ArrayTrait::new().span(), false
+    ).unwrap_syscall();
 
-    // let (oracle_address, _) = deployed_contract.unwrap();
+    let mut oracle = IOracleABIDispatcher { contract_address: oracle_address };
 
-    // let mut oracle = IOracleABIDispatcher { contract_address: oracle_address };
-
-    starknet::testing::set_chain_id('SN_MAIN');
     let mut constructor_calldata = ArrayTrait::new();
-    constructor_calldata.append(oracle_admin_address);
-    let deployed_contract = deploy_syscall(
+    constructor_calldata.append(admin.into());
+    let (publisher_registry_address, _) = deploy_syscall(
         PublisherRegistry::TEST_CLASS_HASH.try_into().unwrap(),
         0,
         constructor_calldata.span(),
         false
-    ).unwrap();
-    // let mut publisher_registry = IPublisherRegistryABIDispatcher {
-    //     contract_address: 0.try_into().unwrap()
-    // };
+    ).unwrap_syscall();
+    let mut publisher_registry = IPublisherRegistryABIDispatcher {
+        contract_address: publisher_registry_address
+    };
 
-    // publisher_registry.add_publisher(1, oracle_admin_address.try_into().unwrap());
+    publisher_registry.add_publisher(1, admin);
 
-    // // Add source 1 for publisher 1
-    // publisher_registry.add_source_for_publisher(1, 1);
-    // // Add source 2 for publisher 1
-    // publisher_registry.add_source_for_publisher(1, 2);
+    // Add source 1 for publisher 1
+    publisher_registry.add_source_for_publisher(1, 1);
+    // Add source 2 for publisher 1
+    publisher_registry.add_source_for_publisher(1, 2);
 
     let mut currencies = ArrayTrait::<Currency>::new();
     currencies
@@ -151,28 +154,28 @@ fn setup() {
                 base_currency_id: 222, // currency id - str_to_felt encode the ticker
             }
         );
-// oracle
-//     .initializer(
-//         publisher_registry_address.into(), currencies.span(), pairs.span()
-//     );
-//     let decimals_1 = oracle.get_decimals(DataType::SpotEntry(1));
-// publisher_registry.get_publisher_address(1).print();
+oracle
+    .initializer(
+        publisher_registry_address.into(), currencies.span(), pairs.span()
+    );
+    let decimals_1 = oracle.get_decimals(DataType::SpotEntry(1));
+publisher_registry.get_publisher_address(1).print();
 
-// (publisher_registry, oracle)
+(publisher_registry, oracle)
 }
 
 #[test]
-#[available_gas(2000000000)]
+#[available_gasx(2000000000)]
 fn test_get_decimals() {
-    setup();
+     let (publisher_registry, oracle) = setup();
     assert(1 == 1, 'no');
-// let decimals_1 = oracle.get_decimals(DataType::SpotEntry(1));
-// decimals_1.print();
-// assert(decimals_1 == 18_u32, 'wrong decimals value');
-// let decimals_2 = oracle.get_decimals(DataType::SpotEntry(2));
-// assert(decimals_2 == 6_u32, 'wrong decimals value');
-// let decimals_3 = oracle.get_decimals(DataType::SpotEntry(10));
-// assert(decimals_3 == 0, 'wrong decimals value');
+let decimals_1 = oracle.get_decimals(DataType::SpotEntry(1));
+decimals_1.print();
+assert(decimals_1 == 18_u32, 'wrong decimals value');
+let decimals_2 = oracle.get_decimals(DataType::SpotEntry(2));
+assert(decimals_2 == 6_u32, 'wrong decimals value');
+let decimals_3 = oracle.get_decimals(DataType::SpotEntry(10));
+assert(decimals_3 == 0, 'wrong decimals value');
 }
 // #[test]
 // #[available_gas(2000000000)]
