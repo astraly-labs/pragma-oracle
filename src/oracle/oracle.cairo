@@ -583,6 +583,64 @@ mod Oracle {
     #[derive(Drop, starknet::Event)]
     fn CheckpointFutureEntry(pair_id: felt252, expiration_timestamp: u64) {}
 
+
+    // #[generate_trait]
+    // impl IPOracleImpl of IPOracleTrait { 
+    //     fn initializer(
+    //         ref self : ContractState,
+    //         publisher_registry_address: ContractAddress,
+    //         currencies: Span<Currency>,
+    //         pairs: Span<Pair>
+    //     ) {
+    //         self.oracle_publisher_registry_address_storage.write(publisher_registry_address);
+    //         _set_keys_currencies(ref self,currencies, 0);
+    //         _set_keys_pairs(ref self,pairs);
+    //         return ();
+    //     }
+    //     fn _set_keys_currencies(ref self :ContractState, key_currencies: Span<Currency>, idx: usize) {
+    //     let mut idx: u32 = 0;
+    //     loop {
+    //         if (idx == key_currencies.len()) {
+    //             break ();
+    //         }
+
+    //         let key_currency = *key_currencies.get(idx).unwrap().unbox();
+    //         self.oracle_currencies_storage.write(key_currency.id, key_currency);
+    //         idx = idx + 1;
+    //     };
+    //     return ();
+    // }
+    // fn assert_only_admin(){
+    //     let state: Admin::ContractState = Admin::unsafe_new_contract_state();
+    //     let admin = Admin::get_admin_address(@state);
+    //     let caller = get_caller_address();
+    //     assert(caller == admin, 'Admin: unauthorized');
+    // }
+    // fn _set_keys_pairs(ref self : ContractState, key_pairs: Span<Pair>) {
+    //     let mut idx: u32 = 0;
+    //     loop {
+    //         if (idx >= key_pairs.len()) {
+    //             break ();
+    //         }
+    //         let key_pair = *key_pairs.get(idx).unwrap().unbox();
+    //         self.oracle_pairs_storage.write(key_pair.id, key_pair);
+    //         self.oracle_pair_id_storage.write(
+    //             (key_pair.quote_currency_id, key_pair.base_currency_id), key_pair.id
+    //         );
+    //         idx = idx + 1;
+    //     };
+    //     return ();
+        
+    // }
+
+    // fn upgrade(impl_hash: ClassHash) {
+    //     self.assert_only_admin();
+    //     let mut upstate : Upgradeable::ContractState= Upgradeable::unsafe_new_contract_state();
+    //         Upgradeable::upgrade(ref upstate, impl_hash);
+    
+    // }
+
+    
     #[external(v0)]
     impl IOracleImpl of IOracle<ContractState> {
         fn initializer(
