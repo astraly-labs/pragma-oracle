@@ -1,60 +1,39 @@
-name: CI
+name: Tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  SCARB_VERSION: v0.5.0-alpha.4
 
 jobs:
-  build:
+  main:
     runs-on: ubuntu-latest
-    env:
-      CI_COMMIT_MESSAGE: CI Formatting Auto Commit
-      CI_COMMIT_AUTHOR: ${{ github.event.repository.name }} CI
     steps:
-      - uses: actions/checkout@v3
-      # Python setup
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
-      - name: Load cached Poetry installation
-        id: cached-poetry
-        uses: actions/cache@v3
-        with:
-          path: ~/.local
-          key: poetry-${{ runner.os }}
-      - name: Install Poetry
-        if: steps.cached-poetry.outputs.cache-hit != 'true'
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
-      - run: poetry config installer.modern-installation false
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v3
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: make setup
-      - name: Activate protostar
-        run: echo "/home/runner/.protostar/dist/protostar" >> $GITHUB_PATH
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      # Build artifacts
-      - name: Event name
-        run: echo "github.event_name=${{ github.event_name }}"
-      - name: Format all the cairo files
-        run: make format
-      - name: Commit changes
-        # Run on push events and commit only when there are changes, otherwise it continues
-        if: github.event_name == 'push'
+      - name: Cache Scarb binary
+        uses: actions/cache@v3
+        with:
+          path: ~/.scarb
+          key: scarb-${{ env.SCARB_VERSION }}-${{ runner.os }}
+          restore-keys: scarb-${{ env.SCARB_VERSION }}-${{ runner.os }}
+
+      - name: Scarb Setup
         run: |
-          git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
-          git config --global user.email "astraly-labs@users.noreply.github.com"
-          git add -A
-          git diff-index --quiet HEAD || (git commit -m "${{ env.CI_COMMIT_MESSAGE }}" && git push)
-      - name: Compile smart contracts
-        run: cd pragma && protostar build
-      - name: Run protostar tests
-        run: cd pragma && protostar test
+          if [[ ! -f $HOME/.scarb/bin/scarb ]]; then
+            wget https://github.com/software-mansion/scarb/releases/download/${{ env.SCARB_VERSION }}/scarb-${{ env.SCARB_VERSION }}-x86_64-unknown-linux-gnu.tar.gz
+            mkdir $HOME/.scarb
+            tar -xvzf scarb-${{ env.SCARB_VERSION }}-x86_64-unknown-linux-gnu.tar.gz -C $HOME/.scarb --strip-components=1
+          fi
+          echo "$HOME/.scarb/bin" >> $GITHUB_PATH
+
+      - name: Test the code
+        run: |
+          scarb test
