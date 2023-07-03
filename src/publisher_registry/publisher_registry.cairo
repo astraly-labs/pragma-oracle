@@ -18,6 +18,7 @@ trait IPublisherRegistryABI<TContractState> {
     fn get_publisher_address(self: @TContractState, publisher: felt252) -> ContractAddress;
     fn can_publish_source(self: @TContractState, publisher: felt252, source: felt252) -> bool;
 }
+
 #[starknet::contract]
 mod PublisherRegistry {
     use starknet::get_caller_address;
@@ -30,8 +31,7 @@ mod PublisherRegistry {
     use traits::Into;
     use traits::TryInto;
     use pragma::admin::admin::Admin;
-    use pragma::publisher_registry::interface::IPublisherRegistry;
-
+    use super::IPublisherRegistryABI;
 
     #[storage]
     struct Storage {
@@ -61,7 +61,7 @@ mod PublisherRegistry {
     ) {}
 
     #[external(v0)]
-    impl PublisherRegistryImpl of IPublisherRegistry<ContractState> {
+    impl PublisherRegistryImpl of IPublisherRegistryABI<ContractState> {
         fn add_publisher(
             ref self: ContractState, publisher: felt252, publisher_address: ContractAddress
         ) {
