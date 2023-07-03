@@ -119,14 +119,14 @@ enum ArrayEntry {
 }
 
 
-#[derive(Serde, Drop, Copy)]
+#[derive(Serde, Drop, Copy, storage_access::StorageAccess)]
 struct Pair {
     id: felt252, // same as key currently (e.g. str_to_felt("ETH/USD") - force uppercase)
     quote_currency_id: felt252, // currency id - str_to_felt encode the ticker
     base_currency_id: felt252, // currency id - str_to_felt encode the ticker
 }
 
-#[derive(Serde, Drop, Copy)]
+#[derive(Serde, Drop, Copy, storage_access::StorageAccess)]
 struct Currency {
     id: felt252,
     decimals: u32,
