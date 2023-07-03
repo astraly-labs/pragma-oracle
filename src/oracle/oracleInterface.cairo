@@ -1,6 +1,6 @@
 use pragma::entry::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
-    simpleDataType, AggregationMode, PossibleEntries
+    SimpleDataType, AggregationMode, PossibleEntries
 };
 use array::{ArrayTrait, SpanTrait};
 use starknet::{ContractAddress, ClassHash};
@@ -48,7 +48,7 @@ trait IOracle<TContractState> {
         base_currency_id: felt252,
         quote_currency_id: felt252,
         aggregation_mode: AggregationMode,
-        typeof: simpleDataType,
+        typeof: SimpleDataType,
         expiration_timestamp: Option::<u64>
     ) -> PragmaPricesResponse;
     fn get_publisher_registry_address(self: @TContractState) -> ContractAddress;

@@ -1,11 +1,11 @@
 use array::ArrayTrait;
 use integer::u32;
+
 #[derive(Drop, Copy)]
 struct TickElem {
     tick: u64,
     value: u128
 }
-
 
 struct List {
     length: u32,

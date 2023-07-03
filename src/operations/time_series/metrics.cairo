@@ -6,14 +6,16 @@ use array::{ArrayTrait, SpanTrait};
 use traits::{Into, TryInto};
 use option::OptionTrait;
 use box::BoxTrait;
+
 const ONE_YEAR_IN_SECONDS: u128 = 31536000_u128;
+
 #[derive(Copy, Drop)]
 enum Operations {
     SUBSTRACTION: (),
     MULTIPLICATION: (),
 }
 
-
+/// Returns an array of `u128` from `TickElem` array
 fn extract_value(tick_arr: Span<TickElem>) -> Array<u128> {
     let mut output = ArrayTrait::<u128>::new();
     let mut cur_idx = 0;
@@ -28,6 +30,7 @@ fn extract_value(tick_arr: Span<TickElem>) -> Array<u128> {
     output
 }
 
+/// Sum the values of an array of `TickElem`
 fn sum_tick_array(tick_arr: Span<TickElem>) -> u128 {
     let mut output = 0;
     let mut cur_idx = 0;
@@ -42,6 +45,7 @@ fn sum_tick_array(tick_arr: Span<TickElem>) -> u128 {
     output
 }
 
+/// Sum the elements of an array of `u128`
 fn sum_array(tick_arr: Span<u128>) -> u128 {
     let mut output = 0;
     let mut cur_idx = 0;
@@ -56,7 +60,7 @@ fn sum_array(tick_arr: Span<u128>) -> u128 {
     output
 }
 
-
+/// Computes the mean of a `TickElem` array
 fn mean(tick_arr: Span<TickElem>) -> u128 {
     let sum_ = sum_tick_array(tick_arr);
     let felt_count: felt252 = tick_arr.len().into();
@@ -64,6 +68,7 @@ fn mean(tick_arr: Span<TickElem>) -> u128 {
     sum_ / count
 }
 
+/// Computes the variance of a `TickElem` array
 fn variance(tick_arr: Span<TickElem>) -> u128 {
     let arr_ = extract_value(tick_arr);
     let arr_len = arr_.len();
@@ -81,6 +86,8 @@ fn variance(tick_arr: Span<TickElem>) -> u128 {
     return variance_;
 }
 
+/// Computes the standard deviation of a `TickElem` array
+/// Calls `variance` and computes the squared root
 fn standard_deviation(arr: Span<TickElem>) -> Fixed {
     let variance_ = variance(arr);
     let fixed_variance_ = FixedTrait::new(variance_, false);
@@ -88,6 +95,7 @@ fn standard_deviation(arr: Span<TickElem>) -> Fixed {
     std
 }
 
+/// Compute the volatility of a `TickElem` array
 fn volatility(arr: Span<TickElem>) -> Fixed {
     let _volatility_sum = _sum_volatility(arr);
     let arr_len = arr.len();
@@ -127,6 +135,8 @@ fn _sum_volatility(arr: Span<TickElem>) -> Fixed {
     sum
 }
 
+/// Computes a result array given two arrays and one operation
+/// e.g : [1, 2, 3] + [1, 2, 3] = [2, 4, 6]
 fn pairwise_1D(operation: Operations, x_len: u32, x: Span<u128>, y: Span<u128>) -> Span<u128> {
     let mut cur_idx: u32 = 0;
     let mut output = ArrayTrait::<u128>::new();
@@ -157,6 +167,7 @@ fn pairwise_1D(operation: Operations, x_len: u32, x: Span<u128>, y: Span<u128>) 
     output.span()
 }
 
+/// Fills an array with one `value`
 fn fill_1d(arr_len: u32, value: u128) -> Array<u128> {
     let mut cur_idx = 0;
     let mut output = ArrayTrait::new();

@@ -1,28 +1,24 @@
 use pragma::entry::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
     USD_CURRENCY_ID, SPOT, FUTURE, OPTION, PossibleEntryStorage, FutureEntry, OptionEntry,
-    simpleDataType, SpotEntryStorage, FutureEntryStorage, AggregationMode, PossibleEntries,
+    SimpleDataType, SpotEntryStorage, FutureEntryStorage, AggregationMode, PossibleEntries,
     ArrayEntry
 };
-use serde::{Serde};
-// use serde::deserialize_array_helper;
-// use serde::serialize_array_helper;
-use starknet::{StorageAccess, StorageBaseAddress, SyscallResult};
+use pragma::oracle::oracleInterface::IOracle;
+use pragma::admin::admin::Admin;
+use pragma::upgradeable::upgradeable::Upgradeable;
+use serde::Serde;
 use starknet::{
     storage_read_syscall, storage_write_syscall, storage_address_from_base_and_offset,
-    storage_access::storage_base_address_from_felt252
+    storage_access::storage_base_address_from_felt252, StorageAccess, StorageBaseAddress,
+    SyscallResult, ContractAddress, get_caller_address
 };
-use traits::Into;
-use traits::TryInto;
-use box::BoxTrait;
-use result::{ResultTrait, ResultTraitImpl};
-use pragma::oracle::oracleInterface::IOracle;
-use starknet::{ContractAddress, get_caller_address};
-use array::{ArrayTrait};
-use pragma::admin::admin::Admin;
 use starknet::class_hash::ClassHash;
+use traits::{Into, TryInto};
+use result::{ResultTrait, ResultTraitImpl};
+use box::BoxTrait;
+use array::ArrayTrait;
 use zeroable::Zeroable;
-use pragma::upgradeable::upgradeable::Upgradeable;
 
 #[starknet::interface]
 trait IOracleABI<TContractState> {
@@ -69,7 +65,7 @@ trait IOracleABI<TContractState> {
         base_currency_id: felt252,
         quote_currency_id: felt252,
         aggregation_mode: AggregationMode,
-        typeof: simpleDataType,
+        typeof: SimpleDataType,
         expiration_timestamp: Option::<u64>
     ) -> PragmaPricesResponse;
 
@@ -154,7 +150,7 @@ trait IPragmaABI<TContractState> {
         base_currency_id: felt252,
         quote_currency_id: felt252,
         aggregation_mode: AggregationMode,
-        typeof: simpleDataType,
+        typeof: SimpleDataType,
         expiration_timestamp: Option::<u64>
     ) -> PragmaPricesResponse;
 
@@ -166,46 +162,33 @@ trait IPragmaABI<TContractState> {
 
 #[starknet::contract]
 mod Oracle {
-    use starknet::get_caller_address;
-    use zeroable::Zeroable;
-    use cmp::{max, min};
-    use pragma::entry::entry::Entry;
-    use option::OptionTrait;
-    use array::{ArrayTrait, SpanTrait};
-    use traits::Into;
-    use traits::TryInto;
-    use box::BoxTrait;
-    use result::{ResultTrait, ResultTraitImpl};
-    use pragma::entry::structs::{
+    use super::{
         BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
         USD_CURRENCY_ID, SPOT, FUTURE, OPTION, PossibleEntryStorage, FutureEntry, OptionEntry,
-        simpleDataType, SpotEntryStorage, FutureEntryStorage, AggregationMode, PossibleEntries,
-        ArrayEntry
+        SimpleDataType, SpotEntryStorage, FutureEntryStorage, AggregationMode, PossibleEntries,
+        ArrayEntry, IOracle, Admin, Upgradeable, Serde, storage_read_syscall, storage_write_syscall,
+        storage_address_from_base_and_offset, storage_base_address_from_felt252, StorageAccess,
+        StorageBaseAddress, SyscallResult, ContractAddress, get_caller_address, ClassHash, Into,
+        TryInto, ResultTrait, ResultTraitImpl, BoxTrait, ArrayTrait, Zeroable
     };
 
-    use pragma::oracle::oracleInterface::IOracle;
+    use pragma::entry::entry::Entry;
     use pragma::operations::bits_manipulation::bits_manipulation::{
         actual_set_element_at, actual_get_element_at
     };
-    use pragma::upgradeable::upgradeable::Upgradeable;
     use pragma::operations::time_series::convert::convert_via_usd;
-    use pragma::admin::admin::Admin;
-    use serde::{Serde};
-    // use serde::deserialize_array_helper;
-    // use serde::serialize_array_helper;
-    use starknet::{StorageAccess, StorageBaseAddress, SyscallResult};
-    use starknet::{
-        storage_read_syscall, storage_write_syscall, storage_address_from_base_and_offset,
-        storage_access::storage_base_address_from_felt252
-    };
-    use starknet::{ContractAddress, Felt252TryIntoContractAddress};
-    use starknet::{get_block_timestamp};
     use pragma::publisher_registry::publisher_registry::{
         IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
     };
-    use starknet::ClassHash;
-    use hash::LegacyHash;
+
+    use starknet::{get_block_timestamp, Felt252TryIntoContractAddress};
+
+    use cmp::{max, min};
+    use option::OptionTrait;
+    use array::SpanTrait;
+
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
+
     #[storage]
     struct Storage {
         //oracle controller address storage, contractAddress
@@ -231,40 +214,8 @@ mod Oracle {
         oracle_sources_threshold_storage: u32,
     }
 
-    // impl SpanSerde<
-    //     T, impl TSerde: Serde<T>, impl TCopy: Copy<T>, impl TDrop: Drop<T>
-    // > of Serde<Span<T>> {
-    //     fn serialize(self: @Span<T>, ref output: Array<felt252>) {
-    //         (*self).len().serialize(ref output);
-    //         serialize_array_helper(*self, ref output);
-    //     }
-    //     fn deserialize(ref serialized: Span<felt252>) -> Option<Span<T>> {
-    //         let length = *serialized.pop_front()?;
-    //         let mut arr = ArrayTrait::new();
-    //         Option::Some(deserialize_array_helper(ref serialized, arr, length)?.span())
-    //     }
-    // }
-
-    //ORACLE DATA ENTRY STORAGE -> CHECK 
-    trait workingEntry<T> {
-        fn process(self: @T) -> felt252;
-    }
-    impl SworkingEntryImpl of workingEntry<SpotEntry> {
-        fn process(self: @SpotEntry) -> felt252 {
-            return (SPOT);
-        }
-    }
-    impl FworkingEntryImpl of workingEntry<FutureEntry> {
-        fn process(self: @FutureEntry) -> felt252 {
-            return (FUTURE);
-        }
-    }
-    impl OworkingEntryImpl of workingEntry<OptionEntry> {
-        fn process(self: @OptionEntry) -> felt252 {
-            return (OPTION);
-        }
-    }
-
+    /// DataType should implement this trait
+    /// If it has a `base_entry` field defined by `BaseEntry` struct
     trait hasBaseEntry<T> {
         fn get_base_entry(self: @T) -> BaseEntry;
         fn get_base_timestamp(self: @T) -> u64;
@@ -298,6 +249,8 @@ mod Oracle {
         }
     }
 
+    /// DataType should implement this trait
+    /// If it has a `price` field defined in `self`
     trait HasPrice<T> {
         fn get_price(self: @T) -> u256;
     }
@@ -882,7 +835,7 @@ mod Oracle {
             base_currency_id: felt252,
             quote_currency_id: felt252,
             aggregation_mode: AggregationMode,
-            typeof: simpleDataType,
+            typeof: SimpleDataType,
             expiration_timestamp: Option<u64>
         ) -> PragmaPricesResponse {
             let mut sources = ArrayTrait::<felt252>::new().span();
@@ -893,14 +846,14 @@ mod Oracle {
                 .oracle_pair_id_storage
                 .read((quote_currency_id, USD_CURRENCY_ID));
             let (base_data_type, quote_data_type, currency) = match typeof {
-                simpleDataType::SpotEntry(()) => {
+                SimpleDataType::SpotEntry(()) => {
                     (
                         DataType::SpotEntry(base_pair_id),
                         DataType::SpotEntry(quote_pair_id),
                         self.oracle_currencies_storage.read(quote_currency_id)
                     )
                 },
-                simpleDataType::FutureEntry(()) => {
+                SimpleDataType::FutureEntry(()) => {
                     match expiration_timestamp {
                         Option::Some(expiration) => {
                             let base_dt = DataType::FutureEntry((base_pair_id, expiration));

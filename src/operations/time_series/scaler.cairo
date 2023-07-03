@@ -11,6 +11,8 @@ fn calculate_slope(x1: i129, x2: i129, y1: i129, y2: i129) -> i129 {
     (y2 - y1) / (x2 - x1)
 }
 
+/// Scales an array of `TickElem` by returning an array of `TickElem` with `num_intervals` elements
+/// Takes a start and end tick as an input.
 fn scale_data(
     start_tick: u64, end_tick: u64, tick_array: Span<TickElem>, num_intervals: u32
 ) -> Array<TickElem> {
