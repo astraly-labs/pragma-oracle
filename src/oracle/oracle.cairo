@@ -266,53 +266,6 @@ mod Oracle {
         }
     }
 
-    impl PairStorageAccess of StorageAccess<Pair> {
-        fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<Pair> {
-            Result::Ok(
-                Pair {
-                    id: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 0_u8)
-                    )?,
-                    quote_currency_id: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 1_u8)
-                    )?,
-                    base_currency_id: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 2_u8)
-                    )?
-                }
-            )
-        }
-        #[inline(always)]
-        fn write(address_domain: u32, base: StorageBaseAddress, value: Pair) -> SyscallResult<()> {
-            storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 0_u8), value.id, 
-            )?;
-            storage_write_syscall(
-                address_domain,
-                storage_address_from_base_and_offset(base, 1_u8),
-                value.quote_currency_id,
-            )?;
-            storage_write_syscall(
-                address_domain,
-                storage_address_from_base_and_offset(base, 2_u8),
-                value.base_currency_id,
-            )
-        }
-        fn read_at_offset_internal(
-            address_domain: u32, base: starknet::StorageBaseAddress, offset: u8
-        ) -> starknet::SyscallResult<Pair> {
-            PairStorageAccess::read_at_offset_internal(address_domain, base, offset)
-        }
-        fn write_at_offset_internal(
-            address_domain: u32, base: starknet::StorageBaseAddress, offset: u8, value: Pair
-        ) -> starknet::SyscallResult<()> {
-            PairStorageAccess::write_at_offset_internal(address_domain, base, offset, value)
-        }
-        fn size_internal(value: Pair) -> u8 {
-            3_u8
-        }
-    }
-
     impl SpotPartialOrd of PartialOrd<SpotEntry> {
         #[inline(always)]
         fn le(lhs: SpotEntry, rhs: SpotEntry) -> bool {
@@ -450,93 +403,8 @@ mod Oracle {
         }
     }
 
-    impl CurrencyStorageAccess of StorageAccess<Currency> {
-        fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<Currency> {
-            let mut starknet_address_value = storage_read_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 3_u8)
-            );
-            let mut ethereum_address_value = storage_read_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 4_u8)
-            );
-            let bool_base = storage_base_address_from_felt252(
-                storage_address_from_base_and_offset(base, 2_u8).into()
-            );
-            Result::Ok(
-                Currency {
-                    id: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 0_u8)
-                    )?,
-                    decimals: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 1_u8)
-                    )?
-                        .try_into()
-                        .unwrap(),
-                    is_abstract_currency: StorageAccess::<felt252>::read(
-                        address_domain, bool_base
-                    )? != 0,
-                    starknet_address: starknet_address_value
-                        .unwrap()
-                        .try_into()
-                        .expect('Invalid starknet address'),
-                    ethereum_address: ethereum_address_value
-                        .unwrap()
-                        .try_into()
-                        .expect('Invalid ethereum address'),
-                }
-            )
-        }
-        #[inline(always)]
-        fn write(
-            address_domain: u32, base: StorageBaseAddress, value: Currency
-        ) -> SyscallResult<()> {
-            storage_write_syscall(
-                address_domain, storage_address_from_base_and_offset(base, 0_u8), value.id, 
-            )?;
-            storage_write_syscall(
-                address_domain,
-                storage_address_from_base_and_offset(base, 1_u8),
-                value.decimals.into(),
-            )?;
-            // storage_write_syscall(
-            //     address_domain,
-            //     storage_address_from_base_and_offset(base, 2_u8),
-            //     value.is_abstract_currency.into(),
-            // )?;
-            let bool_base = storage_base_address_from_felt252(
-                storage_address_from_base_and_offset(base, 2_u8).into()
-            );
-            StorageAccess::<felt252>::write(
-                address_domain, bool_base, if value.is_abstract_currency {
-                    1
-                } else {
-                    0
-                }
-            );
-            storage_write_syscall(
-                address_domain,
-                storage_address_from_base_and_offset(base, 3_u8),
-                value.starknet_address.into(),
-            )?;
-            storage_write_syscall(
-                address_domain,
-                storage_address_from_base_and_offset(base, 4_u8),
-                value.ethereum_address.into(),
-            )
-        }
-        fn read_at_offset_internal(
-            address_domain: u32, base: starknet::StorageBaseAddress, offset: u8
-        ) -> starknet::SyscallResult<Currency> {
-            CurrencyStorageAccess::read_at_offset_internal(address_domain, base, offset)
-        }
-        fn write_at_offset_internal(
-            address_domain: u32, base: starknet::StorageBaseAddress, offset: u8, value: Currency
-        ) -> starknet::SyscallResult<()> {
-            CurrencyStorageAccess::write_at_offset_internal(address_domain, base, offset, value)
-        }
-        fn size_internal(value: Currency) -> u8 {
-            5_u8
-        }
-    }
+    // TODO: Update events to latest synthax
+
     #[event]
     #[derive(Drop, starknet::Event)]
     fn UpdatedPublisherRegistryAddress(
@@ -604,12 +472,14 @@ mod Oracle {
             };
             return ();
         }
+
         fn assert_only_admin(self: @ContractState) {
             let state: Admin::ContractState = Admin::unsafe_new_contract_state();
             let admin = Admin::get_admin_address(@state);
             let caller = get_caller_address();
             assert(caller == admin, 'Admin: unauthorized');
         }
+
         fn _set_keys_pairs(ref self: ContractState, key_pairs: Span<Pair>) {
             let mut idx: u32 = 0;
             loop {
@@ -731,6 +601,8 @@ mod Oracle {
                     expiration_timestamp: Option::Some(0),
                 };
             }
+
+            // TODO: Return only array instead of `ArrayEntry`
             let filtered_entries: ArrayEntry = filter_data_array(data_type, @entries);
 
             match data_type {
