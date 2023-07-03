@@ -111,8 +111,7 @@ mod SummaryStats {
                 tick_arr.append(TickElem { tick: cp.timestamp, value: val.low });
             };
 
-            // let volatility_ = volatility(tick_arr.span());
-            return 0;
+            volatility(tick_arr.span()).mag
         }
     }
 
