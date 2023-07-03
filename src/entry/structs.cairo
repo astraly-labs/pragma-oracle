@@ -82,7 +82,7 @@ struct FutureEntryStorage {
 ///
 /// * `Spot` - Spot price
 /// * `Future` - Future price
-/// * `Generic` - Generic price
+/// * `Option` - Option price
 #[derive(Drop, Copy, Serde)]
 enum DataType {
     SpotEntry: felt252,
@@ -98,7 +98,7 @@ enum PossibleEntryStorage {
 }
 
 #[derive(Drop, Copy, Serde)]
-enum simpleDataType {
+enum SimpleDataType {
     SpotEntry: (),
     FutureEntry: (),
 // OptionEntry: (),
@@ -142,6 +142,7 @@ struct Checkpoint {
     aggregation_mode: AggregationMode,
     num_sources_aggregated: u32,
 }
+
 #[derive(Serde, Drop, Copy)]
 struct PragmaPricesResponse {
     price: u256,
@@ -154,5 +155,6 @@ struct PragmaPricesResponse {
 #[derive(Serde, Drop, Copy)]
 enum AggregationMode {
     Median: (),
+    // Mean: (), 
     Error: (),
 }

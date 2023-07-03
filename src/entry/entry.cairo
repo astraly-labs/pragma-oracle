@@ -107,11 +107,10 @@ mod Entry {
             index = index + 1;
         }
     }
-    // @notice returns the median value from an entries array
-    // @param entries_len: length of entries array
-    // @param entries: pointer to first Entry in array
-    // @return value: the median value from the array of entries
 
+    // @notice returns the median value from an entries array
+    // @param entries: array of entries to aggregate
+    // @return value: the median value from the array of entries
     fn entries_median<
         T,
         impl TCopy: Copy<T>,
@@ -138,6 +137,10 @@ mod Entry {
             (median_entry_1 + median_entry_2) / (2.into())
         }
     }
+
+    // @notice Returns the mean value from an entries array
+    // @param entries: entries array to aggregate
+    // @return value: the mean value from the array of entries
     fn entries_mean<T, impl THasPrice: HasPrice<T>, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
         entries: @Array<T>
     ) -> u256 {
