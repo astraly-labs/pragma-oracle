@@ -405,44 +405,70 @@ mod Oracle {
 
     // TODO: Update events to latest synthax
 
-    #[event]
     #[derive(Drop, starknet::Event)]
-    fn UpdatedPublisherRegistryAddress(
+    struct UpdatedPublisherRegistryAddress {
         old_publisher_registry_address: ContractAddress,
         new_publisher_registry_address: ContractAddress
-    ) {}
+    }
 
-    #[event]
-    #[derive(Drop, starknet::Event)]
-    fn SubmittedSpotEntry(spot_entry: SpotEntry) {}
 
-    #[event]
     #[derive(Drop, starknet::Event)]
-    fn SubmittedFutureEntry(future_entry: FutureEntry) {}
+    struct SubmittedSpotEntry {
+        spot_entry: SpotEntry
+    }
 
-    #[event]
-    #[derive(Drop, starknet::Event)]
-    fn SubmittedOptionEntry(option_entry: OptionEntry) {}
 
-    #[event]
     #[derive(Drop, starknet::Event)]
-    fn SubmittedCurrency(currency: Currency) {}
+    struct SubmittedFutureEntry {
+        future_entry: FutureEntry
+    }
 
-    #[event]
     #[derive(Drop, starknet::Event)]
-    fn UpdatedCurrency(currency: Currency) {}
+    struct SubmittedOptionEntry {
+        option_entry: OptionEntry
+    }
 
-    #[event]
-    #[derive(Drop, starknet::Event)]
-    fn SubmittedPair(pair: Pair) {}
 
-    #[event]
     #[derive(Drop, starknet::Event)]
-    fn CheckpointSpotEntry(pair_id: felt252) {}
+    struct SubmittedCurrency {
+        currency: Currency
+    }
 
-    #[event]
+
     #[derive(Drop, starknet::Event)]
-    fn CheckpointFutureEntry(pair_id: felt252, expiration_timestamp: u64) {}
+    struct UpdatedCurrency {
+        currency: Currency
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct SubmittedPair {
+        pair: Pair
+    }
+
+
+    #[derive(Drop, starknet::Event)]
+    struct CheckpointSpotEntry {
+        pair_id: felt252, 
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct CheckpointFutureEntry {
+        pair_id: felt252,
+        expiration_timestamp: u64,
+    }
+    #[derive(Drop, starknet::Event)]
+    #[event]
+    enum Event {
+        UpdatedPublisherRegistryAddress: UpdatedPublisherRegistryAddress,
+        SubmittedSpotEntry: SubmittedSpotEntry,
+        SubmittedFutureEntry: SubmittedFutureEntry,
+        SubmittedOptionEntry: SubmittedOptionEntry,
+        SubmittedCurrency: SubmittedCurrency,
+        UpdatedCurrency: UpdatedCurrency,
+        SubmittedPair: SubmittedPair,
+        CheckpointSpotEntry: CheckpointSpotEntry,
+        CheckpointFutureEntry: CheckpointFutureEntry
+    }
 
     #[constructor]
     fn constructor(
@@ -887,7 +913,7 @@ mod Oracle {
                     match entry {
                         PossibleEntries::Spot(spot) => {
                             validate_data_timestamp(ref self, new_entry, spot);
-                            SubmittedSpotEntry(spot_entry);
+                            self.emit(Event::SubmittedSpotEntry(SubmittedSpotEntry { spot_entry }));
                             let conv_timestamp: u256 = u256 {
                                 low: spot_entry.base.timestamp.into(), high: 0
                             };
@@ -923,7 +949,12 @@ mod Oracle {
                         },
                         PossibleEntries::Future(future) => {
                             validate_data_timestamp::<FutureEntry>(ref self, new_entry, future);
-                            SubmittedFutureEntry(future_entry);
+                            self
+                                .emit(
+                                    Event::SubmittedFutureEntry(
+                                        SubmittedFutureEntry { future_entry }
+                                    )
+                                );
                             let conv_timestamp: u256 = u256 {
                                 low: future_entry.base.timestamp.into(), high: 0
                             };
@@ -977,9 +1008,14 @@ mod Oracle {
                 .oracle_publisher_registry_address_storage
                 .read();
             self.oracle_publisher_registry_address_storage.write(new_publisher_registry_address);
-            UpdatedPublisherRegistryAddress(
-                old_publisher_registry_address, new_publisher_registry_address
-            );
+            self
+                .emit(
+                    Event::UpdatedPublisherRegistryAddress(
+                        UpdatedPublisherRegistryAddress {
+                            old_publisher_registry_address, new_publisher_registry_address
+                        }
+                    )
+                );
             return ();
         }
 
@@ -988,7 +1024,7 @@ mod Oracle {
             self.assert_only_admin();
             let existing_currency = self.oracle_currencies_storage.read(new_currency.id);
             assert(existing_currency.id == 0, 'Currency already exists for key');
-            SubmittedCurrency(new_currency);
+            self.emit(Event::SubmittedCurrency(SubmittedCurrency { currency: new_currency }));
             self.oracle_currencies_storage.write(new_currency.id, new_currency);
             return ();
         }
@@ -997,7 +1033,8 @@ mod Oracle {
         fn update_currency(ref self: ContractState, currency: Currency) {
             self.assert_only_admin();
             self.oracle_currencies_storage.write(currency.id, currency);
-            UpdatedCurrency(currency);
+            self.emit(Event::UpdatedCurrency(UpdatedCurrency { currency: currency }));
+
             return ();
         }
 
@@ -1006,7 +1043,7 @@ mod Oracle {
             self.assert_only_admin();
             let check_pair = self.oracle_pairs_storage.read(new_pair.id);
             assert(check_pair.id == 0, 'Pair with this key registered');
-            SubmittedPair(new_pair);
+            self.emit(Event::SubmittedPair(SubmittedPair { pair: new_pair }));
             self.oracle_pairs_storage.write(new_pair.id, new_pair);
             self
                 .oracle_pair_id_storage
@@ -1039,7 +1076,7 @@ mod Oracle {
                         let cur_idx = self.oracle_checkpoint_index.read((pair_id, SPOT, 0));
                         self.oracle_checkpoints.write((pair_id, SPOT, cur_idx, 0), new_checkpoint);
                         self.oracle_checkpoint_index.write((pair_id, SPOT, 0), cur_idx + 1);
-                        CheckpointSpotEntry(pair_id);
+                        self.emit(Event::CheckpointSpotEntry(CheckpointSpotEntry { pair_id }));
                     },
                     DataType::FutureEntry((
                         pair_id, expiration_timestamp
@@ -1055,7 +1092,12 @@ mod Oracle {
                         self
                             .oracle_checkpoint_index
                             .write((pair_id, FUTURE, expiration_timestamp), cur_idx + 1);
-                        CheckpointFutureEntry(pair_id, expiration_timestamp);
+                        self
+                            .emit(
+                                Event::CheckpointFutureEntry(
+                                    CheckpointFutureEntry { pair_id, expiration_timestamp }
+                                )
+                            );
                     },
                 }
             }
@@ -1361,7 +1403,7 @@ mod Oracle {
     fn add_pair(ref self: ContractState, pair: Pair) {
         let check_pair = self.oracle_pairs_storage.read(pair.id);
         assert(check_pair.id == 0, 'Pair with this key registered');
-        SubmittedPair(pair);
+        self.emit(Event::SubmittedPair(SubmittedPair { pair }));
         self.oracle_pairs_storage.write(pair.id, pair);
         self.oracle_pair_id_storage.write((pair.quote_currency_id, pair.base_currency_id), pair.id);
         return ();

@@ -1,7 +1,7 @@
 use pragma::operations::time_series::structs::{TickElem, PAIRWISE_OPERATION};
 
 use cubit::types::fixed::{FixedTrait, Fixed};
-use cubit::math::core::{sqrt, div, ln, add};
+use cubit::math::core::{sqrt, div, ln, add, pow};
 use array::{ArrayTrait, SpanTrait};
 use traits::{Into, TryInto};
 use option::OptionTrait;
