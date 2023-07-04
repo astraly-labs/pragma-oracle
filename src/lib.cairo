@@ -6,4 +6,5 @@ mod publisher_registry;
 mod summary_stats;
 mod upgradeable;
 
+#[cfg(test)]
 mod tests;
