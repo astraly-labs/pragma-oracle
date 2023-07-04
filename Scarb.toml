@@ -12,6 +12,7 @@ cubit = { git = "https://github.com/influenceth/cubit" }
 starknet = "2.0.0"
 
 [[target.starknet-contract]]
+allowed-libfuncs-list.name = "audited"
 
 [scripts]
 gen-project = "sh scripts/generate_cairo_project.sh"
