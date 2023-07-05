@@ -43,7 +43,7 @@ mod PublisherRegistry {
     }
 
     #[constructor]
-    fn constructor(self: @ContractState, admin_address: ContractAddress) {
+    fn constructor(ref self: ContractState, admin_address: ContractAddress) {
         let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
         Admin::initialize_admin_address(ref state, admin_address);
     }
