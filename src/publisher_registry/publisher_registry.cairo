@@ -15,8 +15,8 @@ trait IPublisherRegistryABI<TContractState> {
         ref self: TContractState, publisher: felt252, sources: Span<felt252>
     );
     fn remove_source_for_publisher(ref self: TContractState, publisher: felt252, source: felt252);
-    fn get_publisher_address(self: @TContractState, publisher: felt252) -> ContractAddress;
     fn can_publish_source(self: @TContractState, publisher: felt252, source: felt252) -> bool;
+    fn get_publisher_address(self: @TContractState, publisher: felt252) -> ContractAddress;
 }
 
 #[starknet::contract]
@@ -283,15 +283,14 @@ mod PublisherRegistry {
     }
 
 
-    fn add_sources_for_publisher(
-        ref self: ContractState, publisher: felt252, sources: Span<felt252>
-    ) {
-        let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-        Admin::assert_only_admin(@state);
+    // fn add_sources_for_publisher(
+    //     ref self: ContractState, publisher: felt252, sources: Span<felt252>
+    // ) {
+    //     let state: Admin::ContractState = Admin::unsafe_new_contract_state();
+    //     Admin::assert_only_admin(@state);
 
-        PublisherRegistryImpl::add_sources_for_publisher(ref self, publisher, sources)
-    }
-
+    //     PublisherRegistryImpl::add_sources_for_publisher(ref self, publisher, sources)
+    // }
 
     fn remove_source_for_publisher(ref self: ContractState, publisher: felt252, source: felt252) {
         let state: Admin::ContractState = Admin::unsafe_new_contract_state();

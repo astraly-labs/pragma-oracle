@@ -1,7 +1,9 @@
 use pragma::operations::time_series::structs::{TickElem, PAIRWISE_OPERATION};
 
-use cubit::types::fixed::{FixedTrait, Fixed};
-use cubit::math::core::{sqrt, div, ln, add, pow};
+use cubit::types::fixed::{
+    HALF_u128, MAX_u128, ONE_u128, Fixed, FixedInto, FixedTrait, FixedAdd, FixedDiv, FixedMul,
+    FixedNeg
+};
 use array::{ArrayTrait, SpanTrait};
 use traits::{Into, TryInto};
 use option::OptionTrait;
@@ -91,7 +93,7 @@ fn variance(tick_arr: Span<TickElem>) -> u128 {
 fn standard_deviation(arr: Span<TickElem>) -> Fixed {
     let variance_ = variance(arr);
     let fixed_variance_ = FixedTrait::new(variance_, false);
-    let std = sqrt(fixed_variance_);
+    let std = FixedTrait::sqrt(fixed_variance_);
     std
 }
 
@@ -101,7 +103,7 @@ fn volatility(arr: Span<TickElem>) -> Fixed {
     let arr_len = arr.len();
     let fixed_len = FixedTrait::new(arr_len.into(), false);
     let _volatility = _volatility_sum / fixed_len;
-    let sqrt_vol = sqrt(_volatility);
+    let sqrt_vol = FixedTrait::sqrt(_volatility);
     return sqrt_vol;
 }
 
@@ -121,15 +123,13 @@ fn _sum_volatility(arr: Span<TickElem>) -> Fixed {
         let fixed_prev_value = FixedTrait::new(prev_value, false);
         let cur_timestamp = cur_val.tick;
         let prev_timestamp = prev_val.tick;
-
-        let numerator_value = ln(div(fixed_cur_value, fixed_prev_value));
-        let numerator = numerator_value.pow(FixedTrait::new(2, false));
-        let denominator = div(
-            FixedTrait::new((cur_timestamp - prev_timestamp).into(), false),
-            FixedTrait::new(ONE_YEAR_IN_SECONDS, false)
-        );
-        let fraction_ = div(numerator, denominator);
-        sum = add(sum, fraction_);
+        let a = FixedTrait::from_felt(50143449209799256683);
+        // let numerator_value = FixedTrait::ln(fixed_cur_value / fixed_prev_value);
+        // let numerator = numerator_value.pow(FixedTrait::new(2, false));
+        // let denominator = FixedTrait::new((cur_timestamp - prev_timestamp).into(), false)
+        //     / FixedTrait::new(ONE_YEAR_IN_SECONDS, false);
+        // let fraction_ = numerator / denominator;
+        // sum = sum + fraction_;
         cur_idx = cur_idx + 1;
     };
     sum

@@ -1,6 +1,5 @@
 use starknet::ContractAddress;
 use pragma::entry::structs::{DataType, AggregationMode};
-use serde::Serde;
 use result::ResultTrait;
 
 #[starknet::interface]
@@ -28,8 +27,6 @@ mod SummaryStats {
     use option::OptionTrait;
     use result::ResultTrait;
     use array::ArrayTrait;
-    use array::ArrayTCloneImpl;
-    use serde::Serde;
     use traits::Into;
     use traits::TryInto;
     use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
@@ -37,7 +34,6 @@ mod SummaryStats {
     use pragma::entry::structs::{DataType, AggregationMode};
     use pragma::operations::time_series::structs::TickElem;
     use pragma::operations::time_series::metrics::volatility;
-
     #[storage]
     struct Storage {
         oracle_address: ContractAddress, 

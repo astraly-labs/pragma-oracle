@@ -5,6 +5,8 @@ cairo-version = "2.0.0"
 
 [lib]
 name = "pragma"
+sierra = true  # Enable Sierra codegen.
+casm = true   # Enable CASM codegen.
 
 [dependencies]
 alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria.git", rev = "9909280" }
