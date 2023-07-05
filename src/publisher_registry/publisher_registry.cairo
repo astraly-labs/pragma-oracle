@@ -48,17 +48,27 @@ mod PublisherRegistry {
         Admin::initialize_admin_address(ref state, admin_address);
     }
 
-    #[event]
-    #[derive(Drop, starknet::Event)]
-    fn RegisteredPublisher(publisher: felt252, publisher_address: ContractAddress) {}
 
-    #[event]
     #[derive(Drop, starknet::Event)]
-    fn UpdatedPublisherAddress(
+    struct RegisteredPublisher {
+        publisher: felt252,
+        publisher_address: ContractAddress
+    }
+
+
+    #[derive(Drop, starknet::Event)]
+    struct UpdatedPublisherAddress {
         publisher: felt252,
         old_publisher_address: ContractAddress,
         new_publisher_address: ContractAddress
-    ) {}
+    }
+
+    #[derive(Drop, starknet::Event)]
+    #[event]
+    enum Event {
+        RegisteredPublisher: RegisteredPublisher,
+        UpdatedPublisherAddress: UpdatedPublisherAddress,
+    }
 
     #[external(v0)]
     impl PublisherRegistryImpl of IPublisherRegistryABI<ContractState> {
@@ -75,7 +85,10 @@ mod PublisherRegistry {
             self.publishers_storage.write(publishers_len, publisher);
             self.publisher_address_storage.write(publisher, publisher_address);
 
-            RegisteredPublisher(publisher, publisher_address);
+            self
+                .emit(
+                    Event::RegisteredPublisher(RegisteredPublisher { publisher, publisher_address })
+                );
         }
 
         fn update_publisher_address(
@@ -90,7 +103,16 @@ mod PublisherRegistry {
 
             self.publisher_address_storage.write(publisher, new_publisher_address);
 
-            UpdatedPublisherAddress(publisher, existing_publisher_address, new_publisher_address);
+            self
+                .emit(
+                    Event::UpdatedPublisherAddress(
+                        UpdatedPublisherAddress {
+                            publisher,
+                            old_publisher_address: existing_publisher_address,
+                            new_publisher_address
+                        }
+                    )
+                );
         }
 
         fn remove_publisher(ref self: ContractState, publisher: felt252) {
