@@ -64,8 +64,7 @@ mod Entry {
     // @return value: the aggregation value
     fn aggregate_entries<
         T,
-        impl THasPrice: HasPrice<T>,
-        impl TPartialOrd: PartialOrd<T>,
+        impl THasPrice: HasPrice<T>, // impl TPartialOrd: PartialOrd<T>,
         impl TCopy: Copy<T>,
         impl TDrop: Drop<T>,
     >(
@@ -74,6 +73,10 @@ mod Entry {
         match aggregation_mode {
             AggregationMode::Median(()) => {
                 let value: u256 = entries_median(entries);
+                value
+            },
+            AggregationMode::Mean(()) => {
+                let value: u256 = entries_mean(entries);
                 value
             },
             AggregationMode::Error(()) => {
@@ -114,8 +117,7 @@ mod Entry {
     fn entries_median<
         T,
         impl TCopy: Copy<T>,
-        impl TDrop: Drop<T>,
-        impl TPartialOrd: PartialOrd<T>,
+        impl TDrop: Drop<T>, // impl TPartialOrd: PartialOrd<T>,
         impl THasPrice: HasPrice<T>,
     >(
         entries: @Array<T>
@@ -126,7 +128,7 @@ mod Entry {
         assert(entries_len > 0_usize, 'entries must not be empty');
         let is_even = 1 - entries_len % 2_usize;
         if (is_even == 0) {
-            let median_idx = (entries_len + 1) / 2;
+            let median_idx = (entries_len) / 2;
             let median_entry = *sorted_entries.at(median_idx);
             median_entry.get_price()
         } else {
@@ -157,3 +159,197 @@ mod Entry {
     }
 }
 
+
+//-----------------------------------------------
+// Tests
+
+use debug::PrintTrait;
+
+#[test]
+#[available_gas(100000000)]
+fn test_aggregate_entries_median() {
+    let mut entries = ArrayTrait::<SpotEntry>::new();
+    let entry_1 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000000, source: 1, publisher: 1001
+        }, price: 10.into(), pair_id: 1, volume: 10.into()
+    };
+    let entry_2 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000001, source: 1, publisher: 0234
+        }, price: 20.into(), pair_id: 1, volume: 30.into()
+    };
+    let entry_3 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 30.into(), pair_id: 1, volume: 30.into()
+    };
+    let entry_4 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 40.into(), pair_id: 1, volume: 30.into()
+    };
+    let entry_5 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 50.into(), pair_id: 1, volume: 30.into()
+    };
+    //1 element 
+    entries.append(entry_1);
+    assert(
+        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 10.into(),
+        'median aggregation failed(1)'
+    );
+
+    //2 elements
+    entries.append(entry_2);
+    assert(
+        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 15.into(),
+        'median aggregation failed(even)'
+    );
+
+    //3 elements
+    entries.append(entry_3);
+    assert(
+        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 20.into(),
+        'median aggregation failed(odd)'
+    );
+
+    //4 elements
+    entries.append(entry_4);
+    assert(
+        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 25.into(),
+        'median aggregation failed(even)'
+    );
+
+    //5 elements
+    entries.append(entry_5);
+    assert(
+        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 30.into(),
+        'median aggregation failed(odd)'
+    );
+}
+
+
+#[test]
+#[available_gas(100000000)]
+fn test_aggregate_entries_mean() {
+    let mut entries = ArrayTrait::<SpotEntry>::new();
+    let entry_1 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000000, source: 1, publisher: 1001
+        }, price: 10.into(), pair_id: 1, volume: 10.into()
+    };
+    let entry_2 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000001, source: 1, publisher: 0234
+        }, price: 20.into(), pair_id: 1, volume: 30.into()
+    };
+    let entry_3 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 30.into(), pair_id: 1, volume: 30.into()
+    };
+    let entry_4 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 40.into(), pair_id: 1, volume: 30.into()
+    };
+    let entry_5 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 50.into(), pair_id: 1, volume: 30.into()
+    };
+    //1 element 
+    entries.append(entry_1);
+    assert(
+        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 10.into(),
+        'Mean aggregation failed(1)'
+    );
+
+    //2 elements
+    entries.append(entry_2);
+    assert(
+        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 15.into(),
+        'Mean aggregation failed(even)'
+    );
+
+    //3 elements
+    entries.append(entry_3);
+    assert(
+        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 20.into(),
+        'Mean aggregation failed(odd)'
+    );
+
+    //4 elements
+    entries.append(entry_4);
+    assert(
+        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 25.into(),
+        'Mean aggregation failed(even)'
+    );
+
+    //5 elements
+    entries.append(entry_5);
+    assert(
+        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 30.into(),
+        'Mean aggregation failed(odd)'
+    );
+}
+
+
+#[test]
+#[available_gas(100000000)]
+fn test_aggregate_timestamp_max() {
+    let mut entries = ArrayTrait::<SpotEntry>::new();
+    let entry_1 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000000, source: 1, publisher: 1001
+        }, price: 10.into(), pair_id: 1, volume: 10.into()
+    };
+    let entry_2 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000001, source: 1, publisher: 0234
+        }, price: 20.into(), pair_id: 1, volume: 30.into()
+    };
+    let entry_3 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 30.into(), pair_id: 1, volume: 30.into()
+    };
+    let entry_4 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 40.into(), pair_id: 1, volume: 30.into()
+    };
+    let entry_5 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1003002, source: 1, publisher: 1334
+        }, price: 50.into(), pair_id: 1, volume: 30.into()
+    };
+    //1 element 
+    entries.append(entry_1);
+    assert(
+        Entry::aggregate_timestamps_max(@entries) == 1000000.try_into().unwrap(),
+        'max timestp aggregation failed'
+    );
+    entries.append(entry_2);
+    assert(
+        Entry::aggregate_timestamps_max(@entries) == 1000001.try_into().unwrap(),
+        'max timestp aggregation failed'
+    );
+    entries.append(entry_3);
+    assert(
+        Entry::aggregate_timestamps_max(@entries) == 1000002.try_into().unwrap(),
+        'max timestp aggregation failed'
+    );
+    entries.append(entry_4);
+    assert(
+        Entry::aggregate_timestamps_max(@entries) == 1000002.try_into().unwrap(),
+        'max timestp aggregation failed'
+    );
+    entries.append(entry_5);
+    assert(
+        Entry::aggregate_timestamps_max(@entries) == 1003002.try_into().unwrap(),
+        'max timestp aggregation failed'
+    );
+}

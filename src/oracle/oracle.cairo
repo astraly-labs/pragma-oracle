@@ -302,16 +302,19 @@ mod Oracle {
         fn into(self: AggregationMode) -> u8 {
             match self {
                 AggregationMode::Median(()) => 0_u8,
+                AggregationMode::Mean(()) => 1_u8,
                 AggregationMode::Error(()) => 150_u8,
             }
         }
     }
 
     fn u8_into_AggregationMode(value: u8) -> AggregationMode {
-        if value == 0_u8 {
-            return AggregationMode::Median(());
+        if value==0_u8 {
+            AggregationMode::Median(())
+        } else if value==1_u8 {
+            AggregationMode::Mean(())
         } else {
-            return AggregationMode::Error(());
+            AggregationMode::Error(())
         }
     }
 

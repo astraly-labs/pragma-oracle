@@ -149,8 +149,10 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
     let mut oracle_calldata = ArrayTrait::new();
     oracle_calldata.append(publisher_registry_address);
     //Serialization ? 
-    oracle_calldata.append(currencies.span());
-    oracle_calldata.append(pairs.span());
+    oracle_calldata.append(0);
+    oracle_calldata.append(0);
+    // oracle_calldata.append(currencies.span());
+    // oracle_calldata.append(pairs.span());
     // oracle_calldata.append(0);
     // oracle_calldata.append(0);
 

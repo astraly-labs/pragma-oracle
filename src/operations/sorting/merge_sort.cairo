@@ -14,8 +14,7 @@ use pragma::entry::entry::HasPrice;
 fn merge<
     T,
     impl TCopy: Copy<T>,
-    impl TDrop: Drop<T>,
-    impl TPartialOrd: PartialOrd<T>,
+    impl TDrop: Drop<T>, // impl TPartialOrd: PartialOrd<T>,
     impl THasPrice: HasPrice<T>,
 >(
     arr: @Array<T>
@@ -48,8 +47,7 @@ fn merge<
 fn merge_recursive<
     T,
     impl TCopy: Copy<T>,
-    impl TDrop: Drop<T>,
-    impl TPartialOrd: PartialOrd<T>,
+    impl TDrop: Drop<T>, // impl TPartialOrd: PartialOrd<T>,
     impl THasPrice: HasPrice<T>
 >(
     ref left_arr: Array<T>,

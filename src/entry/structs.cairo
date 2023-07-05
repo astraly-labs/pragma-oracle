@@ -155,6 +155,6 @@ struct PragmaPricesResponse {
 #[derive(Serde, Drop, Copy)]
 enum AggregationMode {
     Median: (),
-    // Mean: (), 
+    Mean: (),
     Error: (),
 }
