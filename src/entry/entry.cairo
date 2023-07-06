@@ -228,6 +228,68 @@ fn test_aggregate_entries_median() {
         Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 30.into(),
         'median aggregation failed(odd)'
     );
+
+    //FUTURES
+
+    let mut f_entries = ArrayTrait::<FutureEntry>::new();
+    let entry_1 = FutureEntry {
+        base: BaseEntry {
+            timestamp: 1000000, source: 1, publisher: 1001
+        }, price: 10.into(), pair_id: 1, volume: 10.into(), expiration_timestamp: 1111111
+    };
+    let entry_2 = FutureEntry {
+        base: BaseEntry {
+            timestamp: 1000001, source: 1, publisher: 0234
+        }, price: 20.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+    };
+    let entry_3 = FutureEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 30.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+    };
+    let entry_4 = FutureEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 40.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+    };
+    let entry_5 = FutureEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 50.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+    };
+    //1 element 
+    f_entries.append(entry_1);
+    assert(
+        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 10.into(),
+        'median aggregation failed(1)'
+    );
+    //2 elements
+    f_entries.append(entry_2);
+    assert(
+        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 15.into(),
+        'median aggregation failed(even)'
+    );
+
+    //3 elements
+    f_entries.append(entry_3);
+    assert(
+        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 20.into(),
+        'median aggregation failed(odd)'
+    );
+
+    //4 elements
+    f_entries.append(entry_4);
+    assert(
+        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 25.into(),
+        'median aggregation failed(even)'
+    );
+
+    //5 elements
+    f_entries.append(entry_5);
+    assert(
+        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 30.into(),
+        'median aggregation failed(odd)'
+    );
 }
 
 
@@ -293,6 +355,68 @@ fn test_aggregate_entries_mean() {
     assert(
         Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 30.into(),
         'Mean aggregation failed(odd)'
+    );
+    //FUTURES
+
+    let mut f_entries = ArrayTrait::<FutureEntry>::new();
+    let entry_1 = FutureEntry {
+        base: BaseEntry {
+            timestamp: 1000000, source: 1, publisher: 1001
+        }, price: 10.into(), pair_id: 1, volume: 10.into(), expiration_timestamp: 1111111
+    };
+    let entry_2 = FutureEntry {
+        base: BaseEntry {
+            timestamp: 1000001, source: 1, publisher: 0234
+        }, price: 20.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+    };
+    let entry_3 = FutureEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 30.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+    };
+    let entry_4 = FutureEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 40.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+    };
+    let entry_5 = FutureEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 50.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+    };
+    //1 element 
+    f_entries.append(entry_1);
+
+    assert(
+        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 10.into(),
+        'median aggregation failed(1)'
+    );
+    //2 elements
+    f_entries.append(entry_2);
+    assert(
+        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 15.into(),
+        'median aggregation failed(even)'
+    );
+
+    //3 elements
+    f_entries.append(entry_3);
+    assert(
+        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 20.into(),
+        'median aggregation failed(odd)'
+    );
+
+    //4 elements
+    f_entries.append(entry_4);
+    assert(
+        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 25.into(),
+        'median aggregation failed(even)'
+    );
+
+    //5 elements
+    f_entries.append(entry_5);
+    assert(
+        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 30.into(),
+        'median aggregation failed(odd)'
     );
 }
 

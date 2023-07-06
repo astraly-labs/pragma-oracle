@@ -1,6 +1,8 @@
 use array::ArrayTrait;
-use pragma::entry::structs::{SpotEntry, FutureEntry};
+use pragma::entry::structs::{SpotEntry, FutureEntry, BaseEntry};
 use pragma::entry::entry::HasPrice;
+use traits::TryInto;
+use traits::Into;
 
 //
 //Traits
@@ -119,3 +121,48 @@ fn fill_array<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
     fill_array(ref arr, fill_arr, index + 1, count - 1)
 }
 
+
+//-----------------------------
+// Tests
+
+#[test]
+#[available_gas(100000000)]
+fn test_merge() {
+    let mut entries = ArrayTrait::<SpotEntry>::new();
+    let entry_1 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000000, source: 1, publisher: 1001
+        }, price: 50.into(), pair_id: 1, volume: 10.into()
+    };
+    let entry_2 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000001, source: 1, publisher: 0234
+        }, price: 100.into(), pair_id: 1, volume: 30.into()
+    };
+    let entry_3 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 200.into(), pair_id: 1, volume: 30.into()
+    };
+    let entry_4 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 80.into(), pair_id: 1, volume: 30.into()
+    };
+    let entry_5 = SpotEntry {
+        base: BaseEntry {
+            timestamp: 1000002, source: 1, publisher: 1334
+        }, price: 50.into(), pair_id: 1, volume: 30.into()
+    };
+    entries.append(entry_1);
+    entries.append(entry_2);
+    entries.append(entry_3);
+    entries.append(entry_4);
+    entries.append(entry_5);
+    let sorted_entries = merge::<SpotEntry>(@entries);
+    assert(sorted_entries.len() == 5, 'not good length');
+    assert((*sorted_entries.at(0)).get_price() == 50.into(), 'sorting failed(merge)');
+    assert((*sorted_entries.at(1)).get_price() == 50.into(), 'sorting failed(merge)');
+    assert((*sorted_entries.at(2)).get_price() == 80.into(), 'sorting failed(merge)');
+    assert((*sorted_entries.at(3)).get_price() == 100.into(), 'sorting failed(merge)');
+}

@@ -309,9 +309,9 @@ mod Oracle {
     }
 
     fn u8_into_AggregationMode(value: u8) -> AggregationMode {
-        if value==0_u8 {
+        if value == 0_u8 {
             AggregationMode::Median(())
-        } else if value==1_u8 {
+        } else if value == 1_u8 {
             AggregationMode::Mean(())
         } else {
             AggregationMode::Error(())
@@ -872,8 +872,8 @@ mod Oracle {
             };
             let u256_timestamp: u256 = actual_get_element_at(_entry, 0, 31);
             let timestamp: u64 = u256_timestamp.try_into().unwrap();
-            let volume = actual_get_element_at(_entry, 32, 42);
-            let price = actual_get_element_at(_entry, 75, 128);
+            let volume = actual_get_element_at(_entry, 32, 30);
+            let price = actual_get_element_at(_entry, 63, 65);
             match data_type {
                 DataType::SpotEntry(pair_id) => {
                     PossibleEntries::Spot(
@@ -921,8 +921,8 @@ mod Oracle {
                                 low: spot_entry.base.timestamp.into(), high: 0
                             };
                             let element = actual_set_element_at(0, 0, 31, conv_timestamp);
-                            let element = actual_set_element_at(element, 32, 42, spot_entry.volume);
-                            let element = actual_set_element_at(element, 75, 128, spot_entry.price);
+                            let element = actual_set_element_at(element, 32, 30, spot_entry.volume);
+                            let element = actual_set_element_at(element, 63, 65, spot_entry.price);
                             let spot_entry_storage = SpotEntryStorage {
                                 timestamp__volume__price: element
                             };
@@ -963,10 +963,10 @@ mod Oracle {
                             };
                             let element = actual_set_element_at(0, 0, 31, conv_timestamp);
                             let element = actual_set_element_at(
-                                element, 32, 42, future_entry.volume
+                                element, 32, 30, future_entry.volume
                             );
                             let element = actual_set_element_at(
-                                element, 75, 128, future_entry.price
+                                element, 63, 65, future_entry.price
                             );
                             let future_entry_storage = FutureEntryStorage {
                                 timestamp__volume__price: element

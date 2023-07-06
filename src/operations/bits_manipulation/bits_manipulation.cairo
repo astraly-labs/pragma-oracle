@@ -31,7 +31,8 @@ fn actual_set_element_at(input: u256, at: u256, number_of_bits: u256, element: u
 // @param number_of_bits: the number of bits on which each element is encoded
 fn assert_valid_felt(element: u256, number_of_bits: u256) {
     let max_element = pow2(number_of_bits) - 1.into();
-    assert(element <= max_element, 'Error felt too big');
+
+    assert(element <= max_element, 'Error u256 too big');
 }
 
 
@@ -40,12 +41,9 @@ fn assert_valid_felt(element: u256, number_of_bits: u256) {
 // @param position: The position of the element, starts a 0
 // @param number_of_bits: the number of bits on which each element is encoded
 fn assert_within_range(position: u256, number_of_bits: u256) {
-    assert(position + number_of_bits <= 251.into(), 'Error out of bound');
+    assert(position + number_of_bits <= 255.into(), 'Error out of bound');
 }
 
-fn asset_within_range_64(position: u64, number_of_bits: u64) {
-    assert(position + number_of_bits <= 251, 'Error out of bound');
-}
 
 // @notice Will generate a bit mask to be able to insert a felt within another felt
 // @dev Will fail if the position given would make it out of the 251 available bits
@@ -92,3 +90,22 @@ fn generate_get_mask(position: u256, number_of_bits: u256) -> u256 {
     generate_mask(position, number_of_bits)
 }
 
+
+//--------------------------------
+// Tests
+
+use debug::PrintTrait;
+#[test]
+#[available_gas(100000000)]
+fn test_bits_manipulation() {
+    let element = actual_set_element_at(0, 0, 31, 1688646892);
+    let element = actual_set_element_at(element, 32, 30, 123123);
+    let element = actual_set_element_at(element, 63, 65, 1232092993);
+    let u256_timestamp: u256 = actual_get_element_at(element, 0, 31);
+    let volume = actual_get_element_at(element, 32, 30);
+    let price = actual_get_element_at(element, 63, 65);
+    price.print();
+    assert(u256_timestamp == 1688646892, 'Error timestamp');
+    assert(volume == 123123, 'Error volume');
+    assert(price == 1232092993, 'Error price');
+}
