@@ -129,13 +129,12 @@ fn _sum_volatility(arr: Span<TickElem>) -> Fixed {
         let fixed_prev_value = FixedTrait::new(prev_value, false);
         let cur_timestamp = cur_val.tick;
         let prev_timestamp = prev_val.tick;
-        let a = FixedTrait::from_felt(50143449209799256683);
-        // let numerator_value = FixedTrait::ln(fixed_cur_value / fixed_prev_value);
-        // let numerator = numerator_value.pow(FixedTrait::new(2, false));
-        // let denominator = FixedTrait::new((cur_timestamp - prev_timestamp).into(), false)
-        //     / FixedTrait::new(ONE_YEAR_IN_SECONDS, false);
-        // let fraction_ = numerator / denominator;
-        // sum = sum + fraction_;
+        let numerator_value = FixedTrait::ln(fixed_cur_value / fixed_prev_value);
+        let numerator = numerator_value.pow(FixedTrait::new(2, false));
+        let denominator = FixedTrait::new((cur_timestamp - prev_timestamp).into(), false)
+            / FixedTrait::new(ONE_YEAR_IN_SECONDS, false);
+        let fraction_ = numerator / denominator;
+        sum = sum + fraction_;
         cur_idx = cur_idx + 1;
     };
     sum
