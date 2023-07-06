@@ -104,7 +104,6 @@ fn test_bits_manipulation() {
     let u256_timestamp: u256 = actual_get_element_at(element, 0, 31);
     let volume = actual_get_element_at(element, 32, 30);
     let price = actual_get_element_at(element, 63, 65);
-    price.print();
     assert(u256_timestamp == 1688646892, 'Error timestamp');
     assert(volume == 123123, 'Error volume');
     assert(price == 1232092993, 'Error price');

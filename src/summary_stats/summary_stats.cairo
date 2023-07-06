@@ -1,7 +1,6 @@
 use starknet::ContractAddress;
 use pragma::entry::structs::{DataType, AggregationMode};
 use result::ResultTrait;
-
 #[starknet::interface]
 trait SummaryStatsABI<TContractState> {
     fn calculate_mean(self: @TContractState, data_type: DataType, start: u64, stop: u64) -> u128;
