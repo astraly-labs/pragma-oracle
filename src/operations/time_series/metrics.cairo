@@ -279,7 +279,6 @@ fn test_metrics() {
     array.append(TickElem { tick: 3, value: 30 });
     array.append(TickElem { tick: 4, value: 40 });
     array.append(TickElem { tick: 5, value: 50 });
-    standard_deviation(array.span()).print();
     assert(standard_deviation(array.span()) == 14, 'wrong standard deviation');
 //TODO volatility tests
 }
