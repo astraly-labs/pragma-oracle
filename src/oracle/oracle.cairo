@@ -207,7 +207,7 @@ mod Oracle {
         oracle_sources_len_storage: LegacyMap::<(felt252, felt252, u64), u64>,
         //oracle_data_entry_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), source, expiration_timestamp (0 for SPOT))
         oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u64), u256>,
-        //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT)) asociated to a checkpoint
+        //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT)) associated to a checkpoint
         oracle_checkpoints: LegacyMap::<(felt252, felt252, u64, u64), Checkpoint>,
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
         oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u64), u64>,

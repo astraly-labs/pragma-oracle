@@ -14,7 +14,7 @@ const ONE_YEAR_IN_SECONDS: u128 = 31536000_u128;
 
 #[derive(Copy, Drop)]
 enum Operations {
-    SUBSTRACTION: (),
+    SUBTRACTION: (),
     MULTIPLICATION: (),
 }
 
@@ -83,7 +83,7 @@ fn variance(tick_arr: Span<TickElem>) -> u128 {
     let mean_ = mean(tick_arr);
     let tick_arr_len = tick_arr.len();
     let mean_arr = fill_1d(tick_arr_len, mean_);
-    let diff_arr = pairwise_1D(Operations::SUBSTRACTION(()), arr_len, arr_.span(), mean_arr.span());
+    let diff_arr = pairwise_1D(Operations::SUBTRACTION(()), arr_len, arr_.span(), mean_arr.span());
 
     let diff_squared = pairwise_1D(Operations::MULTIPLICATION(()), arr_len, diff_arr, diff_arr);
 
@@ -147,7 +147,7 @@ fn pairwise_1D(operation: Operations, x_len: u32, x: Span<Fixed>, y: Span<Fixed>
     let mut cur_idx: u32 = 0;
     let mut output = ArrayTrait::<Fixed>::new();
     match operation {
-        Operations::SUBSTRACTION(()) => {
+        Operations::SUBTRACTION(()) => {
             loop {
                 if (cur_idx >= x_len) {
                     break ();
@@ -228,7 +228,7 @@ fn test_utils() {
     //pairwise_1D
     let x = fill_1d(3, 1);
     let y = fill_1d(3, 2);
-    let z = pairwise_1D(Operations::SUBSTRACTION(()), 3, x.span(), y.span());
+    let z = pairwise_1D(Operations::SUBTRACTION(()), 3, x.span(), y.span());
     assert(*z.at(0).mag == 1, 'wrong value');
     assert(*z.at(0).sign == true, 'wrong value');
     assert(*z.at(1).mag == 1, 'wrong value');
@@ -244,7 +244,7 @@ fn test_utils() {
     //pairwise_1D
     let x = fill_1d(3, 3);
     let y = fill_1d(3, 2);
-    let z = pairwise_1D(Operations::SUBSTRACTION(()), 3, x.span(), y.span());
+    let z = pairwise_1D(Operations::SUBTRACTION(()), 3, x.span(), y.span());
     assert(*z.at(0).mag == 1, 'wrong value');
     assert(*z.at(0).sign == false, 'wrong value');
     assert(*z.at(1).mag == 1, 'wrong value');

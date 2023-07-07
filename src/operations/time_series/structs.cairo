@@ -15,7 +15,7 @@ struct List {
 
 struct PAIRWISE_OPERATION {
     ADDITION: (), // DEFAULT
-    SUBSTRACTION: (),
+    SUBTRACTION: (),
     MULTIPLICATION: (),
     DIVISION: (),
     FIXED_POINT_MULTIPLICATION: (),
