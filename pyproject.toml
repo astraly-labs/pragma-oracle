@@ -1,0 +1,36 @@
+[tool.poetry]
+name = "pragma"
+version = "0.1.0"
+description = "Pragma, the provable oracle."
+authors = ["0xevolve <matthias@pragmaoracle.com>"]
+readme = "README.md"
+packages = [{ include = "scripts" }]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.10"
+starknet-py = "^0.16"
+empiric-network = "^1.6.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^22.10.0"
+codespell = "^2.2.2"
+isort = "^5.10.1"
+autoflake = "^2.1.1"
+
+[tool.isort]
+profile = "black"
+
+[tool.autoflake]
+in_place = true
+remove_unused_variables = true
+remove_all_unused_imports = true
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.codespell]
+ignore-words = '.codespellignore'
+skip = '.git'
+check-filenames = ''
+check-hidden = ''

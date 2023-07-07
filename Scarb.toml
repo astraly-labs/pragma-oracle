@@ -1,0 +1,22 @@
+[package]
+name = "pragma"
+version = "0.1.0"
+
+[lib]
+name = "pragma"
+sierra = true  # Enable Sierra codegen.
+casm = true   # Enable CASM codegen.
+
+[dependencies]
+alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria.git", rev = "9909280" }
+cubit = { git = "https://github.com/influenceth/cubit" }
+starknet = "2.0.0"
+
+[[target.starknet-contract]]
+allowed-libfuncs-list.name = "audited"
+
+[scripts]
+gen-project = "sh scripts/generate_cairo_project.sh"
+sierra = "cairo-compile . -r"
+test-cairo = "cairo-test --starknet ."
+
