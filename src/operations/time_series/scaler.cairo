@@ -72,10 +72,7 @@ fn scale_data(
 
         let offset = *tick_array.at(idx).value
             - (slope * FixedTrait::from_unscaled_felt((*tick_array.at(idx).tick).into()));
-        if cur_index == 3 {
-            idx.print();
-            ((*tick_array.at(idx).tick).into() / ONE_u128).print();
-        }
+
         let z = slope * FixedTrait::from_unscaled_felt(tick.into()) + offset;
         let new_z = FixedTrait::new(mag: z.mag / ONE_u128, sign: z.sign);
         output.append(TickElem { tick, value: new_z });
@@ -127,7 +124,6 @@ fn test_scaler() {
     let scaled_data = scale_data(0, 300, tick_array.span(), 4);
     assert(*scaled_data.at(0).tick == 0, 'wrong tick(0)');
     let value = (*scaled_data.at(3).value.mag);
-    value.print();
     assert(*scaled_data.at(0).value.mag == 550, 'wrong value(0)');
     assert(*scaled_data.at(1).tick == 100, 'wrong tick(1)');
     assert(*scaled_data.at(1).value.mag == 2558, 'wrong value(1)');
