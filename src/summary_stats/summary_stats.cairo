@@ -1,6 +1,8 @@
 use starknet::ContractAddress;
 use pragma::entry::structs::{DataType, AggregationMode};
 use result::ResultTrait;
+use cubit::types::fixed::FixedTrait;
+
 #[starknet::interface]
 trait SummaryStatsABI<TContractState> {
     fn calculate_mean(self: @TContractState, data_type: DataType, start: u64, stop: u64) -> u128;
@@ -33,6 +35,7 @@ mod SummaryStats {
     use pragma::entry::structs::{DataType, AggregationMode};
     use pragma::operations::time_series::structs::TickElem;
     use pragma::operations::time_series::metrics::volatility;
+    use super::FixedTrait;
     #[storage]
     struct Storage {
         oracle_address: ContractAddress, 
@@ -103,7 +106,13 @@ mod SummaryStats {
                 let cp = oracle_dispatcher
                     .get_checkpoint(data_type, idx * skip_frequency + start_index);
                 let val = cp.value.into();
-                tick_arr.append(TickElem { tick: cp.timestamp, value: val.low });
+                tick_arr
+                    .append(
+                        TickElem {
+                            tick: cp.timestamp,
+                            value: FixedTrait::from_unscaled_felt(val.low.into())
+                        }
+                    );
             };
 
             volatility(tick_arr.span()).mag
