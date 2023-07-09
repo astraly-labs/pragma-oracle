@@ -123,7 +123,7 @@ fn test_scaler() {
 
     let scaled_data = scale_data(0, 300, tick_array.span(), 4);
     assert(*scaled_data.at(0).tick == 0, 'wrong tick(0)');
-    let value = (*scaled_data.at(3).value.mag);
+    assert(*scaled_data.at(0).value.sign == true, 'wrong sign(0)');
     assert(*scaled_data.at(0).value.mag == 550, 'wrong value(0)');
     assert(*scaled_data.at(1).tick == 100, 'wrong tick(1)');
     assert(*scaled_data.at(1).value.mag == 2558, 'wrong value(1)');

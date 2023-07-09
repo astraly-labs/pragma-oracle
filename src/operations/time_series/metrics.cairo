@@ -104,18 +104,18 @@ fn standard_deviation(arr: Span<TickElem>) -> u128 {
 }
 
 /// Compute the volatility of a `TickElem` array
-fn volatility(arr: Span<TickElem>) -> Fixed {
+fn volatility(arr: Span<TickElem>) -> u128 {
     let _volatility_sum = _sum_volatility(arr);
     let arr_len = arr.len();
-    let fixed_len = FixedTrait::new(arr_len.into(), false);
+    let fixed_len = FixedTrait::from_unscaled_felt(arr_len.into());
     let _volatility = _volatility_sum / fixed_len;
     let sqrt_vol = FixedTrait::sqrt(_volatility);
-    return sqrt_vol;
+    return (sqrt_vol.mag * 100000000 / ONE_u128);
 }
 
 fn _sum_volatility(arr: Span<TickElem>) -> Fixed {
     let mut cur_idx = 1;
-    let mut sum = FixedTrait::new(0, false);
+    let mut sum = FixedTrait::from_felt(0);
 
     loop {
         if (cur_idx == arr.len()) {
@@ -128,8 +128,8 @@ fn _sum_volatility(arr: Span<TickElem>) -> Fixed {
         let cur_timestamp = cur_val.tick;
         let prev_timestamp = prev_val.tick;
         let numerator_value = FixedTrait::ln(cur_value / prev_value);
-        let numerator = numerator_value.pow(FixedTrait::new(2, false));
-        let denominator = FixedTrait::new((cur_timestamp - prev_timestamp).into(), false)
+        let numerator = numerator_value.pow(FixedTrait::from_unscaled_felt(2));
+        let denominator = FixedTrait::from_felt((cur_timestamp - prev_timestamp).into())
             / FixedTrait::new(ONE_YEAR_IN_SECONDS, false);
         let fraction_ = numerator / denominator;
         sum = sum + fraction_;
@@ -278,5 +278,15 @@ fn test_metrics() {
     array.append(TickElem { tick: 4, value: FixedTrait::from_felt(40) });
     array.append(TickElem { tick: 5, value: FixedTrait::from_felt(50) });
     assert(standard_deviation(array.span()) == 14, 'wrong standard deviation');
-//TODO volatility tests
+    //volatility
+    let mut array = ArrayTrait::<TickElem>::new();
+    array.append(TickElem { tick: 1640995200, value: FixedTrait::from_felt(47686) });
+    array.append(TickElem { tick: 1641081600, value: FixedTrait::from_felt(47345) });
+    array.append(TickElem { tick: 1641168000, value: FixedTrait::from_felt(46458) });
+    array.append(TickElem { tick: 1641254400, value: FixedTrait::from_felt(45897) });
+    array.append(TickElem { tick: 1641340800, value: FixedTrait::from_felt(43569) });
+    let test = _sum_volatility(array.span());
+    let value = volatility(array.span());
+    value.print();
+    assert(volatility(array.span()) == 48830960, 'wrong volatility'); //10^8
 }

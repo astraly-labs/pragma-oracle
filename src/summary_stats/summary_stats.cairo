@@ -115,7 +115,7 @@ mod SummaryStats {
                     );
             };
 
-            volatility(tick_arr.span()).mag
+            volatility(tick_arr.span())
         }
     }
 
