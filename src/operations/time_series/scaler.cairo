@@ -37,7 +37,7 @@ fn scale_data(
             tick = start_tick + (conv_cur_idx.try_into().unwrap() * interval);
         }
 
-        //retreive the index of the tick that is closest to the cur_position
+        //retrieve the index of the tick that is closest to the cur_position
         let (idx, _before, _after) = get_bounded_tick_idx(tick, 0, tick_array);
 
         if *tick_array.at(idx).tick == tick {

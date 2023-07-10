@@ -1,7 +1,7 @@
 use starknet::ContractAddress;
 use pragma::entry::structs::{DataType, AggregationMode};
 use result::ResultTrait;
-use cubit::types::fixed::FixedTrait;
+use cubit::types::fixed::{FixedTrait, Fixed};
 
 #[starknet::interface]
 trait SummaryStatsABI<TContractState> {
@@ -35,7 +35,7 @@ mod SummaryStats {
     use pragma::entry::structs::{DataType, AggregationMode};
     use pragma::operations::time_series::structs::TickElem;
     use pragma::operations::time_series::metrics::volatility;
-    use super::FixedTrait;
+    use super::{FixedTrait, Fixed};
     #[storage]
     struct Storage {
         oracle_address: ContractAddress, 
@@ -106,13 +106,10 @@ mod SummaryStats {
                 let cp = oracle_dispatcher
                     .get_checkpoint(data_type, idx * skip_frequency + start_index);
                 let val = cp.value.into();
-                tick_arr
-                    .append(
-                        TickElem {
-                            tick: cp.timestamp,
-                            value: FixedTrait::from_unscaled_felt(val.low.into())
-                        }
-                    );
+                let u128_val: u128 = val.try_into().unwrap();
+                let fixed_val = FixedTrait::new(u128_val, false);
+                tick_arr.append(TickElem { tick: cp.timestamp, value: fixed_val });
+                idx += 1;
             };
 
             volatility(tick_arr.span())
@@ -128,29 +125,6 @@ mod SummaryStats {
     }
 
 
-    fn calculate_mean(self: @ContractState, key: felt252, start: u64, stop: u64) -> u128 {
-        let oracle_address = self.oracle_address.read();
-        SummaryStatsImpl::calculate_mean(self, oracle_address, key, start, stop)
-    }
-
-
-    fn calculate_volatility(
-        self: @ContractState,
-        data_type: DataType,
-        start_tick: u64,
-        end_tick: u64,
-        num_samples: u64,
-        aggregation_mode: AggregationMode
-    ) -> u128 {
-        let oracle_address = self.oracle_address.read();
-        let volatility: u128 = SummaryStatsImpl::calculate_volatility(
-            self, oracle_address, data_type, start_tick, end_tick, num_samples, aggregation_mode
-        );
-
-        volatility * 100
-    }
-
-    #[internal]
     fn calculate_skip_frequency(total_samples: u64, num_samples: u64) -> u64 {
         let skip_frequency = total_samples / num_samples;
         if (skip_frequency == 0) {
