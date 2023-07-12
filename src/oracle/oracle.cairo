@@ -169,7 +169,7 @@ mod Oracle {
         ArrayEntry, IOracle, Admin, Upgradeable, Serde, storage_read_syscall, storage_write_syscall,
         storage_address_from_base_and_offset, storage_base_address_from_felt252, StorageAccess,
         StorageBaseAddress, SyscallResult, ContractAddress, get_caller_address, ClassHash, Into,
-        TryInto, ResultTrait, ResultTraitImpl, BoxTrait, ArrayTrait, Zeroable
+        TryInto, ResultTrait, ResultTraitImpl, BoxTrait, ArrayTrait, Zeroable,
     };
 
     use pragma::entry::entry::Entry;
@@ -186,7 +186,7 @@ mod Oracle {
     use cmp::{max, min};
     use option::OptionTrait;
     use array::SpanTrait;
-
+    use debug::PrintTrait;
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
 
     #[storage]
@@ -542,12 +542,19 @@ mod Oracle {
             self: @ContractState, data_type: DataType, sources: Span<felt252>
         ) -> (Array<PossibleEntries>, u32, u64) {
             let last_updated_timestamp = get_latest_entry_timestamp(self, data_type, sources);
+            // last_updated_timestamp.print();
             let current_timestamp: u64 = get_block_timestamp();
+            // if (last_updated_timestamp == 0_u64) {
+            //     return (ArrayTrait::<PossibleEntries>::new(), 0_u32, current_timestamp);
+            // }
             let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
+            // conservative_current_timestamp.print();
             let (entries, entries_len) = get_all_entries(
                 self, data_type, sources, conservative_current_timestamp
             );
-            (entries, entries_len, last_updated_timestamp)
+
+            (entries, entries_len, conservative_current_timestamp)
+        //TO BE CHECKED, FOR LAST_UPDATED_TIMESTAMP
         }
 
 
@@ -603,9 +610,11 @@ mod Oracle {
             self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
         ) -> PragmaPricesResponse {
             let sources = get_all_sources(self, data_type).span();
+
             let prices_response: PragmaPricesResponse = IOracle::get_data_for_sources(
                 self, data_type, aggregation_mode, sources
             );
+
             prices_response
         }
 
@@ -617,6 +626,7 @@ mod Oracle {
             sources: Span<felt252>
         ) -> PragmaPricesResponse {
             let mut entries = ArrayTrait::<PossibleEntries>::new();
+
             let (entries, entries_len, last_updated_timestamp) =
                 IOracle::get_data_entries_for_sources(
                 self, data_type, sources
@@ -646,6 +656,7 @@ mod Oracle {
                                 Entry::aggregate_timestamps_max::<SpotEntry>(
                                 @array_spot
                             );
+
                             return PragmaPricesResponse {
                                 price: price,
                                 decimals: decimals,
@@ -920,16 +931,18 @@ mod Oracle {
                             let conv_timestamp: u256 = u256 {
                                 low: spot_entry.base.timestamp.into(), high: 0
                             };
+
                             let element = actual_set_element_at(0, 0, 31, conv_timestamp);
                             let element = actual_set_element_at(element, 32, 30, spot_entry.volume);
                             let element = actual_set_element_at(element, 63, 65, spot_entry.price);
+
                             let spot_entry_storage = SpotEntryStorage {
                                 timestamp__volume__price: element
                             };
                             self
                                 .oracle_data_entry_storage
                                 .write(
-                                    (spot_entry.pair_id, SPOT, spot_entry.base.source, 0), element
+                                    (spot_entry.pair_id, spot_entry.base.source, SPOT, 0), element
                                 );
                         },
                         PossibleEntries::Future(_) => {
@@ -976,8 +989,8 @@ mod Oracle {
                                 .write(
                                     (
                                         future_entry.pair_id,
-                                        FUTURE,
                                         future_entry.base.source,
+                                        FUTURE,
                                         future_entry.expiration_timestamp
                                     ),
                                     element
@@ -1137,6 +1150,7 @@ mod Oracle {
     }
 
 
+    //ISSUE HERE, DO NOT RETURN ARRAY
     fn get_all_sources(self: @ContractState, data_type: DataType) -> Array<felt252> {
         let mut sources = ArrayTrait::<felt252>::new();
         match data_type {
@@ -1152,6 +1166,7 @@ mod Oracle {
                     .oracle_sources_len_storage
                     .read((pair_id, FUTURE, expiration_timestamp));
                 build_sources_array(self, data_type, ref sources, source_len);
+
                 return sources;
             },
         }
@@ -1201,12 +1216,11 @@ mod Oracle {
         };
         let publisher_address = publisher_registry_dispatcher
             .get_publisher_address(_entry.get_base_entry().publisher);
-
         let _can_publish_source = publisher_registry_dispatcher
             .can_publish_source(_entry.get_base_entry().publisher, _entry.get_base_entry().source);
-        //CHECK IF THIS VERIFICATION WORKS 
         let caller_address = get_caller_address();
-        assert(publisher_address.is_zero(), 'Publisher is not registered');
+
+        assert(!publisher_address.is_zero(), 'Publisher is not registered');
         assert(!caller_address.is_zero(), 'Caller must not be zero address');
         assert(caller_address == publisher_address, 'Transaction not from publisher');
         assert(_can_publish_source == true, 'Not allowed for source');
@@ -1220,11 +1234,12 @@ mod Oracle {
         let mut cur_idx = 0;
         let mut latest_timestamp = 0;
         loop {
-            if (cur_idx >= sources.len()) {
+            if (cur_idx == sources.len()) {
                 break ();
             }
             let source: felt252 = *sources.get(cur_idx).unwrap().unbox();
             let entry: PossibleEntries = IOracle::get_data_entry(self, data_type, source);
+
             match entry {
                 PossibleEntries::Spot(spot_entry) => {
                     if spot_entry.base.timestamp > latest_timestamp {
@@ -1292,6 +1307,7 @@ mod Oracle {
         if (sources.len() == 0) {
             let all_sources = get_all_sources(self, data_type).span();
             build_entries_array(self, data_type, all_sources, ref entries, max_timestamp);
+
             (entries, entries.len())
         } else {
             build_entries_array(self, data_type, sources, ref entries, max_timestamp);
@@ -1469,21 +1485,33 @@ mod Oracle {
     }
 
     fn build_sources_array(
-        self: @ContractState, data_type: DataType, ref sources: Array<felt252>, idx: u64
+        self: @ContractState, data_type: DataType, ref sources: Array<felt252>, sources_len: u64
     ) {
-        match data_type {
-            DataType::SpotEntry(pair_id) => {
-                let new_source = self.oracle_sources_storage.read((pair_id, SPOT, idx, 0));
-                sources.append(new_source);
-            },
-            DataType::FutureEntry((
-                pair_id, expiration_timestamp
-            )) => {
-                let new_source = self
-                    .oracle_sources_storage
-                    .read((pair_id, FUTURE, idx, expiration_timestamp));
-                sources.append(new_source);
+        let mut idx: u64 = 0;
+        loop {
+            if (idx == sources_len) {
+                break ();
             }
-        }
+            match data_type {
+                DataType::SpotEntry(pair_id) => {
+                    let new_source = self
+                        .oracle_sources_storage
+                        .read((pair_id, SPOT, idx.into(), 0));
+
+                    sources.append(new_source);
+                },
+                DataType::FutureEntry((
+                    pair_id, expiration_timestamp
+                )) => {
+                    let new_source = self
+                        .oracle_sources_storage
+                        .read((pair_id, FUTURE, idx.into(), expiration_timestamp));
+                    sources.append(new_source);
+                },
+            }
+            idx = idx + 1;
+        };
+        return ();
     }
 }
+

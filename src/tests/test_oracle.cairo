@@ -21,18 +21,17 @@ use debug::PrintTrait;
 use starknet::ClassHash;
 use starknet::SyscallResultTrait;
 use starknet::testing::{
-    set_caller_address, set_contract_address, set_block_timestamp, set_chain_id
+    set_caller_address, set_contract_address, set_block_timestamp, set_chain_id,
 };
 use starknet::syscalls::deploy_syscall;
 use starknet::class_hash::{Felt252TryIntoClassHash};
 use starknet::Felt252TryIntoContractAddress;
 // use starknet::class_hash::class_hash_try_from_felt252;
 use starknet::contract_address::contract_address_const;
-
+use serde::Serde;
 const ONE_ETH: felt252 = 1000000000000000000;
 const CHAIN_ID: felt252 = 'SN_MAIN';
 const BLOCK_TIMESTAMP: u64 = 103374042;
-
 
 fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
     let mut currencies = ArrayTrait::<Currency>::new();
@@ -133,7 +132,6 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
     set_block_timestamp(BLOCK_TIMESTAMP);
     set_chain_id(CHAIN_ID);
     let now = 100000;
-
     //Deploy the registry
     let mut constructor_calldata = ArrayTrait::new();
     constructor_calldata.append(admin.into());
@@ -146,25 +144,18 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
     };
 
     //Deploy the oracle
-    let mut oracle_calldata = ArrayTrait::new();
-    oracle_calldata.append(publisher_registry_address);
-    //Serialization ? 
-    oracle_calldata.append(0);
-    oracle_calldata.append(0);
-    // oracle_calldata.append(currencies.span());
-    // oracle_calldata.append(pairs.span());
-    // oracle_calldata.append(0);
-    // oracle_calldata.append(0);
-
+    let mut oracle_calldata = ArrayTrait::<felt252>::new();
+    publisher_registry_address.serialize(ref oracle_calldata);
+    currencies.serialize(ref oracle_calldata);
+    pairs.serialize(ref oracle_calldata);
     let (oracle_address, _) = deploy_syscall(
         Oracle::TEST_CLASS_HASH.try_into().unwrap(), 0, oracle_calldata.span(), true
     )
         .unwrap_syscall();
 
     let mut oracle = IOracleABIDispatcher { contract_address: oracle_address };
-
+    set_contract_address(admin);
     publisher_registry.add_publisher(1, admin);
-
     // Add source 1 for publisher 1
     publisher_registry.add_source_for_publisher(1, 1);
     // Add source 2 for publisher 1
@@ -214,7 +205,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
             PossibleEntries::Spot(
                 SpotEntry {
                     base: BaseEntry {
-                        timestamp: now, source: 1, publisher: 1
+                        timestamp: now, source: 2, publisher: 1
                     }, pair_id: 4, price: 3 * 1000000, volume: 0
                 }
             )
@@ -283,80 +274,142 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
     (publisher_registry, oracle)
 }
 
+
+#[test]
+#[should_panic]
+#[available_gas(200000000000000)]
+fn add_source_for_publisher_should_fail_if_not_admin() {
+    let (publisher_registry, _) = setup();
+    let joe = contract_address_const::<0x198765>();
+    set_contract_address(joe);
+    publisher_registry.add_source_for_publisher(1, 3);
+}
+
+#[test]
+#[should_panic]
+#[available_gas(200000000000000)]
+fn add_sources_for_publisher_should_fail_if_publisher_does_not_exist() {
+    let (publisher_registry, _) = setup();
+    let joe = contract_address_const::<0x198765>();
+    set_contract_address(joe);
+    let mut sources = ArrayTrait::new();
+    sources.append(1);
+    sources.append(2);
+    publisher_registry.add_sources_for_publisher(2, sources.span());
+}
+
 #[test]
 #[available_gas(200000000000000)]
 fn test_get_decimals() {
     let (publisher_registry, oracle) = setup();
-    assert(1 == 1, 'not');
-// let decimals_1 = oracle.get_decimals(DataType::SpotEntry(1));
-// decimals_1.print();
-// assert(decimals_1 == 18_u32, 'wrong decimals value');
-// let decimals_2 = oracle.get_decimals(DataType::SpotEntry(2));
-// assert(decimals_2 == 6_u32, 'wrong decimals value');
-// let decimals_3 = oracle.get_decimals(DataType::SpotEntry(10));
-// assert(decimals_3 == 0, 'wrong decimals value');
+
+    let decimals_1 = oracle.get_decimals(DataType::SpotEntry(1));
+    assert(decimals_1 == 18_u32, 'wrong decimals value');
+    let decimals_2 = oracle.get_decimals(DataType::SpotEntry(2));
+    assert(decimals_2 == 6_u32, 'wrong decimals value');
+    let decimals_3 = oracle.get_decimals(DataType::SpotEntry(10));
+    assert(decimals_3 == 0, 'wrong decimals value');
 }
-// #[test]
-// #[available_gas(2000000000)]
-// fn test_get_data_entry() {
-//     let (publisher_registry, oracle) = setup();
-//     let entry = oracle.get_data(DataType::SpotEntry(2), AggregationMode::Median(()));
-//     assert(entry.price == (2500000).into(), 'wrong price');
-//     assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
-//     let entry = oracle.get_data(DataType::SpotEntry(3), AggregationMode::Median(()));
-//     assert(entry.price == (8000000).into(), 'wrong price');
-//     assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
-//     let entry = oracle.get_data(DataType::SpotEntry(4), AggregationMode::Median(()));
-//     assert(entry.price == (5500000).into(), 'wrong price');
-//     assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
-//     let entry = oracle.get_data(DataType::SpotEntry(5), AggregationMode::Median(()));
-//     assert(entry.price == (5000000).into(), 'wrong price');
-//     assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
-//     let entry = oracle.get_data(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
-//     assert(entry.price == (2 * 1000000).into(), 'wrong price');
-//     assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
-//     let entry = oracle.get_data(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
-//     assert(entry.price == (2 * 1000000).into(), 'wrong price');
-//     assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
-// }
 
-// fn data_treatment(entry: PossibleEntries) -> (u256, u64) {
-//     match entry {
-//         PossibleEntries::Spot(entry) => {
-//             (entry.price, entry.base.timestamp)
-//         },
-//         PossibleEntries::Future(entry) => {
-//             (entry.price, entry.base.timestamp)
-//         }
-//     }
-// }
 
-// #[test]
-// #[available_gas(2000000000)]
-// fn get_data_entry_for_source() {
-//     let (publisher_registry, oracle) = setup();
-//     let entry = oracle.get_data_entry(DataType::SpotEntry(2), 1);
-//     let (price, timestamp) = data_treatment(entry);
-//     assert(price == (2000000).into(), 'wrong price');
-//     assert(timestamp == 100000, 'wrong timestamp');
-//     let entry = oracle.get_data_entry(DataType::SpotEntry(2), 2);
-//     let (price, timestamp) = data_treatment(entry);
-//     assert(price == (3000000).into(), 'wrong price');
-//     assert(timestamp == 100000, 'wrong timestamp');
-//     let entry = oracle.get_data_entry(DataType::SpotEntry(3), 1);
-//     let (price, timestamp) = data_treatment(entry);
-//     assert(price == (8000000).into(), 'wrong price');
-//     assert(timestamp == 100000, 'wrong timestamp');
-//     let entry = oracle.get_data_entry(DataType::SpotEntry(4), 1);
-//     let (price, timestamp) = data_treatment(entry);
-//     assert(price == (8000000).into(), 'wrong price');
-//     assert(timestamp == 100000, 'wrong timestamp');
-//     let entry = oracle.get_data_entry(DataType::SpotEntry(4), 2);
-//     let (price, timestamp) = data_treatment(entry);
-//     assert(price == (3000000).into(), 'wrong price');
-//     assert(timestamp == 100000, 'wrong timestamp');
-// }
+#[test]
+#[available_gas(200000000000)]
+fn test_data_entry() {
+    let (publisher_registry, oracle) = setup();
+    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 1);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (2000000).into(), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 2);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (3000000).into(), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::SpotEntry(3), 1);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (8000000).into(), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::SpotEntry(4), 1);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (8000000).into(), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::SpotEntry(4), 2);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (3000000).into(), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::SpotEntry(5), 1);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (5000000).into(), 'wrong price');
 
+    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 11111110)), 1);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (2000000).into(), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 11111110)), 2);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (2000000).into(), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::FutureEntry((3, 11111110)), 1);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (3000000).into(), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::FutureEntry((4, 11111110)), 1);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (4000000).into(), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::FutureEntry((5, 11111110)), 1);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (5000000).into(), 'wrong price');
+}
+
+#[test]
+#[available_gas(2000000000)]
+fn test_get_data() {
+    let (publisher_registry, oracle) = setup();
+    let entry = oracle.get_data(DataType::SpotEntry(2), AggregationMode::Median(()));
+    assert(entry.price == (2500000).into(), 'wrong price');
+    let entry = oracle.get_data(DataType::SpotEntry(3), AggregationMode::Median(()));
+    assert(entry.price == (8000000).into(), 'wrong price');
+    assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::SpotEntry(4), AggregationMode::Median(()));
+    assert(entry.price == (5500000).into(), 'wrong price');
+    assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::SpotEntry(5), AggregationMode::Median(()));
+    assert(entry.price == (5000000).into(), 'wrong price');
+    assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
+    assert(entry.price == (2 * 1000000).into(), 'wrong price');
+    assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
+    assert(entry.price == (2 * 1000000).into(), 'wrong price');
+    assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
+}
+
+fn data_treatment(entry: PossibleEntries) -> (u256, u64) {
+    match entry {
+        PossibleEntries::Spot(entry) => {
+            (entry.price, entry.base.timestamp)
+        },
+        PossibleEntries::Future(entry) => {
+            (entry.price, entry.base.timestamp)
+        }
+    }
+}
+#[test]
+#[available_gas(2000000000)]
+fn get_data_entry_for_source() {
+    let (publisher_registry, oracle) = setup();
+    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 1);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (2000000).into(), 'wrong price');
+    assert(timestamp == 100000, 'wrong timestamp');
+    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 2);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (3000000).into(), 'wrong price');
+    assert(timestamp == 100000, 'wrong timestamp');
+    let entry = oracle.get_data_entry(DataType::SpotEntry(3), 1);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (8000000).into(), 'wrong price');
+    assert(timestamp == 100000, 'wrong timestamp');
+    let entry = oracle.get_data_entry(DataType::SpotEntry(4), 1);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (8000000).into(), 'wrong price');
+    assert(timestamp == 100000, 'wrong timestamp');
+    let entry = oracle.get_data_entry(DataType::SpotEntry(4), 2);
+    let (price, timestamp) = data_treatment(entry);
+    assert(price == (3000000).into(), 'wrong price');
+    assert(timestamp == 100000, 'wrong timestamp');
+}
 // #[test]
 // #[available_gas(2000000000)]
 // fn test_data_with_usd_hop() {
