@@ -17,7 +17,7 @@ trait IPublisherRegistryABI<TContractState> {
     fn remove_source_for_publisher(ref self: TContractState, publisher: felt252, source: felt252);
     fn can_publish_source(self: @TContractState, publisher: felt252, source: felt252) -> bool;
     fn get_publisher_address(self: @TContractState, publisher: felt252) -> ContractAddress;
-    fn set_admin_address(self: @TContractState, admin_address: ContractAddress);
+    fn set_admin_address(ref self: TContractState, new_admin_address: ContractAddress);
     fn get_admin_address(self: @TContractState) -> ContractAddress;
 }
 
@@ -244,10 +244,13 @@ mod PublisherRegistry {
             self.publisher_address_storage.read(publisher)
         }
 
-        fn set_admin_address(self: @ContractState, admin_address: ContractAddress) {
+        fn set_admin_address(ref self: ContractState, new_admin_address: ContractAddress) {
             let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
-            Admin::set_admin_address(ref state, admin_address);
+            let old_admin = Admin::get_admin_address(@state);
+            assert(new_admin_address != old_admin, 'Same admin address');
+            assert(!new_admin_address.is_zero(), 'Admin address cannot be zero');
+            Admin::set_admin_address(ref state, new_admin_address);
         }
         fn get_admin_address(self: @ContractState) -> ContractAddress {
             let state: Admin::ContractState = Admin::unsafe_new_contract_state();

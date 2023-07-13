@@ -65,7 +65,7 @@ trait IOracle<TContractState> {
     fn get_admin_address(self: @TContractState, ) -> ContractAddress;
     fn get_implementation_hash(self: @TContractState) -> ClassHash;
     fn publish_data(ref self: TContractState, new_entry: PossibleEntries);
-    fn publish_data_entries(ref self: TContractState, new_entries: Span<PossibleEntries>, );
+    fn publish_data_entries(ref self: TContractState, new_entries: Span<PossibleEntries>);
     fn set_admin_address(ref self: TContractState, new_admin_address: ContractAddress);
     fn update_publisher_registry_address(
         ref self: TContractState, new_publisher_registry_address: ContractAddress

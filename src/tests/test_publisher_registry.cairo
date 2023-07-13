@@ -224,30 +224,53 @@ fn test_change_admin() {
     let admin_2_address = contract_address_const::<0x98765>();
     set_contract_address(admin_address);
     publisher_registry.set_admin_address(admin_2_address);
+    let new_address = publisher_registry.get_admin_address();
+    assert(new_address == admin_2_address, 'should change admin address');
 }
-// #[test]
-// fn test_rotate_admin_address() {
-//     let publisher_registry_address = deploy_publisher_registry();
 
-//     start_prank(admin_address, publisher_registry_address).unwrap();
+#[test]
+#[should_panic]
+#[available_gas(20000000)]
+fn test_change_admin_should_fail_if_not_admin() {
+    set_contract_address(contract_address_const::<0x12345>());
+    let publisher_registry = deploy_publisher_registry();
+    let joe = contract_address_const::<0x98765>();
+    set_contract_address(joe);
+    publisher_registry.set_admin_address(joe);
+}
 
-//     let mut invoke_calldata = ArrayTrait::new();
-//     invoke_calldata.append(admin_2_address);
-//     invoke(publisher_registry_address, 'set_admin_address', @invoke_calldata).unwrap();
+#[test]
+#[should_panic]
+#[available_gas(20000000)]
+fn test_change_admin_should_fail_if_admin_is_zero() {
+    set_contract_address(contract_address_const::<0x12345>());
+    let publisher_registry = deploy_publisher_registry();
+    let admin_address = contract_address_const::<0x12345>();
+    set_contract_address(admin_address);
+    publisher_registry.set_admin_address(0.try_into().unwrap());
+}
 
-//     stop_prank(publisher_registry_address);
-//     start_prank(admin_2_address, publisher_registry_address).unwrap();
+#[test]
+#[should_panic]
+#[available_gas(20000000)]
+fn test_change_admin_should_fail_if_admin_is_same_as_current_admin() {
+    set_contract_address(contract_address_const::<0x12345>());
+    let publisher_registry = deploy_publisher_registry();
+    let admin_address = contract_address_const::<0x12345>();
+    set_contract_address(admin_address);
+    publisher_registry.set_admin_address(admin_address);
+}
 
-//     let mut invoke_calldata = ArrayTrait::new();
-//     invoke_calldata.append('NEW_PUBLISHER');
-//     invoke_calldata.append(222);
-//     invoke(publisher_registry_address, 'add_publisher', @invoke_calldata).unwrap();
-
-//     let mut calldata = ArrayTrait::new();
-//     calldata.append('NEW_PUBLISHER');
-//     let return_data2 = call(publisher_registry_address, 'get_publisher_address', @calldata)
-//         .unwrap();
-//     assert(*return_data2.at(0_u32) == 222, 'wrong publisher address');
-// }
-
+#[test]
+#[should_panic]
+#[available_gas(20000000)]
+fn test_change_admin_should_fail_if_admin_is_same_as_current_admin_2() {
+    set_contract_address(contract_address_const::<0x12345>());
+    let publisher_registry = deploy_publisher_registry();
+    let admin_address = contract_address_const::<0x12345>();
+    let admin_2_address = contract_address_const::<0x98765>();
+    set_contract_address(admin_address);
+    publisher_registry.set_admin_address(admin_2_address);
+    publisher_registry.set_admin_address(admin_2_address);
+}
 
