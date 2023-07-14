@@ -56,7 +56,7 @@ mod SummaryStats {
             stop: u64
         ) -> u128 {
             // let oracle = IOracle { contract_address: oracle_address };
-            // let latest_checkpoint_index = oracle.get_latest_checkpoint_index(key);
+            // let (latest_checkpoint_index,_) = oracle.get_latest_checkpoint_index(key);
             // let (cp, start_index) = oracle.get_last_spot_checkpoint_before(key, start);
 
             // assert(start_index != latest_checkpoint_index, 'Not enough data');
@@ -82,16 +82,16 @@ mod SummaryStats {
             assert(num_samples <= 200, 'num_samples is too large');
 
             let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
-            let latest_checkpoint_index = oracle_dispatcher
+            let (latest_checkpoint_index,_) = oracle_dispatcher
                 .get_latest_checkpoint_index(data_type, aggregation_mode);
             let (_start_cp, start_index) = oracle_dispatcher
-                .get_last_checkpoint_before(start_tick, data_type);
+                .get_last_checkpoint_before(data_type, aggregation_mode, start_tick);
             let mut end_index = 0;
             if (end_tick == 0) {
                 end_index = latest_checkpoint_index;
             } else {
                 let (_end_cp, _end_idx) = oracle_dispatcher
-                    .get_last_checkpoint_before(end_tick, data_type);
+                    .get_last_checkpoint_before(data_type, aggregation_mode, end_tick);
                 end_index = _end_idx;
             }
             assert(start_index != latest_checkpoint_index, 'Not enough data');

@@ -54,7 +54,7 @@ trait IOracle<TContractState> {
     fn get_publisher_registry_address(self: @TContractState) -> ContractAddress;
     fn get_latest_checkpoint_index(
         self: @TContractState, data_type: DataType, aggregation_mode: AggregationMode
-    ) -> u64;
+    ) -> (u64, bool);
     fn get_latest_checkpoint(
         self: @TContractState, data_type: DataType, aggregation_mode: AggregationMode
     ) -> Checkpoint;

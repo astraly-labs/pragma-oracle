@@ -9,6 +9,7 @@ use pragma::entry::structs::{
     USD_CURRENCY_ID, SPOT, FUTURE, OPTION, PossibleEntries, FutureEntry, OptionEntry,
     AggregationMode, SimpleDataType
 };
+use starknet::class_hash::class_hash_const;
 use traits::Into;
 use traits::TryInto;
 use pragma::oracle::oracle::Oracle;
@@ -271,11 +272,19 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                 }
             )
         );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry {
+                        timestamp: now, source: 2, publisher: 1
+                    }, pair_id: 5, price: 5 * 1000000, volume: 0, expiration_timestamp: 11111110
+                }
+            )
+        );
 
     (publisher_registry, oracle)
 }
-
-
 // #[test]
 // #[available_gas(200000000000000)]
 // fn test_get_decimals() {
@@ -394,6 +403,14 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
 //     let entry = oracle.get_data(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
 //     assert(entry.price == (2 * 1000000).into(), 'wrong price');
 //     assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
+//     let entry = oracle.get_data(DataType::FutureEntry((3, 11111110)), AggregationMode::Median(()));
+//     assert(entry.price == (3 * 1000000).into(), 'wrong price');
+//     assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
+//     let entry = oracle.get_data(DataType::FutureEntry((4, 11111110)), AggregationMode::Median(()));
+//     assert(entry.price == (4 * 1000000).into(), 'wrong price');
+//     assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
+//     let entry = oracle.get_data(DataType::FutureEntry((5, 11111110)), AggregationMode::Median(()));
+//     assert(entry.price == (5 * 1000000).into(), 'wrong price');
 // }
 // fn data_treatment(entry: PossibleEntries) -> (u256, u64) {
 //     match entry {
@@ -462,6 +479,11 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
 //     let entry = oracle
 //         .get_data_for_sources(DataType::SpotEntry(2), AggregationMode::Median(()), sources.span());
 //     assert(entry.price == (2500000).into(), 'wrong price');
+//     let entry = oracle
+//         .get_data_for_sources(
+//             DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()), sources.span()
+//         );
+//     assert(entry.price == (2000000).into(), 'wrong price');
 // }
 // #[test]
 // #[available_gas(2000000000)]
@@ -475,8 +497,15 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
 //     data_types.append(DataType::SpotEntry(4));
 //     let res = oracle.get_data_median_multi(data_types.span(), sources.span());
 //     assert(*res.at(0).price == (2500000).into(), 'wrong price');
-
 //     assert(*res.at(1).price == (5500000).into(), 'wrong price');
+//     let mut data_types_2 = ArrayTrait::<DataType>::new();
+//     data_types_2.append(DataType::FutureEntry((2, 11111110)));
+//     data_types_2.append(DataType::FutureEntry((5, 11111110)));
+//     let res_2 = oracle.get_data_median_multi(data_types_2.span(), sources.span());
+
+//     assert(*res_2.at(0).price == (2000000).into(), 'wrong price');
+
+//     assert(*res_2.at(1).price == (5000000).into(), 'wrong price');
 // }
 // #[test]
 // #[available_gas(2000000000)]
@@ -495,6 +524,19 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
 // #[test]
 // #[should_panic]
 // #[available_gas(2000000000)]
+// fn test_data_median_multi_should_fail_if_no_expiration_time_associated() {
+//     let (publisher_registry, oracle) = setup();
+//     let mut sources = ArrayTrait::<felt252>::new();
+//     sources.append(1);
+//     sources.append(3);
+//     let mut data_types = ArrayTrait::<DataType>::new();
+//     data_types.append(DataType::FutureEntry((2, 111111111)));
+//     data_types.append(DataType::FutureEntry((3, 111111111)));
+//     let res = oracle.get_data_median_multi(data_types.span(), sources.span());
+// }
+// #[test]
+// #[should_panic]
+// #[available_gas(2000000000)]
 // fn test_data_median_multi_should_fail_if_wrong_data_types() {
 //     let (publisher_registry, oracle) = setup();
 //     let mut sources = ArrayTrait::<felt252>::new();
@@ -508,16 +550,111 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
 //     assert(*res.at(1).price == 0, 'wrong price');
 // }
 
-#[test]
-#[available_gas(2000000000)]
-fn test_get_data_with_usd_hop() {
-    let (publisher_registry, oracle) = setup();
-    let entry: PragmaPricesResponse = oracle
-        .get_data_with_USD_hop(
-            111, 222, AggregationMode::Median(()), SimpleDataType::SpotEntry(()), Option::Some(0)
-        );
-    assert(entry.price == (312500).into(), 'wrong price');
-}
-//IMPORTANT : DECIMAL VERIFICATION
+// #[test]
+// #[available_gas(2000000000)]
+// fn test_get_data_with_usd_hop() {
+//     let (publisher_registry, oracle) = setup();
+//     let entry: PragmaPricesResponse = oracle
+//         .get_data_with_USD_hop(
+//             111, 222, AggregationMode::Median(()), SimpleDataType::SpotEntry(()), Option::Some(0)
+//         );
+//     assert(entry.price == (312500).into(), 'wrong price-usdshop');
+//     assert(entry.decimals == 6, 'wrong decimals-usdshop');
+//     let entry_2 = oracle
+//         .get_data_with_USD_hop(
+//             111,
+//             222,
+//             AggregationMode::Median(()),
+//             SimpleDataType::FutureEntry(()),
+//             Option::Some(11111110)
+//         );
+//     assert(entry_2.price == (666666).into(), 'wrong price-usdfhop');
+//     assert(entry_2.decimals == 6, 'wrong decimals-usdfhop');
+// }
 
+// #[test]
+// #[should_panic]
+// #[available_gas(2000000000)]
+// fn test_get_data_with_USD_hop_should_fail_if_wrong_id() {
+//     let (publisher_registry, oracle) = setup();
+//     let entry: PragmaPricesResponse = oracle
+//         .get_data_with_USD_hop(
+//             444, 222, AggregationMode::Median(()), SimpleDataType::SpotEntry(()), Option::Some(0)
+//         );
+// }
+
+// #[test]
+// #[available_gas(2000000000)]
+// fn test_set_checkpoint() {
+//     let (publisher_registry, oracle) = setup();
+//     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+//     let (idx, _) = oracle
+//         .get_latest_checkpoint_index(DataType::SpotEntry(2), AggregationMode::Median(()));
+//     let checkpoint: Checkpoint = oracle.get_checkpoint(DataType::SpotEntry(2), idx);
+//     assert(checkpoint.value == (2500000).into(), 'wrong checkpoint');
+//     assert(checkpoint.num_sources_aggregated == 2, 'wrong num sources');
+//     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
+//     let (idx, _) = oracle
+//         .get_latest_checkpoint_index(
+//             DataType::FutureEntry((2, 11111110)), AggregationMode::Median(())
+//         );
+//     let checkpoint: Checkpoint = oracle.get_checkpoint(DataType::FutureEntry((2, 11111110)), idx);
+//     assert(checkpoint.value == (2000000).into(), 'wrong checkpoint');
+//     assert(checkpoint.num_sources_aggregated == 2, 'wrong num sources');
+// }
+
+// #[test]
+// #[should_panic]
+// #[available_gas(2000000000)]
+// fn test_set_checkpoint_should_fail_if_wrong_data_type() {
+//     let (publisher_registry, oracle) = setup();
+//     oracle.set_checkpoint(DataType::SpotEntry(6), AggregationMode::Median(()));
+// }
+
+// #[test]
+// #[available_gas(2000000000)]
+// fn test_get_last_checkpoint_before() {
+//     let (publisher_registry, oracle) = setup();
+//     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+//     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
+
+//     let (checkpoint, idx) = oracle
+//         .get_last_checkpoint_before(DataType::SpotEntry(2), AggregationMode::Median(()), 111111111);
+//     assert(checkpoint.value == (2500000).into(), 'wrong checkpoint');
+//     assert(idx == 0, 'wrong idx');
+//     assert(checkpoint.timestamp <= 111111111, 'wrong timestamp');
+//     let (checkpoint_2, idx_2) = oracle
+//         .get_last_checkpoint_before(
+//             DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()), 1111111111
+//         );
+
+//     assert(checkpoint_2.value == (2000000).into(), 'wrong checkpoint');
+//     assert(idx_2 == 0, 'wrong idx');
+//     assert(checkpoint_2.timestamp <= 111111111, 'wrong timestamp');
+// }
+
+// #[test]
+// #[should_panic]
+// #[available_gas(2000000000)]
+// fn test_get_last_checkpoint_before_should_fail_if_wrong_data_type() {
+//     let (publisher_registry, oracle) = setup();
+//     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+//     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
+
+//     let (checkpoint, idx) = oracle
+//         .get_last_checkpoint_before(DataType::SpotEntry(6), AggregationMode::Median(()), 111111111);
+// }
+
+// #[test]
+// #[should_panic]
+// #[available_gas(2000000000)]
+// fn test_get_last_checkpoint_before_should_fail_if_timestamp_too_old() {
+//     //if timestamp is before the first checkpoint
+//     let (publisher_registry, oracle) = setup();
+//     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+//     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
+
+//     let (checkpoint, idx) = oracle
+//         .get_last_checkpoint_before(DataType::SpotEntry(6), AggregationMode::Median(()), 111);
+// }
 

@@ -57,7 +57,10 @@ trait IOracleABI<TContractState> {
     fn get_data_entries(self: @TContractState, data_type: DataType) -> Array<PossibleEntries>;
 
     fn get_last_checkpoint_before(
-        self: @TContractState, timestamp: u64, data_type: DataType
+        self: @TContractState,
+        data_type: DataType,
+        aggregation_mode: AggregationMode,
+        timestamp: u64
     ) -> (Checkpoint, u64);
 
     fn get_data_with_USD_hop(
@@ -73,7 +76,7 @@ trait IOracleABI<TContractState> {
 
     fn get_latest_checkpoint_index(
         self: @TContractState, data_type: DataType, aggregation_mode: AggregationMode
-    ) -> u64;
+    ) -> (u64, bool);
 
     fn get_latest_checkpoint(
         self: @TContractState, data_type: DataType, aggregation_mode: AggregationMode
@@ -142,8 +145,11 @@ trait IPragmaABI<TContractState> {
     fn get_data_entries(self: @TContractState, data_type: DataType) -> Array<PossibleEntries>;
 
     fn get_last_checkpoint_before(
-        self: @TContractState, timestamp: u64, data_type: DataType
-    ) -> (Checkpoint, u256);
+        self: @TContractState,
+        data_type: DataType,
+        aggregation_mode: AggregationMode,
+        timestamp: u64,
+    ) -> (Checkpoint, u64);
 
     fn get_data_with_USD_hop(
         self: @TContractState,
@@ -384,12 +390,12 @@ mod Oracle {
             let aggregation_mode_u8: u8 = value.aggregation_mode.into();
             storage_write_syscall(
                 address_domain,
-                storage_address_from_base_and_offset(base, 3_u8),
+                storage_address_from_base_and_offset(base, 4_u8),
                 aggregation_mode_u8.into(),
             )?;
             storage_write_syscall(
                 address_domain,
-                storage_address_from_base_and_offset(base, 4_u8),
+                storage_address_from_base_and_offset(base, 5_u8),
                 value.num_sources_aggregated.into(),
             )
         }
@@ -676,7 +682,7 @@ mod Oracle {
                             };
                         },
                         ArrayEntry::FutureEntry(_) => {
-                            assert(1 == 1, 'Wrong data type');
+                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -692,7 +698,7 @@ mod Oracle {
                 )) => {
                     match filtered_entries {
                         ArrayEntry::SpotEntry(_) => {
-                            assert(1 == 1, 'Wrong data type');
+                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -792,7 +798,7 @@ mod Oracle {
                         },
                         Option::None(_) => {
                             // Handle case where Future data type was provided without an expiration timestamp
-                            assert(1 == 1, 'Requires expiration timestamp');
+                            assert(false, 'Requires expiration timestamp');
                             (
                                 DataType::FutureEntry((base_pair_id, 0)),
                                 DataType::FutureEntry((quote_pair_id, 0)),
@@ -809,6 +815,7 @@ mod Oracle {
             let quotePPR: PragmaPricesResponse = IOracle::get_data_for_sources(
                 self, quote_data_type, aggregation_mode, sources
             );
+
             let decimals = min(
                 IOracle::get_decimals(self, base_data_type),
                 IOracle::get_decimals(self, quote_data_type)
@@ -832,7 +839,7 @@ mod Oracle {
 
         fn get_latest_checkpoint_index(
             self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
-        ) -> u64 {
+        ) -> (u64, bool) {
             get_latest_checkpoint_index(self, data_type, aggregation_mode)
         }
 
@@ -840,8 +847,19 @@ mod Oracle {
         fn get_latest_checkpoint(
             self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
         ) -> Checkpoint {
-            let checkpoint_index = get_latest_checkpoint_index(self, data_type, aggregation_mode);
-            get_checkpoint_by_index(self, data_type, checkpoint_index)
+            let (checkpoint_index, is_valid) = get_latest_checkpoint_index(
+                self, data_type, aggregation_mode
+            );
+            if (!is_valid) {
+                Checkpoint {
+                    timestamp: 0,
+                    value: 0,
+                    aggregation_mode: aggregation_mode,
+                    num_sources_aggregated: 0,
+                }
+            } else {
+                get_checkpoint_by_index(self, data_type, checkpoint_index)
+            }
         }
 
 
@@ -876,7 +894,9 @@ mod Oracle {
             timestamp: u64
         ) -> (Checkpoint, u64) {
             let idx = find_startpoint(self, data_type, aggregation_mode, timestamp);
+
             let checkpoint = get_checkpoint_by_index(self, data_type, idx);
+
             (checkpoint, idx)
         }
 
@@ -896,7 +916,8 @@ mod Oracle {
                         .read((pair_id, FUTURE, source, expiration_timestamp))
                 },
             };
-            assert(!_entry.is_zero(), 'No data entry found for source');
+
+            assert(!_entry.is_zero(), 'No data entry found');
             let u256_timestamp: u256 = actual_get_element_at(_entry, 0, 31);
             let timestamp: u64 = u256_timestamp.try_into().unwrap();
             let volume = actual_get_element_at(_entry, 32, 30);
@@ -1147,6 +1168,8 @@ mod Oracle {
             let priceResponse = IOracle::get_data_for_sources(
                 @self, data_type, aggregation_mode, sources
             );
+            assert(!priceResponse.last_updated_timestamp.is_zero(), 'No checkpoint available');
+
             let sources_threshold = self.oracle_sources_threshold_storage.read();
             let cur_checkpoint = IOracle::get_latest_checkpoint(@self, data_type, aggregation_mode);
             let timestamp: u64 = get_block_timestamp();
@@ -1159,6 +1182,7 @@ mod Oracle {
                     aggregation_mode: aggregation_mode,
                     num_sources_aggregated: priceResponse.num_sources_aggregated
                 };
+
                 match data_type {
                     DataType::SpotEntry(pair_id) => {
                         let cur_idx = self.oracle_checkpoint_index.read((pair_id, SPOT, 0));
@@ -1262,13 +1286,15 @@ mod Oracle {
                     .read((pair_id, FUTURE, checkpoint_index, expiration_timestamp))
             },
         };
+        assert(!checkpoint.timestamp.is_zero(), 'Checkpoint does not exist');
+        checkpoint.timestamp.print();
         return checkpoint;
     }
 
 
     fn get_latest_checkpoint_index(
         self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
-    ) -> u64 {
+    ) -> (u64, bool) {
         let checkpoint_index = match data_type {
             DataType::SpotEntry(pair_id) => {
                 self.oracle_checkpoint_index.read((pair_id, SPOT, 0))
@@ -1279,9 +1305,15 @@ mod Oracle {
                 self.oracle_checkpoint_index.read((pair_id, FUTURE, expiration_timestamp))
             },
         };
-        return checkpoint_index;
+
+        if (checkpoint_index == 0) {
+            return (0, false);
+        } else {
+            return (checkpoint_index - 1, true);
+        }
     }
-    #[internal]
+
+
     fn validate_sender_for_source<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
         self: @ContractState, _entry: T
     ) {
@@ -1302,7 +1334,6 @@ mod Oracle {
         return ();
     }
 
-    #[internal]
     fn get_latest_entry_timestamp(
         self: @ContractState, data_type: DataType, sources: Span<felt252>
     ) -> u64 {
@@ -1347,7 +1378,6 @@ mod Oracle {
         }
     }
 
-    #[internal]
     fn build_entries_array(
         self: @ContractState,
         data_type: DataType,
@@ -1389,7 +1419,6 @@ mod Oracle {
     }
 
 
-    #[internal]
     fn get_all_entries(
         self: @ContractState, data_type: DataType, sources: Span<felt252>, max_timestamp: u64
     ) -> (Array<PossibleEntries>, u32) {
@@ -1398,7 +1427,6 @@ mod Oracle {
         build_entries_array(self, data_type, sources, ref entries, max_timestamp);
         (entries, entries.len())
     }
-    #[internal]
     fn filter_data_array(data_type: DataType, data: @Array<PossibleEntries>) -> ArrayEntry {
         match data_type {
             DataType::SpotEntry(pair_id) => {
@@ -1441,7 +1469,7 @@ mod Oracle {
             }
         }
     }
-    #[internal]
+
     fn validate_data_timestamp<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
         ref self: ContractState, new_entry: PossibleEntries, last_entry: T, 
     ) {
@@ -1516,17 +1544,18 @@ mod Oracle {
     fn find_startpoint(
         self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode, timestamp: u64
     ) -> u64 {
-        let last_checkpoint_index = get_latest_checkpoint_index(self, data_type, aggregation_mode);
-        let latest_checkpoint_index = get_latest_checkpoint_index(
+        let (latest_checkpoint_index, _) = get_latest_checkpoint_index(
             self, data_type, aggregation_mode
         );
-        let cp = get_checkpoint_by_index(self, data_type, latest_checkpoint_index - 1);
-        if (cp.timestamp <= timestamp) {
-            return latest_checkpoint_index - 1;
-        }
 
+        let cp = get_checkpoint_by_index(self, data_type, latest_checkpoint_index);
+
+        if (cp.timestamp <= timestamp) {
+            return latest_checkpoint_index;
+        }
         let first_cp = get_checkpoint_by_index(self, data_type, 0);
         if (timestamp <= first_cp.timestamp) {
+            assert(false, 'Timestamp is too old');
             return 0;
         }
         let startpoint = _binary_search(self, data_type, 0, latest_checkpoint_index, timestamp);
@@ -1535,33 +1564,36 @@ mod Oracle {
     fn _binary_search(
         self: @ContractState, data_type: DataType, low: u64, high: u64, target: u64
     ) -> u64 {
-        let midpoint = (low + high) / 2;
+        let high_cp = get_checkpoint_by_index(self, data_type, high);
+        if (high_cp.timestamp <= target) {
+            return high;
+        }
 
-        if (high == low) {
+        // Find the middle point
+        let midpoint = low + high / 2;
+
+        // If middle point is target.
+        let past_midpoint_cp = get_checkpoint_by_index(self, data_type, midpoint - 1);
+        let midpoint_cp = get_checkpoint_by_index(self, data_type, midpoint);
+
+        if (midpoint_cp.timestamp == target) {
             return midpoint;
         }
 
-        if ((high + 1) <= low) {
-            return low - 1;
+        // If x lies between mid-1 and mid
+        if (past_midpoint_cp.timestamp <= target && target <= midpoint_cp.timestamp) {
+            return midpoint - 1;
         }
 
-        let cp = get_checkpoint_by_index(self, data_type, midpoint);
-        let timestamp = cp.timestamp;
-
-        if (timestamp == target) {
-            return midpoint;
-        }
-
-        if (timestamp < target) {
-            let next_timestamp = get_checkpoint_by_index(self, data_type, midpoint + 1).timestamp;
-            if (target < next_timestamp) {
-                return midpoint;
-            } else {
-                return _binary_search(self, data_type, midpoint + 1, high, target);
-            }
-        } else {
+        // If x is smaller than mid, floor
+        // must be in left half.
+        if (target <= midpoint_cp.timestamp) {
             return _binary_search(self, data_type, low, midpoint - 1, target);
         }
+
+        // If mid-1 is not floor and x is
+        // greater than arr[mid],
+        return _binary_search(self, data_type, midpoint + 1, high, target);
     }
 
     fn build_sources_array(
