@@ -8,6 +8,7 @@ use pragma::oracle::oracleInterface::IOracle;
 use pragma::admin::admin::Admin;
 use pragma::upgradeable::upgradeable::Upgradeable;
 use serde::Serde;
+
 use starknet::{
     storage_read_syscall, storage_write_syscall, storage_address_from_base_and_offset,
     storage_access::storage_base_address_from_felt252, StorageAccess, StorageBaseAddress,
@@ -59,8 +60,8 @@ trait IOracleABI<TContractState> {
     fn get_last_checkpoint_before(
         self: @TContractState,
         data_type: DataType,
+        timestamp: u64,
         aggregation_mode: AggregationMode,
-        timestamp: u64
     ) -> (Checkpoint, u64);
 
     fn get_data_with_USD_hop(
@@ -83,7 +84,10 @@ trait IOracleABI<TContractState> {
     ) -> Checkpoint;
 
     fn get_checkpoint(
-        self: @TContractState, data_type: DataType, checkpoint_index: u64
+        self: @TContractState,
+        data_type: DataType,
+        checkpoint_index: u64,
+        aggregation_mode: AggregationMode
     ) -> Checkpoint;
 
     fn get_sources_threshold(self: @TContractState, ) -> u32;
@@ -147,8 +151,8 @@ trait IPragmaABI<TContractState> {
     fn get_last_checkpoint_before(
         self: @TContractState,
         data_type: DataType,
-        aggregation_mode: AggregationMode,
         timestamp: u64,
+        aggregation_mode: AggregationMode,
     ) -> (Checkpoint, u64);
 
     fn get_data_with_USD_hop(
@@ -177,7 +181,7 @@ mod Oracle {
         StorageBaseAddress, SyscallResult, ContractAddress, get_caller_address, ClassHash, Into,
         TryInto, ResultTrait, ResultTraitImpl, BoxTrait, ArrayTrait, Zeroable,
     };
-
+    use hash::LegacyHash;
     use pragma::entry::entry::Entry;
     use pragma::operations::bits_manipulation::bits_manipulation::{
         actual_set_element_at, actual_get_element_at
@@ -193,8 +197,8 @@ mod Oracle {
     use option::OptionTrait;
     use array::SpanTrait;
     use debug::PrintTrait;
-    const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
-
+    // const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
+    const BACKWARD_TIMESTAMP_BUFFER: u64 = 10;
     #[storage]
     struct Storage {
         //oracle controller address storage, contractAddress
@@ -209,16 +213,17 @@ mod Oracle {
         oracle_currencies_storage: LegacyMap::<felt252, Currency>,
         //oralce_sources_storage, legacyMap between (pair_id ,(SPOT/FUTURES/OPTIONS), index, expiration_timestamp ) and the source
         oracle_sources_storage: LegacyMap::<(felt252, felt252, u64, u64), felt252>,
+        test: LegacyMap::<(felt252, felt252, felt252, felt252, felt252), u256>,
         //oracle_sources_len_storage, legacyMap between (pair_id ,(SPOT/FUTURES/OPTIONS), expiration_timestamp) and the len of the sources array
         oracle_sources_len_storage: LegacyMap::<(felt252, felt252, u64), u64>,
         //oracle_data_entry_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), source, expiration_timestamp (0 for SPOT))
         oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u64), u256>,
         //oracle_data_entry_storage len , legacyMap between pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp and the length
         oracle_data_len_all_sources: LegacyMap::<(felt252, felt252, u64), u64>,
-        //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT)) associated to a checkpoint
-        oracle_checkpoints: LegacyMap::<(felt252, felt252, u64, u64), Checkpoint>,
+        //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT), aggregation_mode) associated to a checkpoint
+        oracle_checkpoints: LegacyMap::<(felt252, felt252, u64, u64, u8), Checkpoint>,
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
-        oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u64), u64>,
+        oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u64, u8), u64>,
         oracle_sources_threshold_storage: u32,
     }
 
@@ -315,6 +320,32 @@ mod Oracle {
             }
         }
     }
+    impl TupleSize4LegacyHash<
+        E0,
+        E1,
+        E2,
+        E3,
+        E4,
+        impl E0LegacyHash: LegacyHash<E0>,
+        impl E1LegacyHash: LegacyHash<E1>,
+        impl E2LegacyHash: LegacyHash<E2>,
+        impl E3LegacyHash: LegacyHash<E3>,
+        impl E4LegacyHash: LegacyHash<E4>,
+        impl E0Drop: Drop<E0>,
+        impl E1Drop: Drop<E1>,
+        impl E2Drop: Drop<E2>,
+        impl E3Drop: Drop<E3>,
+        impl E4Drop: Drop<E4>,
+    > of LegacyHash<(E0, E1, E2, E3, E4)> {
+        fn hash(state: felt252, value: (E0, E1, E2, E3, E4)) -> felt252 {
+            let (e0, e1, e2, e3, e4) = value;
+            let state = E0LegacyHash::hash(state, e0);
+            let state = E1LegacyHash::hash(state, e1);
+            let state = E2LegacyHash::hash(state, e2);
+            let state = E3LegacyHash::hash(state, e3);
+            E4LegacyHash::hash(state, e4)
+        }
+    }
 
     fn u8_into_AggregationMode(value: u8) -> AggregationMode {
         if value == 0_u8 {
@@ -325,6 +356,7 @@ mod Oracle {
             AggregationMode::Error(())
         }
     }
+
 
     impl CheckpointStorageAccess of StorageAccess<Checkpoint> {
         fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<Checkpoint> {
@@ -858,15 +890,18 @@ mod Oracle {
                     num_sources_aggregated: 0,
                 }
             } else {
-                get_checkpoint_by_index(self, data_type, checkpoint_index)
+                get_checkpoint_by_index(self, data_type, checkpoint_index, aggregation_mode)
             }
         }
 
 
         fn get_checkpoint(
-            self: @ContractState, data_type: DataType, checkpoint_index: u64
+            self: @ContractState,
+            data_type: DataType,
+            checkpoint_index: u64,
+            aggregation_mode: AggregationMode
         ) -> Checkpoint {
-            get_checkpoint_by_index(self, data_type, checkpoint_index)
+            get_checkpoint_by_index(self, data_type, checkpoint_index, aggregation_mode)
         }
 
 
@@ -890,12 +925,12 @@ mod Oracle {
         fn get_last_checkpoint_before(
             self: @ContractState,
             data_type: DataType,
+            timestamp: u64,
             aggregation_mode: AggregationMode,
-            timestamp: u64
         ) -> (Checkpoint, u64) {
             let idx = find_startpoint(self, data_type, aggregation_mode, timestamp);
 
-            let checkpoint = get_checkpoint_by_index(self, data_type, idx);
+            let checkpoint = get_checkpoint_by_index(self, data_type, idx, aggregation_mode);
 
             (checkpoint, idx)
         }
@@ -1168,6 +1203,8 @@ mod Oracle {
             let priceResponse = IOracle::get_data_for_sources(
                 @self, data_type, aggregation_mode, sources
             );
+            // priceResponse.price.print();
+
             assert(!priceResponse.last_updated_timestamp.is_zero(), 'No checkpoint available');
 
             let sources_threshold = self.oracle_sources_threshold_storage.read();
@@ -1185,9 +1222,22 @@ mod Oracle {
 
                 match data_type {
                     DataType::SpotEntry(pair_id) => {
-                        let cur_idx = self.oracle_checkpoint_index.read((pair_id, SPOT, 0));
-                        self.oracle_checkpoints.write((pair_id, SPOT, cur_idx, 0), new_checkpoint);
-                        self.oracle_checkpoint_index.write((pair_id, SPOT, 0), cur_idx + 1);
+                        let cur_idx = self
+                            .oracle_checkpoint_index
+                            .read((pair_id, SPOT, 0, aggregation_mode.into()));
+
+                        self
+                            .oracle_checkpoints
+                            .write(
+                                (pair_id, SPOT, cur_idx, 0, aggregation_mode.into()), new_checkpoint
+                            );
+                        // let test = self
+                        //     .oracle_checkpoints
+                        //     .read((pair_id, SPOT, cur_idx, 0, aggregation_mode.into()));
+                        // test.value.print();
+                        self
+                            .oracle_checkpoint_index
+                            .write((pair_id, SPOT, 0, aggregation_mode.into()), cur_idx + 1);
                         self.emit(Event::CheckpointSpotEntry(CheckpointSpotEntry { pair_id }));
                     },
                     DataType::FutureEntry((
@@ -1195,15 +1245,26 @@ mod Oracle {
                     )) => {
                         let cur_idx = self
                             .oracle_checkpoint_index
-                            .read((pair_id, FUTURE, expiration_timestamp));
+                            .read((pair_id, FUTURE, expiration_timestamp, aggregation_mode.into()));
+
                         self
                             .oracle_checkpoints
                             .write(
-                                (pair_id, FUTURE, cur_idx, expiration_timestamp), new_checkpoint
+                                (
+                                    pair_id,
+                                    FUTURE,
+                                    cur_idx,
+                                    expiration_timestamp,
+                                    aggregation_mode.into()
+                                ),
+                                new_checkpoint
                             );
                         self
                             .oracle_checkpoint_index
-                            .write((pair_id, FUTURE, expiration_timestamp), cur_idx + 1);
+                            .write(
+                                (pair_id, FUTURE, expiration_timestamp, aggregation_mode.into()),
+                                cur_idx + 1
+                            );
                         self
                             .emit(
                                 Event::CheckpointFutureEntry(
@@ -1249,6 +1310,13 @@ mod Oracle {
     }
 
 
+    fn aggregation_into_u8(self: AggregationMode) -> u8 {
+        match self {
+            AggregationMode::Median(()) => 0_u8,
+            AggregationMode::Mean(()) => 1_u8,
+            AggregationMode::Error(()) => 150_u8,
+        }
+    }
     //ISSUE HERE, DO NOT RETURN ARRAY
     fn get_all_sources(self: @ContractState, data_type: DataType) -> Array<felt252> {
         let mut sources = ArrayTrait::<felt252>::new();
@@ -1272,22 +1340,34 @@ mod Oracle {
     }
 
     fn get_checkpoint_by_index(
-        self: @ContractState, data_type: DataType, checkpoint_index: u64
+        self: @ContractState,
+        data_type: DataType,
+        checkpoint_index: u64,
+        aggregation_mode: AggregationMode
     ) -> Checkpoint {
         let checkpoint = match data_type {
             DataType::SpotEntry(pair_id) => {
-                self.oracle_checkpoints.read((pair_id, SPOT, checkpoint_index, 0))
+                self
+                    .oracle_checkpoints
+                    .read((pair_id, SPOT, checkpoint_index, 0, aggregation_mode.into()))
             },
             DataType::FutureEntry((
                 pair_id, expiration_timestamp
             )) => {
                 self
                     .oracle_checkpoints
-                    .read((pair_id, FUTURE, checkpoint_index, expiration_timestamp))
+                    .read(
+                        (
+                            pair_id,
+                            FUTURE,
+                            checkpoint_index,
+                            expiration_timestamp,
+                            aggregation_mode.into()
+                        )
+                    )
             },
         };
         assert(!checkpoint.timestamp.is_zero(), 'Checkpoint does not exist');
-        checkpoint.timestamp.print();
         return checkpoint;
     }
 
@@ -1297,12 +1377,14 @@ mod Oracle {
     ) -> (u64, bool) {
         let checkpoint_index = match data_type {
             DataType::SpotEntry(pair_id) => {
-                self.oracle_checkpoint_index.read((pair_id, SPOT, 0))
+                self.oracle_checkpoint_index.read((pair_id, SPOT, 0, aggregation_mode.into()))
             },
             DataType::FutureEntry((
                 pair_id, expiration_timestamp
             )) => {
-                self.oracle_checkpoint_index.read((pair_id, FUTURE, expiration_timestamp))
+                self
+                    .oracle_checkpoint_index
+                    .read((pair_id, FUTURE, expiration_timestamp, aggregation_mode.into()))
             },
         };
 
@@ -1395,8 +1477,10 @@ mod Oracle {
             match g_entry {
                 PossibleEntries::Spot(spot_entry) => {
                     let is_entry_not_initialized: bool = spot_entry.get_base_timestamp() == 0;
+                    spot_entry.get_base_timestamp().print();
+                    latest_timestamp.print();
                     let condition: bool = is_entry_not_initialized
-                        & (spot_entry
+                        && (spot_entry
                             .get_base_timestamp() < (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
                     if !condition {
                         entries.append(PossibleEntries::Spot(spot_entry));
@@ -1548,23 +1632,32 @@ mod Oracle {
             self, data_type, aggregation_mode
         );
 
-        let cp = get_checkpoint_by_index(self, data_type, latest_checkpoint_index);
+        let cp = get_checkpoint_by_index(
+            self, data_type, latest_checkpoint_index, aggregation_mode
+        );
 
         if (cp.timestamp <= timestamp) {
             return latest_checkpoint_index;
         }
-        let first_cp = get_checkpoint_by_index(self, data_type, 0);
+        let first_cp = get_checkpoint_by_index(self, data_type, 0, aggregation_mode);
         if (timestamp <= first_cp.timestamp) {
             assert(false, 'Timestamp is too old');
             return 0;
         }
-        let startpoint = _binary_search(self, data_type, 0, latest_checkpoint_index, timestamp);
+        let startpoint = _binary_search(
+            self, data_type, 0, latest_checkpoint_index, timestamp, aggregation_mode
+        );
         return startpoint;
     }
     fn _binary_search(
-        self: @ContractState, data_type: DataType, low: u64, high: u64, target: u64
+        self: @ContractState,
+        data_type: DataType,
+        low: u64,
+        high: u64,
+        target: u64,
+        aggregation_mode: AggregationMode
     ) -> u64 {
-        let high_cp = get_checkpoint_by_index(self, data_type, high);
+        let high_cp = get_checkpoint_by_index(self, data_type, high, aggregation_mode);
         if (high_cp.timestamp <= target) {
             return high;
         }
@@ -1572,9 +1665,14 @@ mod Oracle {
         // Find the middle point
         let midpoint = low + high / 2;
 
+        if midpoint == 0 {
+            return 0;
+        }
         // If middle point is target.
-        let past_midpoint_cp = get_checkpoint_by_index(self, data_type, midpoint - 1);
-        let midpoint_cp = get_checkpoint_by_index(self, data_type, midpoint);
+        let past_midpoint_cp = get_checkpoint_by_index(
+            self, data_type, midpoint - 1, aggregation_mode
+        );
+        let midpoint_cp = get_checkpoint_by_index(self, data_type, midpoint, aggregation_mode);
 
         if (midpoint_cp.timestamp == target) {
             return midpoint;
@@ -1588,12 +1686,12 @@ mod Oracle {
         // If x is smaller than mid, floor
         // must be in left half.
         if (target <= midpoint_cp.timestamp) {
-            return _binary_search(self, data_type, low, midpoint - 1, target);
+            return _binary_search(self, data_type, low, midpoint - 1, target, aggregation_mode);
         }
 
         // If mid-1 is not floor and x is
         // greater than arr[mid],
-        return _binary_search(self, data_type, midpoint + 1, high, target);
+        return _binary_search(self, data_type, midpoint + 1, high, target, aggregation_mode);
     }
 
     fn build_sources_array(

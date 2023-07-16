@@ -40,8 +40,8 @@ trait IOracle<TContractState> {
     fn get_last_checkpoint_before(
         self: @TContractState,
         data_type: DataType,
+        timestamp: u64,
         aggregation_mode: AggregationMode,
-        timestamp: u64
     ) -> (Checkpoint, u64);
     fn get_data_with_USD_hop(
         self: @TContractState,
@@ -59,7 +59,10 @@ trait IOracle<TContractState> {
         self: @TContractState, data_type: DataType, aggregation_mode: AggregationMode
     ) -> Checkpoint;
     fn get_checkpoint(
-        self: @TContractState, data_type: DataType, checkpoint_index: u64
+        self: @TContractState,
+        data_type: DataType,
+        checkpoint_index: u64,
+        aggregation_mode: AggregationMode
     ) -> Checkpoint;
     fn get_sources_threshold(self: @TContractState, ) -> u32;
     fn get_admin_address(self: @TContractState, ) -> ContractAddress;

@@ -590,7 +590,8 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
 //     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
 //     let (idx, _) = oracle
 //         .get_latest_checkpoint_index(DataType::SpotEntry(2), AggregationMode::Median(()));
-//     let checkpoint: Checkpoint = oracle.get_checkpoint(DataType::SpotEntry(2), idx);
+//     let checkpoint: Checkpoint = oracle
+//         .get_checkpoint(DataType::SpotEntry(2), idx, AggregationMode::Median(()));
 //     assert(checkpoint.value == (2500000).into(), 'wrong checkpoint');
 //     assert(checkpoint.num_sources_aggregated == 2, 'wrong num sources');
 //     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
@@ -598,11 +599,11 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
 //         .get_latest_checkpoint_index(
 //             DataType::FutureEntry((2, 11111110)), AggregationMode::Median(())
 //         );
-//     let checkpoint: Checkpoint = oracle.get_checkpoint(DataType::FutureEntry((2, 11111110)), idx);
+//     let checkpoint: Checkpoint = oracle
+//         .get_checkpoint(DataType::FutureEntry((2, 11111110)), idx, AggregationMode::Median(()));
 //     assert(checkpoint.value == (2000000).into(), 'wrong checkpoint');
 //     assert(checkpoint.num_sources_aggregated == 2, 'wrong num sources');
 // }
-
 // #[test]
 // #[should_panic]
 // #[available_gas(2000000000)]
@@ -657,4 +658,5 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
 //     let (checkpoint, idx) = oracle
 //         .get_last_checkpoint_before(DataType::SpotEntry(6), AggregationMode::Median(()), 111);
 // }
+
 

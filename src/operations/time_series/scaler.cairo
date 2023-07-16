@@ -50,30 +50,37 @@ fn scale_data(
             continue;
         }
 
-        let mut slope: Fixed = FixedTrait::from_unscaled_felt(0);
-
+        // let mut slope: Fixed = FixedTrait::from_unscaled_felt(0);
+        let mut slope: Fixed = FixedTrait::new(mag: 0, sign: false);
         if _after {
             //if _after is true, the cur_position is among in the tick_array
             let z = tick_array.len() - 1;
             slope =
                 calculate_slope(
-                    FixedTrait::from_unscaled_felt((*tick_array.at(z - 1).tick).into()),
-                    FixedTrait::from_unscaled_felt((*tick_array.at(z).tick).into()),
+                    FixedTrait::new(
+                        mag: (*tick_array.at(z - 1).tick).into() * ONE_u128, sign: false
+                    ),
+                    FixedTrait::new(mag: (*tick_array.at(z).tick).into() * ONE_u128, sign: false),
                     *tick_array.at(z - 1).value,
                     *tick_array.at(z).value
                 );
         } else {
-            let x1 = FixedTrait::from_unscaled_felt((*tick_array.at(idx).tick).into());
-            let x2 = FixedTrait::from_unscaled_felt((*tick_array.at(idx + 1).tick).into());
+            let x1 = FixedTrait::new(
+                mag: (*tick_array.at(idx).tick).into() * ONE_u128, sign: false
+            );
+            let x2 = FixedTrait::new(
+                mag: (*tick_array.at(idx + 1).tick).into() * ONE_u128, sign: false
+            );
             let y1 = *tick_array.at(idx).value;
             let y2 = *tick_array.at(idx + 1).value;
             slope = calculate_slope(x1, x2, y1, y2);
         }
 
         let offset = *tick_array.at(idx).value
-            - (slope * FixedTrait::from_unscaled_felt((*tick_array.at(idx).tick).into()));
+            - (slope
+                * FixedTrait::new(mag: (*tick_array.at(idx).tick).into() * ONE_u128, sign: false));
 
-        let z = slope * FixedTrait::from_unscaled_felt(tick.into()) + offset;
+        let z = slope * FixedTrait::new(tick.into() * ONE_u128, false) + offset;
         let new_z = FixedTrait::new(mag: z.mag / ONE_u128, sign: z.sign);
         output.append(TickElem { tick, value: new_z });
 
@@ -111,8 +118,6 @@ fn get_bounded_tick_idx(
 
     return get_bounded_tick_idx(cur_position, cur_index + 1, tick_array);
 }
-
-
 #[test]
 #[available_gas(10000000000)]
 fn test_scaler() {
@@ -132,3 +137,4 @@ fn test_scaler() {
     assert(*scaled_data.at(3).tick == 300, 'wrong tick(3)');
     assert(*scaled_data.at(3).value.mag == 3819, 'wrong value(3)');
 }
+

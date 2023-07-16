@@ -143,6 +143,15 @@ struct Checkpoint {
     num_sources_aggregated: u32,
 }
 
+#[derive(Serde, Drop, Copy, storage_access::StorageAccess)]
+struct FetchCheckpoint {
+    pair_id: felt252,
+    type_of: felt252,
+    index: u64,
+    expiration_timestamp: u64,
+    aggregation_mode: u8,
+}
+
 #[derive(Serde, Drop, Copy)]
 struct PragmaPricesResponse {
     price: u256,
