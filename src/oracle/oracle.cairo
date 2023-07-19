@@ -1203,7 +1203,6 @@ mod Oracle {
             let priceResponse = IOracle::get_data_for_sources(
                 @self, data_type, aggregation_mode, sources
             );
-            // priceResponse.price.print();
 
             assert(!priceResponse.last_updated_timestamp.is_zero(), 'No checkpoint available');
 
@@ -1231,10 +1230,6 @@ mod Oracle {
                             .write(
                                 (pair_id, SPOT, cur_idx, 0, aggregation_mode.into()), new_checkpoint
                             );
-                        // let test = self
-                        //     .oracle_checkpoints
-                        //     .read((pair_id, SPOT, cur_idx, 0, aggregation_mode.into()));
-                        // test.value.print();
                         self
                             .oracle_checkpoint_index
                             .write((pair_id, SPOT, 0, aggregation_mode.into()), cur_idx + 1);
@@ -1477,8 +1472,6 @@ mod Oracle {
             match g_entry {
                 PossibleEntries::Spot(spot_entry) => {
                     let is_entry_not_initialized: bool = spot_entry.get_base_timestamp() == 0;
-                    spot_entry.get_base_timestamp().print();
-                    latest_timestamp.print();
                     let condition: bool = is_entry_not_initialized
                         && (spot_entry
                             .get_base_timestamp() < (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
