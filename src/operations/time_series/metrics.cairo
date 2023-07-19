@@ -27,7 +27,7 @@ fn extract_value(tick_arr: Span<TickElem>) -> Array<Fixed> {
             break ();
         }
         let cur_val = *tick_arr.get(cur_idx).unwrap().unbox();
-        output.append(FixedTrait::new(mag: cur_val.value, sign: false));
+        output.append(cur_val.value);
         cur_idx = cur_idx + 1;
     };
     output
@@ -42,7 +42,7 @@ fn sum_tick_array(tick_arr: Span<TickElem>) -> u128 {
             break ();
         }
         let cur_val = *tick_arr.get(cur_idx).unwrap().unbox();
-        output += cur_val.value;
+        output += cur_val.value.mag;
         cur_idx = cur_idx + 1;
     };
     output
@@ -69,6 +69,15 @@ fn sum_array(tick_arr: Span<Fixed>) -> u128 {
 
 /// Computes the mean of a `TickElem` array
 fn mean(tick_arr: Span<TickElem>) -> u128 {
+    // let mut cur_idx = 0;
+    // loop {
+    //     if (cur_idx >= tick_arr.len()) {
+    //         break ();
+    //     }
+    //     let test = *tick_arr.get(cur_idx).unwrap().unbox().value;
+    //     test.mag.print();
+    //     cur_idx = cur_idx + 1;
+    // };
     let sum_ = sum_tick_array(tick_arr);
     let felt_count: felt252 = tick_arr.len().into();
     let count: u128 = felt_count.try_into().unwrap();
@@ -104,13 +113,13 @@ fn standard_deviation(arr: Span<TickElem>) -> u128 {
 }
 
 /// Compute the volatility of a `TickElem` array
-fn volatility(arr: Span<TickElem>) -> Fixed {
+fn volatility(arr: Span<TickElem>) -> u128 {
     let _volatility_sum = _sum_volatility(arr);
-    let arr_len = arr.len();
-    let fixed_len = FixedTrait::new(arr_len.into(), false);
+    let arr_len: u128 = arr.len().into() * ONE_u128;
+    let fixed_len = FixedTrait::new(arr_len, false);
     let _volatility = _volatility_sum / fixed_len;
     let sqrt_vol = FixedTrait::sqrt(_volatility);
-    return sqrt_vol;
+    return (sqrt_vol.mag * 100000000 / ONE_u128);
 }
 
 fn _sum_volatility(arr: Span<TickElem>) -> Fixed {
@@ -124,13 +133,11 @@ fn _sum_volatility(arr: Span<TickElem>) -> Fixed {
         let cur_val = *arr.at(cur_idx);
         let prev_val = *arr.at(cur_idx - 1);
         let cur_value = cur_val.value;
-        let fixed_cur_value = FixedTrait::new(cur_value, false);
         let prev_value = prev_val.value;
-        let fixed_prev_value = FixedTrait::new(prev_value, false);
         let cur_timestamp = cur_val.tick;
         let prev_timestamp = prev_val.tick;
-        let numerator_value = FixedTrait::ln(fixed_cur_value / fixed_prev_value);
-        let numerator = numerator_value.pow(FixedTrait::new(2, false));
+        let numerator_value = FixedTrait::ln(cur_value / prev_value);
+        let numerator = numerator_value.pow(FixedTrait::new(2 * ONE_u128, false));
         let denominator = FixedTrait::new((cur_timestamp - prev_timestamp).into(), false)
             / FixedTrait::new(ONE_YEAR_IN_SECONDS, false);
         let fraction_ = numerator / denominator;
@@ -191,8 +198,6 @@ fn fill_1d(arr_len: u32, value: u128) -> Array<Fixed> {
     };
     output
 }
-
-
 //----------------------
 
 //Tests
@@ -202,10 +207,10 @@ fn fill_1d(arr_len: u32, value: u128) -> Array<Fixed> {
 fn test_utils() {
     //extract_value
     let mut array = ArrayTrait::<TickElem>::new();
-    array.append(TickElem { tick: 1, value: 1 });
-    array.append(TickElem { tick: 2, value: 2 });
-    array.append(TickElem { tick: 3, value: 3 });
-    array.append(TickElem { tick: 4, value: 4 });
+    array.append(TickElem { tick: 1, value: FixedTrait::from_felt(1) });
+    array.append(TickElem { tick: 2, value: FixedTrait::from_felt(2) });
+    array.append(TickElem { tick: 3, value: FixedTrait::from_felt(3) });
+    array.append(TickElem { tick: 4, value: FixedTrait::from_felt(4) });
     let new_arr = extract_value(array.span());
     assert(new_arr.len() == 4, 'wrong len');
 
@@ -251,34 +256,43 @@ fn test_utils() {
     assert(*z.at(2).mag == 1, 'wrong value');
 }
 
-
 #[test]
 #[available_gas(1000000000)]
 fn test_metrics() {
     //mean
     let mut array = ArrayTrait::<TickElem>::new();
-    array.append(TickElem { tick: 1, value: 10 });
-    array.append(TickElem { tick: 2, value: 20 });
-    array.append(TickElem { tick: 3, value: 30 });
-    array.append(TickElem { tick: 4, value: 40 });
+    array.append(TickElem { tick: 1, value: FixedTrait::from_felt(10) });
+    array.append(TickElem { tick: 2, value: FixedTrait::from_felt(20) });
+    array.append(TickElem { tick: 3, value: FixedTrait::from_felt(30) });
+    array.append(TickElem { tick: 4, value: FixedTrait::from_felt(40) });
     assert(mean(array.span()) == 25, 'wrong mean');
 
     //variance
     let mut array = ArrayTrait::<TickElem>::new();
-    array.append(TickElem { tick: 1, value: 10 });
-    array.append(TickElem { tick: 2, value: 20 });
-    array.append(TickElem { tick: 3, value: 30 });
-    array.append(TickElem { tick: 4, value: 40 });
-    array.append(TickElem { tick: 5, value: 50 });
+    array.append(TickElem { tick: 1, value: FixedTrait::from_felt(10) });
+    array.append(TickElem { tick: 2, value: FixedTrait::from_felt(20) });
+    array.append(TickElem { tick: 3, value: FixedTrait::from_felt(30) });
+    array.append(TickElem { tick: 4, value: FixedTrait::from_felt(40) });
+    array.append(TickElem { tick: 5, value: FixedTrait::from_felt(50) });
     assert(variance(array.span()) == 200, 'wrong variance');
 
     //standard deviation
     let mut array = ArrayTrait::<TickElem>::new();
-    array.append(TickElem { tick: 1, value: 10 });
-    array.append(TickElem { tick: 2, value: 20 });
-    array.append(TickElem { tick: 3, value: 30 });
-    array.append(TickElem { tick: 4, value: 40 });
-    array.append(TickElem { tick: 5, value: 50 });
+    array.append(TickElem { tick: 1, value: FixedTrait::from_felt(10) });
+    array.append(TickElem { tick: 2, value: FixedTrait::from_felt(20) });
+    array.append(TickElem { tick: 3, value: FixedTrait::from_felt(30) });
+    array.append(TickElem { tick: 4, value: FixedTrait::from_felt(40) });
+    array.append(TickElem { tick: 5, value: FixedTrait::from_felt(50) });
     assert(standard_deviation(array.span()) == 14, 'wrong standard deviation');
-//TODO volatility tests
+    //volatility
+    let mut array = ArrayTrait::<TickElem>::new();
+    array.append(TickElem { tick: 1640995200, value: FixedTrait::from_felt(47686) });
+    array.append(TickElem { tick: 1641081600, value: FixedTrait::from_felt(47345) });
+    array.append(TickElem { tick: 1641168000, value: FixedTrait::from_felt(46458) });
+    array.append(TickElem { tick: 1641254400, value: FixedTrait::from_felt(45897) });
+    array.append(TickElem { tick: 1641340800, value: FixedTrait::from_felt(43569) });
+    let value = volatility(array.span());
+    assert(volatility(array.span()) == 48830960, 'wrong volatility'); //10^8
 }
+
+

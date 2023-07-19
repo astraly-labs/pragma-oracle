@@ -22,7 +22,7 @@ mod Upgradeable {
         Upgraded: Upgraded, 
     }
 
-    #[internal]
+
     fn upgrade(ref self: ContractState, new_impl_hash: ClassHash) {
         assert(!new_impl_hash.is_zero(), 'Class hash cannot be zero');
         starknet::replace_class_syscall(new_impl_hash).unwrap_syscall();
@@ -30,7 +30,7 @@ mod Upgradeable {
         self.emit(Event::Upgraded(Upgraded { implementation: new_impl_hash }));
     }
 
-    #[view]
+
     fn get_implementation_hash(self: @ContractState) -> ClassHash {
         self.impl_hash.read()
     }

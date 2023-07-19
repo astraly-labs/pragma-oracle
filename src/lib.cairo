@@ -5,7 +5,6 @@ mod oracle;
 mod publisher_registry;
 mod summary_stats;
 mod upgradeable;
-// #[cfg(test)]
-// mod tests;
-
+#[cfg(test)]
+mod tests;
 

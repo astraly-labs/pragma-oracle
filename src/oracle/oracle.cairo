@@ -8,6 +8,7 @@ use pragma::oracle::oracleInterface::IOracle;
 use pragma::admin::admin::Admin;
 use pragma::upgradeable::upgradeable::Upgradeable;
 use serde::Serde;
+
 use starknet::{
     storage_read_syscall, storage_write_syscall, storage_address_from_base_and_offset,
     storage_access::storage_base_address_from_felt252, StorageAccess, StorageBaseAddress,
@@ -57,7 +58,10 @@ trait IOracleABI<TContractState> {
     fn get_data_entries(self: @TContractState, data_type: DataType) -> Array<PossibleEntries>;
 
     fn get_last_checkpoint_before(
-        self: @TContractState, timestamp: u64, data_type: DataType
+        self: @TContractState,
+        data_type: DataType,
+        timestamp: u64,
+        aggregation_mode: AggregationMode,
     ) -> (Checkpoint, u64);
 
     fn get_data_with_USD_hop(
@@ -73,21 +77,24 @@ trait IOracleABI<TContractState> {
 
     fn get_latest_checkpoint_index(
         self: @TContractState, data_type: DataType, aggregation_mode: AggregationMode
-    ) -> u64;
+    ) -> (u64, bool);
 
     fn get_latest_checkpoint(
         self: @TContractState, data_type: DataType, aggregation_mode: AggregationMode
     ) -> Checkpoint;
 
     fn get_checkpoint(
-        self: @TContractState, data_type: DataType, checkpoint_index: u64
+        self: @TContractState,
+        data_type: DataType,
+        checkpoint_index: u64,
+        aggregation_mode: AggregationMode
     ) -> Checkpoint;
 
     fn get_sources_threshold(self: @TContractState, ) -> u32;
 
     fn get_admin_address(self: @TContractState) -> ContractAddress;
     fn publish_data(ref self: TContractState, new_entry: PossibleEntries);
-    fn publish_data_entries(ref self: TContractState, new_entries: Array<PossibleEntries>, );
+    fn publish_data_entries(ref self: TContractState, new_entries: Array<PossibleEntries>);
     fn set_admin_address(ref self: TContractState, new_admin_address: ContractAddress);
     fn update_publisher_registry_address(
         ref self: TContractState, new_publisher_registry_address: ContractAddress
@@ -142,8 +149,11 @@ trait IPragmaABI<TContractState> {
     fn get_data_entries(self: @TContractState, data_type: DataType) -> Array<PossibleEntries>;
 
     fn get_last_checkpoint_before(
-        self: @TContractState, timestamp: u64, data_type: DataType
-    ) -> (Checkpoint, u256);
+        self: @TContractState,
+        data_type: DataType,
+        timestamp: u64,
+        aggregation_mode: AggregationMode,
+    ) -> (Checkpoint, u64);
 
     fn get_data_with_USD_hop(
         self: @TContractState,
@@ -169,9 +179,9 @@ mod Oracle {
         ArrayEntry, IOracle, Admin, Upgradeable, Serde, storage_read_syscall, storage_write_syscall,
         storage_address_from_base_and_offset, storage_base_address_from_felt252, StorageAccess,
         StorageBaseAddress, SyscallResult, ContractAddress, get_caller_address, ClassHash, Into,
-        TryInto, ResultTrait, ResultTraitImpl, BoxTrait, ArrayTrait, Zeroable
+        TryInto, ResultTrait, ResultTraitImpl, BoxTrait, ArrayTrait, Zeroable,
     };
-
+    use hash::LegacyHash;
     use pragma::entry::entry::Entry;
     use pragma::operations::bits_manipulation::bits_manipulation::{
         actual_set_element_at, actual_get_element_at
@@ -186,9 +196,9 @@ mod Oracle {
     use cmp::{max, min};
     use option::OptionTrait;
     use array::SpanTrait;
-
-    const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
-
+    use debug::PrintTrait;
+    // const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
+    const BACKWARD_TIMESTAMP_BUFFER: u64 = 10;
     #[storage]
     struct Storage {
         //oracle controller address storage, contractAddress
@@ -203,14 +213,17 @@ mod Oracle {
         oracle_currencies_storage: LegacyMap::<felt252, Currency>,
         //oralce_sources_storage, legacyMap between (pair_id ,(SPOT/FUTURES/OPTIONS), index, expiration_timestamp ) and the source
         oracle_sources_storage: LegacyMap::<(felt252, felt252, u64, u64), felt252>,
+        test: LegacyMap::<(felt252, felt252, felt252, felt252, felt252), u256>,
         //oracle_sources_len_storage, legacyMap between (pair_id ,(SPOT/FUTURES/OPTIONS), expiration_timestamp) and the len of the sources array
         oracle_sources_len_storage: LegacyMap::<(felt252, felt252, u64), u64>,
         //oracle_data_entry_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), source, expiration_timestamp (0 for SPOT))
         oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u64), u256>,
-        //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT)) associated to a checkpoint
-        oracle_checkpoints: LegacyMap::<(felt252, felt252, u64, u64), Checkpoint>,
+        //oracle_data_entry_storage len , legacyMap between pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp and the length
+        oracle_data_len_all_sources: LegacyMap::<(felt252, felt252, u64), u64>,
+        //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT), aggregation_mode) associated to a checkpoint
+        oracle_checkpoints: LegacyMap::<(felt252, felt252, u64, u64, u8), Checkpoint>,
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
-        oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u64), u64>,
+        oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u64, u8), u64>,
         oracle_sources_threshold_storage: u32,
     }
 
@@ -307,6 +320,32 @@ mod Oracle {
             }
         }
     }
+    impl TupleSize4LegacyHash<
+        E0,
+        E1,
+        E2,
+        E3,
+        E4,
+        impl E0LegacyHash: LegacyHash<E0>,
+        impl E1LegacyHash: LegacyHash<E1>,
+        impl E2LegacyHash: LegacyHash<E2>,
+        impl E3LegacyHash: LegacyHash<E3>,
+        impl E4LegacyHash: LegacyHash<E4>,
+        impl E0Drop: Drop<E0>,
+        impl E1Drop: Drop<E1>,
+        impl E2Drop: Drop<E2>,
+        impl E3Drop: Drop<E3>,
+        impl E4Drop: Drop<E4>,
+    > of LegacyHash<(E0, E1, E2, E3, E4)> {
+        fn hash(state: felt252, value: (E0, E1, E2, E3, E4)) -> felt252 {
+            let (e0, e1, e2, e3, e4) = value;
+            let state = E0LegacyHash::hash(state, e0);
+            let state = E1LegacyHash::hash(state, e1);
+            let state = E2LegacyHash::hash(state, e2);
+            let state = E3LegacyHash::hash(state, e3);
+            E4LegacyHash::hash(state, e4)
+        }
+    }
 
     fn u8_into_AggregationMode(value: u8) -> AggregationMode {
         if value == 0_u8 {
@@ -317,6 +356,7 @@ mod Oracle {
             AggregationMode::Error(())
         }
     }
+
 
     impl CheckpointStorageAccess of StorageAccess<Checkpoint> {
         fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<Checkpoint> {
@@ -382,12 +422,12 @@ mod Oracle {
             let aggregation_mode_u8: u8 = value.aggregation_mode.into();
             storage_write_syscall(
                 address_domain,
-                storage_address_from_base_and_offset(base, 3_u8),
+                storage_address_from_base_and_offset(base, 4_u8),
                 aggregation_mode_u8.into(),
             )?;
             storage_write_syscall(
                 address_domain,
-                storage_address_from_base_and_offset(base, 4_u8),
+                storage_address_from_base_and_offset(base, 5_u8),
                 value.num_sources_aggregated.into(),
             )
         }
@@ -541,13 +581,27 @@ mod Oracle {
         fn get_data_entries_for_sources(
             self: @ContractState, data_type: DataType, sources: Span<felt252>
         ) -> (Array<PossibleEntries>, u32, u64) {
-            let last_updated_timestamp = get_latest_entry_timestamp(self, data_type, sources);
-            let current_timestamp: u64 = get_block_timestamp();
-            let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
-            let (entries, entries_len) = get_all_entries(
-                self, data_type, sources, conservative_current_timestamp
-            );
-            (entries, entries_len, last_updated_timestamp)
+            if (sources.len() == 0) {
+                let all_sources = get_all_sources(self, data_type);
+                let last_updated_timestamp = get_latest_entry_timestamp(
+                    self, data_type, all_sources.span()
+                );
+                let current_timestamp: u64 = get_block_timestamp();
+                let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
+                let (entries, entries_len) = get_all_entries(
+                    self, data_type, all_sources.span(), conservative_current_timestamp
+                );
+                return (entries, entries_len, conservative_current_timestamp);
+            } else {
+                let last_updated_timestamp = get_latest_entry_timestamp(self, data_type, sources);
+                let current_timestamp: u64 = get_block_timestamp();
+                let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
+                let (entries, entries_len) = get_all_entries(
+                    self, data_type, sources, conservative_current_timestamp
+                );
+                return (entries, entries_len, conservative_current_timestamp);
+            }
+        //TO BE CHECKED, FOR LAST_UPDATED_TIMESTAMP
         }
 
 
@@ -587,7 +641,6 @@ mod Oracle {
                 if (cur_idx >= data_types.len()) {
                     break ();
                 }
-
                 let data_type = *data_types.at(cur_idx);
                 let cur_prices_response: PragmaPricesResponse = IOracle::get_data_for_sources(
                     self, data_type, AggregationMode::Median(()), sources
@@ -603,9 +656,11 @@ mod Oracle {
             self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
         ) -> PragmaPricesResponse {
             let sources = get_all_sources(self, data_type).span();
+
             let prices_response: PragmaPricesResponse = IOracle::get_data_for_sources(
                 self, data_type, aggregation_mode, sources
             );
+
             prices_response
         }
 
@@ -617,10 +672,12 @@ mod Oracle {
             sources: Span<felt252>
         ) -> PragmaPricesResponse {
             let mut entries = ArrayTrait::<PossibleEntries>::new();
+
             let (entries, entries_len, last_updated_timestamp) =
                 IOracle::get_data_entries_for_sources(
                 self, data_type, sources
             );
+
             if (entries_len == 0) {
                 return PragmaPricesResponse {
                     price: 0,
@@ -646,6 +703,7 @@ mod Oracle {
                                 Entry::aggregate_timestamps_max::<SpotEntry>(
                                 @array_spot
                             );
+
                             return PragmaPricesResponse {
                                 price: price,
                                 decimals: decimals,
@@ -656,7 +714,7 @@ mod Oracle {
                             };
                         },
                         ArrayEntry::FutureEntry(_) => {
-                            assert(1 == 1, 'Wrong data type');
+                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -672,7 +730,7 @@ mod Oracle {
                 )) => {
                     match filtered_entries {
                         ArrayEntry::SpotEntry(_) => {
-                            assert(1 == 1, 'Wrong data type');
+                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -709,10 +767,12 @@ mod Oracle {
         }
 
 
+        //Can be simplified using just the pair_id instead of the data_type
         fn get_decimals(self: @ContractState, data_type: DataType) -> u32 {
             let (base_currency, quote_currency) = match data_type {
                 DataType::SpotEntry(pair_id) => {
                     let pair = self.oracle_pairs_storage.read(pair_id);
+                    assert(!pair.id.is_zero(), 'No pair found');
                     let base_cur = self.oracle_currencies_storage.read(pair.base_currency_id);
                     let quote_cur = self.oracle_currencies_storage.read(pair.quote_currency_id);
                     (base_cur, quote_cur)
@@ -721,6 +781,7 @@ mod Oracle {
                     pair_id, expiration_timestamp
                 )) => {
                     let pair = self.oracle_pairs_storage.read(pair_id);
+                    assert(!pair.id.is_zero(), 'No pair found');
                     let base_cur = self.oracle_currencies_storage.read(pair.base_currency_id);
                     let quote_cur = self.oracle_currencies_storage.read(pair.quote_currency_id);
                     (base_cur, quote_cur)
@@ -743,9 +804,11 @@ mod Oracle {
             let base_pair_id = self
                 .oracle_pair_id_storage
                 .read((base_currency_id, USD_CURRENCY_ID));
+
             let quote_pair_id = self
                 .oracle_pair_id_storage
                 .read((quote_currency_id, USD_CURRENCY_ID));
+
             let (base_data_type, quote_data_type, currency) = match typeof {
                 SimpleDataType::SpotEntry(()) => {
                     (
@@ -767,7 +830,7 @@ mod Oracle {
                         },
                         Option::None(_) => {
                             // Handle case where Future data type was provided without an expiration timestamp
-                            assert(1 == 1, 'Requires expiration timestamp');
+                            assert(false, 'Requires expiration timestamp');
                             (
                                 DataType::FutureEntry((base_pair_id, 0)),
                                 DataType::FutureEntry((quote_pair_id, 0)),
@@ -780,9 +843,11 @@ mod Oracle {
             let basePPR: PragmaPricesResponse = IOracle::get_data_for_sources(
                 self, base_data_type, aggregation_mode, sources
             );
+
             let quotePPR: PragmaPricesResponse = IOracle::get_data_for_sources(
                 self, quote_data_type, aggregation_mode, sources
             );
+
             let decimals = min(
                 IOracle::get_decimals(self, base_data_type),
                 IOracle::get_decimals(self, quote_data_type)
@@ -806,7 +871,7 @@ mod Oracle {
 
         fn get_latest_checkpoint_index(
             self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
-        ) -> u64 {
+        ) -> (u64, bool) {
             get_latest_checkpoint_index(self, data_type, aggregation_mode)
         }
 
@@ -814,15 +879,29 @@ mod Oracle {
         fn get_latest_checkpoint(
             self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
         ) -> Checkpoint {
-            let checkpoint_index = get_latest_checkpoint_index(self, data_type, aggregation_mode);
-            get_checkpoint_by_index(self, data_type, checkpoint_index)
+            let (checkpoint_index, is_valid) = get_latest_checkpoint_index(
+                self, data_type, aggregation_mode
+            );
+            if (!is_valid) {
+                Checkpoint {
+                    timestamp: 0,
+                    value: 0,
+                    aggregation_mode: aggregation_mode,
+                    num_sources_aggregated: 0,
+                }
+            } else {
+                get_checkpoint_by_index(self, data_type, checkpoint_index, aggregation_mode)
+            }
         }
 
 
         fn get_checkpoint(
-            self: @ContractState, data_type: DataType, checkpoint_index: u64
+            self: @ContractState,
+            data_type: DataType,
+            checkpoint_index: u64,
+            aggregation_mode: AggregationMode
         ) -> Checkpoint {
-            get_checkpoint_by_index(self, data_type, checkpoint_index)
+            get_checkpoint_by_index(self, data_type, checkpoint_index, aggregation_mode)
         }
 
 
@@ -846,11 +925,13 @@ mod Oracle {
         fn get_last_checkpoint_before(
             self: @ContractState,
             data_type: DataType,
+            timestamp: u64,
             aggregation_mode: AggregationMode,
-            timestamp: u64
         ) -> (Checkpoint, u64) {
             let idx = find_startpoint(self, data_type, aggregation_mode, timestamp);
-            let checkpoint = get_checkpoint_by_index(self, data_type, idx);
+
+            let checkpoint = get_checkpoint_by_index(self, data_type, idx, aggregation_mode);
+
             (checkpoint, idx)
         }
 
@@ -860,16 +941,18 @@ mod Oracle {
         ) -> PossibleEntries {
             let _entry = match data_type {
                 DataType::SpotEntry(pair_id) => {
-                    self.oracle_data_entry_storage.read((pair_id, source, SPOT, 0))
+                    self.oracle_data_entry_storage.read((pair_id, SPOT, source, 0))
                 },
                 DataType::FutureEntry((
                     pair_id, expiration_timestamp
                 )) => {
                     self
                         .oracle_data_entry_storage
-                        .read((pair_id, source, FUTURE, expiration_timestamp))
+                        .read((pair_id, FUTURE, source, expiration_timestamp))
                 },
             };
+
+            assert(!_entry.is_zero(), 'No data entry found');
             let u256_timestamp: u256 = actual_get_element_at(_entry, 0, 31);
             let timestamp: u64 = u256_timestamp.try_into().unwrap();
             let volume = actual_get_element_at(_entry, 32, 30);
@@ -910,82 +993,140 @@ mod Oracle {
             match new_entry {
                 PossibleEntries::Spot(spot_entry) => {
                     validate_sender_for_source(@self, spot_entry);
-                    let entry: PossibleEntries = IOracle::get_data_entry(
-                        @self, DataType::SpotEntry(spot_entry.pair_id), spot_entry.base.source
-                    );
-                    match entry {
-                        PossibleEntries::Spot(spot) => {
-                            validate_data_timestamp(ref self, new_entry, spot);
-                            self.emit(Event::SubmittedSpotEntry(SubmittedSpotEntry { spot_entry }));
-                            let conv_timestamp: u256 = u256 {
-                                low: spot_entry.base.timestamp.into(), high: 0
-                            };
-                            let element = actual_set_element_at(0, 0, 31, conv_timestamp);
-                            let element = actual_set_element_at(element, 32, 30, spot_entry.volume);
-                            let element = actual_set_element_at(element, 63, 65, spot_entry.price);
-                            let spot_entry_storage = SpotEntryStorage {
-                                timestamp__volume__price: element
-                            };
-                            self
-                                .oracle_data_entry_storage
-                                .write(
-                                    (spot_entry.pair_id, SPOT, spot_entry.base.source, 0), element
-                                );
-                        },
-                        PossibleEntries::Future(_) => {
-                            assert(1 == 1, 'Failed fetching spot entry');
-                        },
+                    let res = self
+                        .oracle_data_entry_storage
+                        .read((spot_entry.pair_id, SPOT, spot_entry.base.source, 0));
+
+                    if (res != 0) {
+                        let entry: PossibleEntries = IOracle::get_data_entry(
+                            @self, DataType::SpotEntry(spot_entry.pair_id), spot_entry.base.source
+                        );
+                        match entry {
+                            PossibleEntries::Spot(spot) => {
+                                validate_data_timestamp(ref self, new_entry, spot);
+                            },
+                            PossibleEntries::Future(_) => {}
+                        }
+                    } else {
+                        let sources_len = self
+                            .oracle_sources_len_storage
+                            .read((spot_entry.pair_id, SPOT, 0));
+                        self
+                            .oracle_sources_storage
+                            .write(
+                                (spot_entry.pair_id, SPOT, sources_len, 0),
+                                spot_entry.get_base_entry().source
+                            );
+                        self
+                            .oracle_sources_len_storage
+                            .write((spot_entry.pair_id, SPOT, 0), sources_len + 1);
                     }
+                    self.emit(Event::SubmittedSpotEntry(SubmittedSpotEntry { spot_entry }));
+                    let conv_timestamp: u256 = u256 {
+                        low: spot_entry.base.timestamp.into(), high: 0
+                    };
+
+                    let element = actual_set_element_at(0, 0, 31, conv_timestamp);
+                    let element = actual_set_element_at(element, 32, 30, spot_entry.volume);
+                    let element = actual_set_element_at(element, 63, 65, spot_entry.price);
+
+                    let spot_entry_storage = SpotEntryStorage { timestamp__volume__price: element };
+                    self
+                        .oracle_data_entry_storage
+                        .write((spot_entry.pair_id, SPOT, spot_entry.base.source, 0), element);
+
+                    let storage_len = self
+                        .oracle_data_len_all_sources
+                        .read((spot_entry.pair_id, SPOT, 0));
+                    self
+                        .oracle_data_len_all_sources
+                        .write((spot_entry.pair_id, SPOT, 0), storage_len + 1);
                 },
                 PossibleEntries::Future(future_entry) => {
                     validate_sender_for_source(@self, future_entry);
-                    let entry: PossibleEntries = IOracle::get_data_entry(
-                        @self,
-                        DataType::FutureEntry(
-                            (future_entry.pair_id, future_entry.expiration_timestamp)
-                        ),
-                        future_entry.base.source
-                    );
-                    match entry {
-                        PossibleEntries::Spot(_) => {
-                            assert(1 == 1, 'Failed fetching future entry');
-                        },
-                        PossibleEntries::Future(future) => {
-                            validate_data_timestamp::<FutureEntry>(ref self, new_entry, future);
-                            self
-                                .emit(
-                                    Event::SubmittedFutureEntry(
-                                        SubmittedFutureEntry { future_entry }
-                                    )
-                                );
-                            let conv_timestamp: u256 = u256 {
-                                low: future_entry.base.timestamp.into(), high: 0
-                            };
-                            let element = actual_set_element_at(0, 0, 31, conv_timestamp);
-                            let element = actual_set_element_at(
-                                element, 32, 30, future_entry.volume
+                    let res = self
+                        .oracle_data_entry_storage
+                        .read(
+                            (
+                                future_entry.pair_id,
+                                FUTURE,
+                                future_entry.base.source,
+                                future_entry.expiration_timestamp
+                            )
+                        );
+
+                    if (res != 0) {
+                        let entry: PossibleEntries = IOracle::get_data_entry(
+                            @self,
+                            DataType::FutureEntry(
+                                (future_entry.pair_id, future_entry.expiration_timestamp)
+                            ),
+                            future_entry.base.source
+                        );
+                        match entry {
+                            PossibleEntries::Spot(_) => {},
+                            PossibleEntries::Future(future) => {
+                                validate_data_timestamp(ref self, new_entry, future)
+                            }
+                        }
+                    } else {
+                        let sources_len = self
+                            .oracle_sources_len_storage
+                            .read(
+                                (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp)
                             );
-                            let element = actual_set_element_at(
-                                element, 63, 65, future_entry.price
+                        self
+                            .oracle_sources_storage
+                            .write(
+                                (
+                                    future_entry.pair_id,
+                                    FUTURE,
+                                    sources_len,
+                                    future_entry.expiration_timestamp
+                                ),
+                                future_entry.get_base_entry().source
                             );
-                            let future_entry_storage = FutureEntryStorage {
-                                timestamp__volume__price: element
-                            };
-                            self
-                                .oracle_data_entry_storage
-                                .write(
-                                    (
-                                        future_entry.pair_id,
-                                        FUTURE,
-                                        future_entry.base.source,
-                                        future_entry.expiration_timestamp
-                                    ),
-                                    element
-                                );
-                        },
+                        self
+                            .oracle_sources_len_storage
+                            .write(
+                                (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp),
+                                sources_len + 1
+                            );
                     }
+
+                    self.emit(Event::SubmittedFutureEntry(SubmittedFutureEntry { future_entry }));
+                    let conv_timestamp: u256 = u256 {
+                        low: future_entry.base.timestamp.into(), high: 0
+                    };
+                    let element = actual_set_element_at(0, 0, 31, conv_timestamp);
+                    let element = actual_set_element_at(element, 32, 30, future_entry.volume);
+                    let element = actual_set_element_at(element, 63, 65, future_entry.price);
+                    let future_entry_storage = FutureEntryStorage {
+                        timestamp__volume__price: element
+                    };
+                    self
+                        .oracle_data_entry_storage
+                        .write(
+                            (
+                                future_entry.pair_id,
+                                FUTURE,
+                                future_entry.base.source,
+                                future_entry.expiration_timestamp
+                            ),
+                            element
+                        );
+                    let storage_len = self
+                        .oracle_data_len_all_sources
+                        .read((future_entry.pair_id, FUTURE, future_entry.expiration_timestamp));
+                    self
+                        .oracle_data_len_all_sources
+                        .write(
+                            (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp),
+                            storage_len + 1
+                        );
                 },
             }
+
             return ();
         }
 
@@ -1062,6 +1203,9 @@ mod Oracle {
             let priceResponse = IOracle::get_data_for_sources(
                 @self, data_type, aggregation_mode, sources
             );
+
+            assert(!priceResponse.last_updated_timestamp.is_zero(), 'No checkpoint available');
+
             let sources_threshold = self.oracle_sources_threshold_storage.read();
             let cur_checkpoint = IOracle::get_latest_checkpoint(@self, data_type, aggregation_mode);
             let timestamp: u64 = get_block_timestamp();
@@ -1074,11 +1218,21 @@ mod Oracle {
                     aggregation_mode: aggregation_mode,
                     num_sources_aggregated: priceResponse.num_sources_aggregated
                 };
+
                 match data_type {
                     DataType::SpotEntry(pair_id) => {
-                        let cur_idx = self.oracle_checkpoint_index.read((pair_id, SPOT, 0));
-                        self.oracle_checkpoints.write((pair_id, SPOT, cur_idx, 0), new_checkpoint);
-                        self.oracle_checkpoint_index.write((pair_id, SPOT, 0), cur_idx + 1);
+                        let cur_idx = self
+                            .oracle_checkpoint_index
+                            .read((pair_id, SPOT, 0, aggregation_mode.into()));
+
+                        self
+                            .oracle_checkpoints
+                            .write(
+                                (pair_id, SPOT, cur_idx, 0, aggregation_mode.into()), new_checkpoint
+                            );
+                        self
+                            .oracle_checkpoint_index
+                            .write((pair_id, SPOT, 0, aggregation_mode.into()), cur_idx + 1);
                         self.emit(Event::CheckpointSpotEntry(CheckpointSpotEntry { pair_id }));
                     },
                     DataType::FutureEntry((
@@ -1086,15 +1240,26 @@ mod Oracle {
                     )) => {
                         let cur_idx = self
                             .oracle_checkpoint_index
-                            .read((pair_id, FUTURE, expiration_timestamp));
+                            .read((pair_id, FUTURE, expiration_timestamp, aggregation_mode.into()));
+
                         self
                             .oracle_checkpoints
                             .write(
-                                (pair_id, FUTURE, cur_idx, expiration_timestamp), new_checkpoint
+                                (
+                                    pair_id,
+                                    FUTURE,
+                                    cur_idx,
+                                    expiration_timestamp,
+                                    aggregation_mode.into()
+                                ),
+                                new_checkpoint
                             );
                         self
                             .oracle_checkpoint_index
-                            .write((pair_id, FUTURE, expiration_timestamp), cur_idx + 1);
+                            .write(
+                                (pair_id, FUTURE, expiration_timestamp, aggregation_mode.into()),
+                                cur_idx + 1
+                            );
                         self
                             .emit(
                                 Event::CheckpointFutureEntry(
@@ -1126,6 +1291,9 @@ mod Oracle {
         fn set_admin_address(ref self: ContractState, new_admin_address: ContractAddress) {
             let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
+            let old_admin = Admin::get_admin_address(@state);
+            assert(new_admin_address != old_admin, 'Same admin address');
+            assert(!new_admin_address.is_zero(), 'Admin address cannot be zero');
             Admin::set_admin_address(ref state, new_admin_address);
         }
 
@@ -1137,6 +1305,14 @@ mod Oracle {
     }
 
 
+    fn aggregation_into_u8(self: AggregationMode) -> u8 {
+        match self {
+            AggregationMode::Median(()) => 0_u8,
+            AggregationMode::Mean(()) => 1_u8,
+            AggregationMode::Error(()) => 150_u8,
+        }
+    }
+    //ISSUE HERE, DO NOT RETURN ARRAY
     fn get_all_sources(self: @ContractState, data_type: DataType) -> Array<felt252> {
         let mut sources = ArrayTrait::<felt252>::new();
         match data_type {
@@ -1152,46 +1328,69 @@ mod Oracle {
                     .oracle_sources_len_storage
                     .read((pair_id, FUTURE, expiration_timestamp));
                 build_sources_array(self, data_type, ref sources, source_len);
+
                 return sources;
             },
         }
     }
 
     fn get_checkpoint_by_index(
-        self: @ContractState, data_type: DataType, checkpoint_index: u64
+        self: @ContractState,
+        data_type: DataType,
+        checkpoint_index: u64,
+        aggregation_mode: AggregationMode
     ) -> Checkpoint {
         let checkpoint = match data_type {
             DataType::SpotEntry(pair_id) => {
-                self.oracle_checkpoints.read((pair_id, SPOT, checkpoint_index, 0))
+                self
+                    .oracle_checkpoints
+                    .read((pair_id, SPOT, checkpoint_index, 0, aggregation_mode.into()))
             },
             DataType::FutureEntry((
                 pair_id, expiration_timestamp
             )) => {
                 self
                     .oracle_checkpoints
-                    .read((pair_id, FUTURE, checkpoint_index, expiration_timestamp))
+                    .read(
+                        (
+                            pair_id,
+                            FUTURE,
+                            checkpoint_index,
+                            expiration_timestamp,
+                            aggregation_mode.into()
+                        )
+                    )
             },
         };
+        assert(!checkpoint.timestamp.is_zero(), 'Checkpoint does not exist');
         return checkpoint;
     }
 
 
     fn get_latest_checkpoint_index(
         self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
-    ) -> u64 {
+    ) -> (u64, bool) {
         let checkpoint_index = match data_type {
             DataType::SpotEntry(pair_id) => {
-                self.oracle_checkpoint_index.read((pair_id, SPOT, 0))
+                self.oracle_checkpoint_index.read((pair_id, SPOT, 0, aggregation_mode.into()))
             },
             DataType::FutureEntry((
                 pair_id, expiration_timestamp
             )) => {
-                self.oracle_checkpoint_index.read((pair_id, FUTURE, expiration_timestamp))
+                self
+                    .oracle_checkpoint_index
+                    .read((pair_id, FUTURE, expiration_timestamp, aggregation_mode.into()))
             },
         };
-        return checkpoint_index;
+
+        if (checkpoint_index == 0) {
+            return (0, false);
+        } else {
+            return (checkpoint_index - 1, true);
+        }
     }
-    #[internal]
+
+
     fn validate_sender_for_source<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
         self: @ContractState, _entry: T
     ) {
@@ -1201,48 +1400,61 @@ mod Oracle {
         };
         let publisher_address = publisher_registry_dispatcher
             .get_publisher_address(_entry.get_base_entry().publisher);
-
         let _can_publish_source = publisher_registry_dispatcher
             .can_publish_source(_entry.get_base_entry().publisher, _entry.get_base_entry().source);
-        //CHECK IF THIS VERIFICATION WORKS 
         let caller_address = get_caller_address();
-        assert(publisher_address.is_zero(), 'Publisher is not registered');
+
+        assert(!publisher_address.is_zero(), 'Publisher is not registered');
         assert(!caller_address.is_zero(), 'Caller must not be zero address');
         assert(caller_address == publisher_address, 'Transaction not from publisher');
         assert(_can_publish_source == true, 'Not allowed for source');
         return ();
     }
 
-    #[internal]
     fn get_latest_entry_timestamp(
         self: @ContractState, data_type: DataType, sources: Span<felt252>
     ) -> u64 {
         let mut cur_idx = 0;
         let mut latest_timestamp = 0;
-        loop {
-            if (cur_idx >= sources.len()) {
-                break ();
-            }
-            let source: felt252 = *sources.get(cur_idx).unwrap().unbox();
-            let entry: PossibleEntries = IOracle::get_data_entry(self, data_type, source);
-            match entry {
-                PossibleEntries::Spot(spot_entry) => {
-                    if spot_entry.base.timestamp > latest_timestamp {
-                        latest_timestamp = spot_entry.base.timestamp;
-                    }
-                },
-                PossibleEntries::Future(future_entry) => {
-                    if future_entry.base.timestamp > latest_timestamp {
-                        latest_timestamp = future_entry.base.timestamp;
+        let storage_len = match data_type {
+            DataType::SpotEntry(pair_id) => {
+                self.oracle_data_len_all_sources.read((pair_id, SPOT, 0))
+            },
+            DataType::FutureEntry((
+                pair_id, expiration_timestamp
+            )) => {
+                self.oracle_data_len_all_sources.read((pair_id, FUTURE, expiration_timestamp))
+            },
+        };
+
+        if (storage_len == 0) {
+            return 0;
+        } else {
+            loop {
+                if (cur_idx == sources.len()) {
+                    break ();
+                }
+                let source: felt252 = *sources.get(cur_idx).unwrap().unbox();
+                let entry: PossibleEntries = IOracle::get_data_entry(self, data_type, source);
+
+                match entry {
+                    PossibleEntries::Spot(spot_entry) => {
+                        if spot_entry.base.timestamp > latest_timestamp {
+                            latest_timestamp = spot_entry.base.timestamp;
+                        }
+                    },
+                    PossibleEntries::Future(future_entry) => {
+                        if future_entry.base.timestamp > latest_timestamp {
+                            latest_timestamp = future_entry.base.timestamp;
+                        }
                     }
                 }
-            }
-            cur_idx += 1;
-        };
-        return latest_timestamp;
+                cur_idx += 1;
+            };
+            return latest_timestamp;
+        }
     }
 
-    #[internal]
     fn build_entries_array(
         self: @ContractState,
         data_type: DataType,
@@ -1261,7 +1473,7 @@ mod Oracle {
                 PossibleEntries::Spot(spot_entry) => {
                     let is_entry_not_initialized: bool = spot_entry.get_base_timestamp() == 0;
                     let condition: bool = is_entry_not_initialized
-                        & (spot_entry
+                        && (spot_entry
                             .get_base_timestamp() < (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
                     if !condition {
                         entries.append(PossibleEntries::Spot(spot_entry));
@@ -1284,21 +1496,14 @@ mod Oracle {
     }
 
 
-    #[internal]
     fn get_all_entries(
         self: @ContractState, data_type: DataType, sources: Span<felt252>, max_timestamp: u64
     ) -> (Array<PossibleEntries>, u32) {
         let mut entries = ArrayTrait::<PossibleEntries>::new();
-        if (sources.len() == 0) {
-            let all_sources = get_all_sources(self, data_type).span();
-            build_entries_array(self, data_type, all_sources, ref entries, max_timestamp);
-            (entries, entries.len())
-        } else {
-            build_entries_array(self, data_type, sources, ref entries, max_timestamp);
-            (entries, entries.len())
-        }
+
+        build_entries_array(self, data_type, sources, ref entries, max_timestamp);
+        (entries, entries.len())
     }
-    #[internal]
     fn filter_data_array(data_type: DataType, data: @Array<PossibleEntries>) -> ArrayEntry {
         match data_type {
             DataType::SpotEntry(pair_id) => {
@@ -1313,9 +1518,7 @@ mod Oracle {
                         PossibleEntries::Spot(spot_entry) => {
                             spot_entries.append(spot_entry);
                         },
-                        PossibleEntries::Future(_) => {
-                            assert(false, 'Invalid entry type');
-                        }
+                        PossibleEntries::Future(_) => {}
                     }
                     cur_idx = cur_idx + 1;
                 };
@@ -1332,9 +1535,7 @@ mod Oracle {
                     }
                     let entry = *data.at(cur_idx);
                     match entry {
-                        PossibleEntries::Spot(_) => {
-                            assert(false, 'Invalid entry type');
-                        },
+                        PossibleEntries::Spot(_) => {},
                         PossibleEntries::Future(future_entry) => {
                             future_entries.append(future_entry);
                         }
@@ -1345,9 +1546,9 @@ mod Oracle {
             }
         }
     }
-    #[internal]
+
     fn validate_data_timestamp<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
-        ref self: ContractState, new_entry: PossibleEntries, last_entry: T
+        ref self: ContractState, new_entry: PossibleEntries, last_entry: T, 
     ) {
         match new_entry {
             PossibleEntries::Spot(spot_entry) => {
@@ -1420,70 +1621,100 @@ mod Oracle {
     fn find_startpoint(
         self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode, timestamp: u64
     ) -> u64 {
-        let last_checkpoint_index = get_latest_checkpoint_index(self, data_type, aggregation_mode);
-        let latest_checkpoint_index = get_latest_checkpoint_index(
+        let (latest_checkpoint_index, _) = get_latest_checkpoint_index(
             self, data_type, aggregation_mode
         );
-        let cp = get_checkpoint_by_index(self, data_type, latest_checkpoint_index - 1);
-        if (cp.timestamp <= timestamp) {
-            return latest_checkpoint_index - 1;
-        }
 
-        let first_cp = get_checkpoint_by_index(self, data_type, 0);
+        let cp = get_checkpoint_by_index(
+            self, data_type, latest_checkpoint_index, aggregation_mode
+        );
+
+        if (cp.timestamp <= timestamp) {
+            return latest_checkpoint_index;
+        }
+        let first_cp = get_checkpoint_by_index(self, data_type, 0, aggregation_mode);
         if (timestamp <= first_cp.timestamp) {
+            assert(false, 'Timestamp is too old');
             return 0;
         }
-        let startpoint = _binary_search(self, data_type, 0, latest_checkpoint_index, timestamp);
+        let startpoint = _binary_search(
+            self, data_type, 0, latest_checkpoint_index, timestamp, aggregation_mode
+        );
         return startpoint;
     }
     fn _binary_search(
-        self: @ContractState, data_type: DataType, low: u64, high: u64, target: u64
+        self: @ContractState,
+        data_type: DataType,
+        low: u64,
+        high: u64,
+        target: u64,
+        aggregation_mode: AggregationMode
     ) -> u64 {
-        let midpoint = (low + high) / 2;
+        let high_cp = get_checkpoint_by_index(self, data_type, high, aggregation_mode);
+        if (high_cp.timestamp <= target) {
+            return high;
+        }
 
-        if (high == low) {
+        // Find the middle point
+        let midpoint = low + high / 2;
+
+        if midpoint == 0 {
+            return 0;
+        }
+        // If middle point is target.
+        let past_midpoint_cp = get_checkpoint_by_index(
+            self, data_type, midpoint - 1, aggregation_mode
+        );
+        let midpoint_cp = get_checkpoint_by_index(self, data_type, midpoint, aggregation_mode);
+
+        if (midpoint_cp.timestamp == target) {
             return midpoint;
         }
 
-        if ((high + 1) <= low) {
-            return low - 1;
+        // If x lies between mid-1 and mid
+        if (past_midpoint_cp.timestamp <= target && target <= midpoint_cp.timestamp) {
+            return midpoint - 1;
         }
 
-        let cp = get_checkpoint_by_index(self, data_type, midpoint);
-        let timestamp = cp.timestamp;
-
-        if (timestamp == target) {
-            return midpoint;
+        // If x is smaller than mid, floor
+        // must be in left half.
+        if (target <= midpoint_cp.timestamp) {
+            return _binary_search(self, data_type, low, midpoint - 1, target, aggregation_mode);
         }
 
-        if (timestamp < target) {
-            let next_timestamp = get_checkpoint_by_index(self, data_type, midpoint + 1).timestamp;
-            if (target < next_timestamp) {
-                return midpoint;
-            } else {
-                return _binary_search(self, data_type, midpoint + 1, high, target);
-            }
-        } else {
-            return _binary_search(self, data_type, low, midpoint - 1, target);
-        }
+        // If mid-1 is not floor and x is
+        // greater than arr[mid],
+        return _binary_search(self, data_type, midpoint + 1, high, target, aggregation_mode);
     }
 
     fn build_sources_array(
-        self: @ContractState, data_type: DataType, ref sources: Array<felt252>, idx: u64
+        self: @ContractState, data_type: DataType, ref sources: Array<felt252>, sources_len: u64
     ) {
-        match data_type {
-            DataType::SpotEntry(pair_id) => {
-                let new_source = self.oracle_sources_storage.read((pair_id, SPOT, idx, 0));
-                sources.append(new_source);
-            },
-            DataType::FutureEntry((
-                pair_id, expiration_timestamp
-            )) => {
-                let new_source = self
-                    .oracle_sources_storage
-                    .read((pair_id, FUTURE, idx, expiration_timestamp));
-                sources.append(new_source);
+        let mut idx: u64 = 0;
+        loop {
+            if (idx == sources_len) {
+                break ();
             }
-        }
+            match data_type {
+                DataType::SpotEntry(pair_id) => {
+                    let new_source = self
+                        .oracle_sources_storage
+                        .read((pair_id, SPOT, idx.into(), 0));
+
+                    sources.append(new_source);
+                },
+                DataType::FutureEntry((
+                    pair_id, expiration_timestamp
+                )) => {
+                    let new_source = self
+                        .oracle_sources_storage
+                        .read((pair_id, FUTURE, idx.into(), expiration_timestamp));
+                    sources.append(new_source);
+                },
+            }
+            idx = idx + 1;
+        };
+        return ();
     }
 }
+
