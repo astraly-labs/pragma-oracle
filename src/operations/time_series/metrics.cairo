@@ -1,6 +1,6 @@
 use pragma::operations::time_series::structs::{TickElem, PAIRWISE_OPERATION};
 
-use cubit::types::fixed::{
+use cubit::f128::types::fixed::{
     HALF_u128, MAX_u128, ONE_u128, Fixed, FixedInto, FixedTrait, FixedAdd, FixedDiv, FixedMul,
     FixedNeg
 };

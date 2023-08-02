@@ -1,7 +1,7 @@
 use array::ArrayTrait;
 use integer::u32;
 use alexandria_math::signed_integers::i129;
-use cubit::types::fixed::Fixed;
+use cubit::f128::types::fixed::Fixed;
 #[derive(Drop, Copy)]
 struct TickElem {
     tick: u64,
