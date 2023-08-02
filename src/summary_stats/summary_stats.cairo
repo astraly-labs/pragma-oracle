@@ -1,7 +1,7 @@
 use starknet::ContractAddress;
 use pragma::entry::structs::{DataType, AggregationMode};
 use result::ResultTrait;
-use cubit::types::fixed::{FixedTrait, Fixed, ONE_u128};
+use cubit::f128::types::fixed::{FixedTrait, Fixed, ONE_u128};
 use debug::PrintTrait;
 #[starknet::interface]
 trait ISummaryStatsABI<TContractState> {
@@ -11,7 +11,7 @@ trait ISummaryStatsABI<TContractState> {
         start: u64,
         stop: u64,
         aggregation_mode: AggregationMode
-    ) -> u128;
+    ) -> (u128, u32);
 
     fn calculate_volatility(
         self: @TContractState,
@@ -20,7 +20,16 @@ trait ISummaryStatsABI<TContractState> {
         end_tick: u64,
         num_samples: u64,
         aggregation_mode: AggregationMode
-    ) -> u128;
+    ) -> (u128, u32);
+
+    fn calculate_twap(
+        self: @TContractState,
+        data_type: DataType,
+        aggregation_mode: AggregationMode,
+        time: u64,
+        start_time: u64,
+    ) -> (u128, u32);
+
 
     fn get_oracle_address(self: @TContractState) -> ContractAddress;
 }
@@ -40,7 +49,7 @@ mod SummaryStats {
     use pragma::summary_stats::interface::ISummaryStats;
     use pragma::entry::structs::{DataType, AggregationMode};
     use pragma::operations::time_series::structs::TickElem;
-    use pragma::operations::time_series::metrics::{volatility, mean};
+    use pragma::operations::time_series::metrics::{volatility, mean, twap};
     use pragma::operations::time_series::scaler::scale_data;
     use super::{FixedTrait, Fixed, ONE_u128, PrintTrait};
     const SCALED_ARR_SIZE: u32 = 30;
@@ -62,7 +71,7 @@ mod SummaryStats {
             start: u64,
             stop: u64,
             aggregation_mode: AggregationMode
-        ) -> u128 {
+        ) -> (u128, u32) {
             let oracle_address = self.oracle_address.read();
             let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
 
@@ -70,7 +79,17 @@ mod SummaryStats {
                 .get_latest_checkpoint_index(data_type, aggregation_mode);
             let (cp, start_index) = oracle_dispatcher
                 .get_last_checkpoint_before(data_type, start, aggregation_mode);
-            assert(start_index != latest_checkpoint_index, 'Not enough data');
+            let decimals = oracle_dispatcher.get_decimals(data_type);
+
+            let (stop_cp, stop_index) = oracle_dispatcher
+                .get_last_checkpoint_before(data_type, stop, aggregation_mode);
+            if (start_index == stop_index) {
+                return (cp.value.try_into().unwrap(), decimals);
+            }
+
+            if start_index == latest_checkpoint_index {
+                return (cp.value.try_into().unwrap(), decimals);
+            }
 
             let scaled_arr = _make_scaled_array(
                 oracle_address,
@@ -85,7 +104,7 @@ mod SummaryStats {
 
             let mean = mean(scaled_arr.span());
 
-            mean
+            (mean, decimals)
         }
 
         fn calculate_volatility(
@@ -95,7 +114,7 @@ mod SummaryStats {
             end_tick: u64,
             num_samples: u64,
             aggregation_mode: AggregationMode,
-        ) -> u128 {
+        ) -> (u128, u32) {
             let oracle_address = self.oracle_address.read();
 
             assert(num_samples > 0, 'num_samples must be > 0');
@@ -106,6 +125,8 @@ mod SummaryStats {
                 .get_latest_checkpoint_index(data_type, aggregation_mode);
             let (_start_cp, start_index) = oracle_dispatcher
                 .get_last_checkpoint_before(data_type, start_tick, aggregation_mode);
+            let decimals = oracle_dispatcher.get_decimals(data_type);
+
             let mut end_index = 0;
             if (end_tick == 0) {
                 end_index = latest_checkpoint_index;
@@ -134,7 +155,39 @@ mod SummaryStats {
                 idx += 1;
             };
 
-            volatility(tick_arr.span())
+            (volatility(tick_arr.span()), decimals)
+        }
+
+
+        fn calculate_twap(
+            self: @ContractState,
+            data_type: DataType,
+            aggregation_mode: AggregationMode,
+            time: u64,
+            start_time: u64
+        ) -> (u128, u32) {
+            let oracle_address = self.oracle_address.read();
+            let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
+            let (_start_cp, start_index) = oracle_dispatcher
+                .get_last_checkpoint_before(data_type, start_time, aggregation_mode);
+            let (_stop_cp, stop_index) = oracle_dispatcher
+                .get_last_checkpoint_before(data_type, start_time + time, aggregation_mode);
+            let decimals = oracle_dispatcher.get_decimals(data_type);
+            assert(start_index != stop_index, 'Not enough data');
+            let mut tick_arr = ArrayTrait::<TickElem>::new();
+            let mut idx = start_index;
+            loop {
+                if (stop_index < idx) {
+                    break ();
+                }
+                let cp = oracle_dispatcher.get_checkpoint(data_type, idx, aggregation_mode);
+                let val = cp.value.into();
+                let u128_val: u128 = val.try_into().unwrap();
+                let fixed_val = FixedTrait::new(u128_val, false);
+                tick_arr.append(TickElem { tick: cp.timestamp, value: fixed_val });
+                idx += 1;
+            };
+            (twap(tick_arr.span()), decimals)
         }
     }
 

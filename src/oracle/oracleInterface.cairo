@@ -36,7 +36,7 @@ trait IOracle<TContractState> {
     fn get_data_entries(self: @TContractState, data_type: DataType) -> Array<PossibleEntries>;
     fn get_data_entries_for_sources(
         self: @TContractState, data_type: DataType, sources: Span<felt252>
-    ) -> (Array<PossibleEntries>, u32, u64);
+    ) -> (Array<PossibleEntries>, u64);
     fn get_last_checkpoint_before(
         self: @TContractState,
         data_type: DataType,

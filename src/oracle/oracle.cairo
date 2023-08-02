@@ -48,7 +48,7 @@ trait IOracleABI<TContractState> {
 
     fn get_data_entries_for_sources(
         self: @TContractState, data_type: DataType, sources: Span<felt252>
-    ) -> (Array<PossibleEntries>, u32, u64);
+    ) -> (Array<PossibleEntries>, u64);
 
     fn get_data_median_multi(
         self: @TContractState, data_types: Span<DataType>, sources: Span<felt252>
@@ -139,7 +139,7 @@ trait IPragmaABI<TContractState> {
 
     fn get_data_entries_for_sources(
         self: @TContractState, data_type: DataType, sources: Span<felt252>
-    ) -> (Array<PossibleEntries>, u32, u64);
+    ) -> (Array<PossibleEntries>, u64);
 
     fn get_data_median_multi(
         self: @TContractState, data_types: Span<DataType>, sources: Span<felt252>
@@ -580,7 +580,7 @@ mod Oracle {
 
         fn get_data_entries_for_sources(
             self: @ContractState, data_type: DataType, sources: Span<felt252>
-        ) -> (Array<PossibleEntries>, u32, u64) {
+        ) -> (Array<PossibleEntries>, u64) {
             if (sources.len() == 0) {
                 let all_sources = get_all_sources(self, data_type);
                 let last_updated_timestamp = get_latest_entry_timestamp(
@@ -591,7 +591,7 @@ mod Oracle {
                 let (entries, entries_len) = get_all_entries(
                     self, data_type, all_sources.span(), conservative_current_timestamp
                 );
-                return (entries, entries_len, conservative_current_timestamp);
+                return (entries, conservative_current_timestamp);
             } else {
                 let last_updated_timestamp = get_latest_entry_timestamp(self, data_type, sources);
                 let current_timestamp: u64 = get_block_timestamp();
@@ -599,7 +599,7 @@ mod Oracle {
                 let (entries, entries_len) = get_all_entries(
                     self, data_type, sources, conservative_current_timestamp
                 );
-                return (entries, entries_len, conservative_current_timestamp);
+                return (entries, conservative_current_timestamp);
             }
         //TO BE CHECKED, FOR LAST_UPDATED_TIMESTAMP
         }
@@ -608,7 +608,7 @@ mod Oracle {
         fn get_data_entries(self: @ContractState, data_type: DataType) -> Array<PossibleEntries> {
             let mut sources = ArrayTrait::<felt252>::new();
             let sources = get_all_sources(self, data_type).span();
-            let (entries, _, _) = IOracle::get_data_entries_for_sources(self, data_type, sources);
+            let (entries, _) = IOracle::get_data_entries_for_sources(self, data_type, sources);
             entries
         }
 
@@ -673,12 +673,11 @@ mod Oracle {
         ) -> PragmaPricesResponse {
             let mut entries = ArrayTrait::<PossibleEntries>::new();
 
-            let (entries, entries_len, last_updated_timestamp) =
-                IOracle::get_data_entries_for_sources(
+            let (entries, last_updated_timestamp) = IOracle::get_data_entries_for_sources(
                 self, data_type, sources
             );
 
-            if (entries_len == 0) {
+            if (entries.len() == 0) {
                 return PragmaPricesResponse {
                     price: 0,
                     decimals: 0,

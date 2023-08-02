@@ -1,6 +1,6 @@
 use pragma::operations::time_series::structs::{TickElem, PAIRWISE_OPERATION};
 
-use cubit::types::fixed::{
+use cubit::f128::types::fixed::{
     HALF_u128, MAX_u128, ONE_u128, Fixed, FixedInto, FixedTrait, FixedAdd, FixedDiv, FixedMul,
     FixedNeg
 };
@@ -145,6 +145,25 @@ fn _sum_volatility(arr: Span<TickElem>) -> Fixed {
         cur_idx = cur_idx + 1;
     };
     sum
+}
+
+fn twap(arr: Span<TickElem>) -> u128 {
+    let mut cur_idx = 1;
+    let mut twap = 0;
+    let mut sum_p = 0;
+    let mut sum_t = 0;
+    loop {
+        if (cur_idx == arr.len()) {
+            break ();
+        }
+        let sub_timestamp = *arr.at(cur_idx).tick - *arr.at(cur_idx - 1).tick;
+        let weighted_prices = *arr.at(cur_idx - 1).value.mag * sub_timestamp.into();
+        sum_p = sum_p + weighted_prices;
+        sum_t = sum_t + sub_timestamp;
+        cur_idx = cur_idx + 1;
+        };
+    twap = sum_p / sum_t.into();
+    return twap ;
 }
 
 /// Computes a result array given two arrays and one operation
@@ -294,5 +313,4 @@ fn test_metrics() {
     let value = volatility(array.span());
     assert(volatility(array.span()) == 48830960, 'wrong volatility'); //10^8
 }
-
 
