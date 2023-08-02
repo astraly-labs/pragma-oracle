@@ -3,7 +3,7 @@ import logging
 from asyncio import run
 from math import ceil, log
 
-from scripts.constants import (
+from scripts.utils.constants import (
     CHAIN_ID,
     COMPILED_CONTRACTS,
     RPC_CLIENT,
@@ -11,14 +11,14 @@ from scripts.constants import (
     pairs,
 )
 from scripts.utils.starknet import (
-    declare,
-    deploy,
     dump_declarations,
     dump_deployments,
     get_declarations,
     get_eth_contract,
     get_starknet_account,
     invoke,
+    deploy_v2,
+    declare_v2
 )
 
 logging.basicConfig()
@@ -37,7 +37,7 @@ async def main():
     logger.info(f"ℹ️  Using account {hex(account.address)} as deployer")
 
     class_hash = {
-        contract["contract_name"]: await declare(contract["contract_name"])
+        contract["contract_name"]: await declare_v2(contract["contract_name"])
         for contract in COMPILED_CONTRACTS
     }
     dump_declarations(class_hash)
@@ -47,27 +47,31 @@ async def main():
     await get_eth_contract()
 
     deployments = {}
-    deployments["publisher_registry"] = await deploy(
-        "publisher_registry",
+    deployments["pragma_PublisherRegistry"] = await deploy_v2(
+        "pragma_PublisherRegistry",
         account.address,  # owner
     )
-    deployments["proxy"] = await deploy(
-        "proxy",
-        class_hash["oracle"],  # owner
+
+    new_currencies = []
+    new_currencies.append(len(currencies))
+    for currency in currencies:
+        new_currencies.extend(currency.serialize())
+
+    new_pairs = []
+    new_pairs.append(len(pairs))
+    for pair in pairs:
+        new_pairs.extend(pair.serialize())
+
+    deployments["pragma_Oracle"] = await deploy_v2(
+        "pragma_Oracle", # 
+        deployments["publisher_registry"]["address"],  # publisher_registry
+        new_currencies, 
+        new_pairs, 
     )
 
     dump_deployments(deployments)
 
-    logger.info("⏳ Configuring Contracts...")
-    await invoke(
-        "proxy",
-        "initializer",
-        admin.address,  # admin
-        deployments["publisher_registry"]["address"],  # publisher_registry
-        currencies,
-        pairs,
-    )
-    logger.info("✅ Configuration Complete")
+    logger.info("✅ Deployment Completed")
 
 
 if __name__ == "__main__":
