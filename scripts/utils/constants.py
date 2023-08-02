@@ -6,21 +6,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.net.gateway_client import GatewayClient
+from starknet_py.net.models.chains import StarknetChainId
 from typing import List
 
 load_dotenv()
 
 ETH_TOKEN_ADDRESS = 0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7
-NETWORK = os.getenv("STARKNET_NETWORK", "devnet")
-NETWORK = (
-    "testnet"
-    if re.match(r".*(testnet|goerli)$", NETWORK, flags=re.I)
-    else "testnet2"
-    if re.match(r".*(testnet|goerli)-?2$", NETWORK, flags=re.I)
-    else "mainnet"
-    if re.match(r".*(mainnet).*", NETWORK, flags=re.I)
-    else "devnet"
-)
 
 NETWORKS = {
     "mainnet": {
@@ -37,64 +28,62 @@ NETWORKS = {
     },
     "devnet": {
         "name": "devnet",
-        "explorer_url": "",
+        "explorer_url": "https://devnet.starkscan.co",
         "rpc_url": "http://127.0.0.1:5050/rpc",
         "feeder_gateway_url": "http://localhost:5050/feeder_gateway",
         "gateway_url": "http://localhost:5050/gateway",
     },
+    # "katana": {
+    #     "name": "katana",
+    #     "explorer_url": "",
+    #     "rpc_url": "http://127.0.0.1:5050",
+    #     "devnet": True,
+    #     "check_interval": 0.1,
+    #     "max_wait": 1,
+    # },
 }
 
-STARKSCAN_URLS = {
-    "mainnet": "https://starkscan.co",
-    "testnet": "https://testnet.starkscan.co",
-    "testnet2": "https://testnet-2.starkscan.co",
-    "devnet": "https://devnet.starkscan.co",
-}
-STARKSCAN_URL = STARKSCAN_URLS[NETWORK]
+NETWORK = NETWORKS[os.getenv("STARKNET_NETWORK", "devnet")]
+NETWORK["account_address"] = os.environ.get(
+    f"{NETWORK['name'].upper()}_ACCOUNT_ADDRESS"
+)
+if NETWORK["account_address"] is None:
+    logger.warning(
+        f"⚠️ {NETWORK['name'].upper()}_ACCOUNT_ADDRESS not set, defaulting to ACCOUNT_ADDRESS"
+    )
+    NETWORK["account_address"] = os.getenv("ACCOUNT_ADDRESS")
+NETWORK["private_key"] = os.environ.get(f"{NETWORK['name'].upper()}_PRIVATE_KEY")
+if NETWORK["private_key"] is None:
+    logger.warning(
+        f"⚠️  {NETWORK['name'].upper()}_PRIVATE_KEY not set, defaulting to PRIVATE_KEY"
+    )
+    NETWORK["private_key"] = os.getenv("PRIVATE_KEY")
+if NETWORK["name"] == "mainnet":
+    NETWORK["chain_id"] = StarknetChainId.MAINNET
+elif NETWORK["name"] == "testnet2":
+    StarknetChainId.TESTNET2
+else:
+    NETWORK["chain_id"] = StarknetChainId.TESTNET
 
-if not os.getenv("RPC_KEY") and NETWORK in ["mainnet", "testnet", "testnet2"]:
-    raise ValueError(f"RPC_KEY env variable is required when targeting {NETWORK}")
-RPC_URLS = {
-    "mainnet": f"https://starknet-mainnet.infura.io/v3/{os.getenv('RPC_KEY')}",
-    "testnet": f"https://starknet-goerli.infura.io/v3/{os.getenv('RPC_KEY')}",
-    "testnet2": f"https://starknet-goerli2.infura.io/v3/{os.getenv('RPC_KEY')}",
-    "devnet": "http://127.0.0.1:5050/rpc",
-}
-RPC_CLIENT = FullNodeClient(node_url=RPC_URLS[NETWORK])
 
 GATEWAY_CLIENT = GatewayClient(
     net={
-        "feeder_gateway_url": NETWORKS[NETWORK]["feeder_gateway_url"],
-        "gateway_url": NETWORKS[NETWORK]["gateway_url"],
+        "feeder_gateway_url": NETWORK["feeder_gateway_url"],
+        "gateway_url": NETWORK["gateway_url"],
     }
 )
 
 
-class ChainId(Enum):
-    mainnet = int.from_bytes(b"SN_MAIN", "big")
-    testnet = int.from_bytes(b"SN_GOERLI", "big")
-    testnet2 = int.from_bytes(b"SN_GOERLI2", "big")
-    devnet = int.from_bytes(b"SN_GOERLI", "big")
 
 
-BUILD_DIR = Path("build")
+BUILD_DIR = Path("target/dev")
 BUILD_DIR.mkdir(exist_ok=True, parents=True)
 SOURCE_DIR = Path("src")
 CONTRACTS = {p.stem: p for p in list(SOURCE_DIR.glob("**/*.cairo"))}
 
-
-ACCOUNT_ADDRESS = os.environ.get(
-    f"{NETWORK.upper()}_ACCOUNT_ADDRESS"
-) or os.environ.get("ACCOUNT_ADDRESS")
-PRIVATE_KEY = os.environ.get(f"{NETWORK.upper()}_PRIVATE_KEY") or os.environ.get(
-    "PRIVATE_KEY"
-)
-
-DEPLOYMENTS_DIR = Path("deployments") / NETWORK
+DEPLOYMENTS_DIR = Path("deployments") / NETWORK["name"]
 DEPLOYMENTS_DIR.mkdir(exist_ok=True, parents=True)
 
-# TODO: get CHAIN_ID from RPC endpoint when starknet-py doesn't expect an enum
-CHAIN_ID = getattr(ChainId, NETWORK)
 COMPILED_CONTRACTS = [
     {"contract_name": "pragma_Oracle", "is_account_contract": False},
     {"contract_name": "pragma_Admin", "is_account_contract": False},

@@ -4,10 +4,9 @@ from asyncio import run
 from math import ceil, log
 
 from scripts.utils.constants import (
-    CHAIN_ID,
     COMPILED_CONTRACTS,
-    RPC_CLIENT,
     currencies,
+    NETWORK,
     pairs,
 )
 from scripts.utils.starknet import (
@@ -29,9 +28,9 @@ logger.setLevel(logging.INFO)
 # %% Main
 async def main():
     # %% Declarations
+    chain_id = NETWORK["chain_id"]
     logger.info(
-        f"ℹ️  Connected to CHAIN_ID {CHAIN_ID.value.to_bytes(ceil(log(CHAIN_ID.value, 256)), 'big')} "
-        f"with RPC {RPC_CLIENT.url}"
+        f"ℹ️  Connected to CHAIN_ID { chain_id }"
     )
     account = await get_starknet_account()
     logger.info(f"ℹ️  Using account {hex(account.address)} as deployer")

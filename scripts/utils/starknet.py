@@ -25,9 +25,6 @@ from utils.constants import (
     ETH_TOKEN_ADDRESS,
     NETWORK,
     GATEWAY_CLIENT,
-    ACCOUNT_ADDRESS,
-    PRIVATE_KEY,
-    CHAIN_ID
     # SOURCE_DIR,
 )
 
@@ -47,13 +44,13 @@ async def get_starknet_account(
     address=None,
     private_key=None,
 ) -> Account:
-    address = address or ACCOUNT_ADDRESS
+    address = address or NETWORK["account_address"]
     if address is None:
         raise ValueError(
             "address was not given in arg nor in env variable, see README.md#Deploy"
         )
     address = int(address, 16)
-    private_key = private_key or PRIVATE_KEY
+    private_key = private_key or NETWORK["private_key"]
     if private_key is None:
         raise ValueError(
             "private_key was not given in arg nor in env variable, see README.md#Deploy"
@@ -63,7 +60,7 @@ async def get_starknet_account(
     return Account(
         address=address,
         client=GATEWAY_CLIENT,
-        chain=CHAIN_ID,
+        chain=NETWORK["chain_id"],
         key_pair=key_pair,
     )
 
