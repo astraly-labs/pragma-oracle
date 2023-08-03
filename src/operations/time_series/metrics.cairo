@@ -295,4 +295,3 @@ fn test_metrics() {
     assert(volatility(array.span()) == 48830960, 'wrong volatility'); //10^8
 }
 
-
