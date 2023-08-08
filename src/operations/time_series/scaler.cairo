@@ -8,7 +8,7 @@ use option::OptionTrait;
 use box::BoxTrait;
 use debug::PrintTrait;
 
-use cubit::types::fixed::{FixedTrait, Fixed, FixedPrint, ONE_u128};
+use cubit::f128::types::fixed::{FixedTrait, Fixed, FixedPrint, ONE_u128};
 
 fn calculate_slope(x1: Fixed, x2: Fixed, y1: Fixed, y2: Fixed) -> Fixed {
     (y2 - y1) / (x2 - x1)
