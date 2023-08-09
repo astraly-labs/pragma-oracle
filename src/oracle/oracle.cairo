@@ -199,6 +199,7 @@ mod Oracle {
     use debug::PrintTrait;
     // const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 100;
+
     #[storage]
     struct Storage {
         //oracle controller address storage, contractAddress
@@ -595,7 +596,6 @@ mod Oracle {
             } else {
                 let last_updated_timestamp = get_latest_entry_timestamp(self, data_type, sources);
                 let current_timestamp: u64 = get_block_timestamp();
-
                 let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
 
                 let (entries, entries_len) = get_all_entries(
@@ -994,7 +994,6 @@ mod Oracle {
             match new_entry {
                 PossibleEntries::Spot(spot_entry) => {
                     validate_sender_for_source(@self, spot_entry);
-
                     let res = self
                         .oracle_data_entry_storage
                         .read((spot_entry.pair_id, SPOT, spot_entry.base.source, 0));
@@ -1036,6 +1035,7 @@ mod Oracle {
                     self
                         .oracle_data_entry_storage
                         .write((spot_entry.pair_id, SPOT, spot_entry.base.source, 0), element);
+
                     //TESTS
 
                     let storage_len = self
@@ -1636,7 +1636,9 @@ mod Oracle {
             return latest_checkpoint_index;
         }
         let first_cp = get_checkpoint_by_index(self, data_type, 0, aggregation_mode);
+
         if (timestamp < first_cp.timestamp) {
+
             assert(false, 'Timestamp is too old');
             return 0;
         }
@@ -1656,6 +1658,7 @@ mod Oracle {
         let high_cp = get_checkpoint_by_index(self, data_type, high, aggregation_mode);
         if (high_cp.timestamp <= target) {
             return high;
+
         }
 
         // Find the middle point

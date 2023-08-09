@@ -55,7 +55,6 @@ fn scale_data(
         let mut slope: Fixed = FixedTrait::new(mag: 0, sign: false);
         if _after {
             //if _after is true, the cur_position is among in the tick_array
-
             let z = tick_array.len() - 1;
             slope =
                 calculate_slope(

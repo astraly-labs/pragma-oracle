@@ -35,7 +35,9 @@ use starknet::Felt252TryIntoContractAddress;
 const ONE_ETH: felt252 = 1000000000000000000;
 const CHAIN_ID: felt252 = 'SN_MAIN';
 const BLOCK_TIMESTAMP: u64 = 103374042;
+
 const NOW: u64 = 100000;
+
 
 fn setup() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
     let mut currencies = ArrayTrait::<Currency>::new();
@@ -169,6 +171,7 @@ fn setup() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
             )
         );
 
+
     //checkpoint = 250000 (Median)
     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Mean(()));
@@ -190,6 +193,7 @@ fn setup() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Mean(()));
 
     starknet::testing::set_block_timestamp(now + 200);
+
     oracle
         .publish_data(
             PossibleEntries::Spot(
@@ -232,6 +236,7 @@ fn setup() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
     //checkpoint = 250000 (Median)
     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Mean(()));
+
 
     (summary_stats, oracle)
 }
@@ -299,4 +304,5 @@ fn test_summary_stats_mean_mean() {
         .calculate_mean(DataType::SpotEntry(2), 100202, (100002 + 400), AggregationMode::Mean(()));
     assert(mean_5 == 2833333, 'wrong mean(6)');
 }
+
 

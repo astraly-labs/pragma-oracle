@@ -66,6 +66,7 @@ mod SummaryStats {
             let oracle_address = self.oracle_address.read();
             let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
 
+
             let (latest_checkpoint_index, _) = oracle_dispatcher
                 .get_latest_checkpoint_index(data_type, aggregation_mode);
 
@@ -95,6 +96,7 @@ mod SummaryStats {
 
             let mean = mean(scaled_arr.span()) / ONE_u128;
 
+
             mean
         }
 
@@ -116,7 +118,6 @@ mod SummaryStats {
                 .get_latest_checkpoint_index(data_type, aggregation_mode);
             let (_start_cp, start_index) = oracle_dispatcher
                 .get_last_checkpoint_before(data_type, start_tick, aggregation_mode);
-
             let mut end_index = 0;
 
             if (end_tick == 0) {
@@ -189,6 +190,7 @@ mod SummaryStats {
             let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
             let offset = latest_checkpoint_index - num_datapoints;
 
+
             if (latest_checkpoint_index < idx * skip_frequency + offset) {
                 break ();
             }
@@ -203,11 +205,13 @@ mod SummaryStats {
                 );
             idx += 1;
         };
+
         let first = *tick_arr.at(0).value.mag;
 
         let first_t = *tick_arr.at(0).tick;
 
-        let _scaled_arr = scale_data(start_tick, end_tick, tick_arr.span(), SCALED_ARR_SIZE);
+        // let _scaled_arr = scale_data(start_tick, end_tick, tick_arr.span(), SCALED_ARR_SIZE);
         return tick_arr;
+
     }
 }
