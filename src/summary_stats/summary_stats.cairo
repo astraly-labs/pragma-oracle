@@ -66,7 +66,6 @@ mod SummaryStats {
             let oracle_address = self.oracle_address.read();
             let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
 
-
             let (latest_checkpoint_index, _) = oracle_dispatcher
                 .get_latest_checkpoint_index(data_type, aggregation_mode);
 
@@ -95,7 +94,6 @@ mod SummaryStats {
             );
 
             let mean = mean(scaled_arr.span()) / ONE_u128;
-
 
             mean
         }
@@ -190,7 +188,6 @@ mod SummaryStats {
             let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
             let offset = latest_checkpoint_index - num_datapoints;
 
-
             if (latest_checkpoint_index < idx * skip_frequency + offset) {
                 break ();
             }
@@ -212,6 +209,5 @@ mod SummaryStats {
 
         // let _scaled_arr = scale_data(start_tick, end_tick, tick_arr.span(), SCALED_ARR_SIZE);
         return tick_arr;
-
     }
 }

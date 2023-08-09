@@ -1638,7 +1638,6 @@ mod Oracle {
         let first_cp = get_checkpoint_by_index(self, data_type, 0, aggregation_mode);
 
         if (timestamp < first_cp.timestamp) {
-
             assert(false, 'Timestamp is too old');
             return 0;
         }
@@ -1658,7 +1657,6 @@ mod Oracle {
         let high_cp = get_checkpoint_by_index(self, data_type, high, aggregation_mode);
         if (high_cp.timestamp <= target) {
             return high;
-
         }
 
         // Find the middle point
