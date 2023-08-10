@@ -127,7 +127,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         );
 
     let admin = contract_address_const::<0x123456789>();
-    set_caller_address(admin);
+    set_contract_address(admin);
     set_block_timestamp(BLOCK_TIMESTAMP);
     set_chain_id(CHAIN_ID);
     let now = 100000;
@@ -144,6 +144,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
 
     //Deploy the oracle
     let mut oracle_calldata = ArrayTrait::<felt252>::new();
+    admin.serialize(ref oracle_calldata);
     publisher_registry_address.serialize(ref oracle_calldata);
     currencies.serialize(ref oracle_calldata);
     pairs.serialize(ref oracle_calldata);
