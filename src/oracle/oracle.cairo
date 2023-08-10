@@ -1036,8 +1036,6 @@ mod Oracle {
                         .oracle_data_entry_storage
                         .write((spot_entry.pair_id, SPOT, spot_entry.base.source, 0), element);
 
-                    //TESTS
-
                     let storage_len = self
                         .oracle_data_len_all_sources
                         .read((spot_entry.pair_id, SPOT, 0));
