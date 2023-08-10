@@ -11,8 +11,8 @@ use serde::Serde;
 
 use starknet::{
     storage_read_syscall, storage_write_syscall, storage_address_from_base_and_offset,
-    storage_access::storage_base_address_from_felt252, StorageAccess, StorageBaseAddress,
-    SyscallResult, ContractAddress, get_caller_address
+    storage_access::storage_base_address_from_felt252, Store, StorageBaseAddress, SyscallResult,
+    ContractAddress, get_caller_address
 };
 use starknet::class_hash::ClassHash;
 use traits::{Into, TryInto};
@@ -177,7 +177,7 @@ mod Oracle {
         USD_CURRENCY_ID, SPOT, FUTURE, OPTION, PossibleEntryStorage, FutureEntry, OptionEntry,
         SimpleDataType, SpotEntryStorage, FutureEntryStorage, AggregationMode, PossibleEntries,
         ArrayEntry, IOracle, Admin, Upgradeable, Serde, storage_read_syscall, storage_write_syscall,
-        storage_address_from_base_and_offset, storage_base_address_from_felt252, StorageAccess,
+        storage_address_from_base_and_offset, storage_base_address_from_felt252, Store,
         StorageBaseAddress, SyscallResult, ContractAddress, get_caller_address, ClassHash, Into,
         TryInto, ResultTrait, ResultTraitImpl, BoxTrait, ArrayTrait, Zeroable,
     };
@@ -359,12 +359,12 @@ mod Oracle {
     }
 
 
-    impl CheckpointStorageAccess of StorageAccess<Checkpoint> {
+    impl CheckpointStoreImpl of Store<Checkpoint> {
         fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<Checkpoint> {
             let timestamp_base = storage_base_address_from_felt252(
                 storage_address_from_base_and_offset(base, 0_u8).into()
             );
-            let timestamp: u64 = StorageAccess::<u128>::read(address_domain, timestamp_base)?
+            let timestamp: u64 = Store::<u128>::read(address_domain, timestamp_base)?
                 .try_into()
                 .unwrap();
 
@@ -372,14 +372,14 @@ mod Oracle {
                 storage_address_from_base_and_offset(base, 1_u8).into()
             );
             let value = u256 {
-                low: StorageAccess::<u128>::read(address_domain, value_base)?,
+                low: Store::<u128>::read(address_domain, value_base)?,
                 high: storage_read_syscall(
                     address_domain, storage_address_from_base_and_offset(value_base, 1_u8)
                 )?
                     .try_into()
                     .expect('StorageAccessU256 - non u256')
             };
-            let u8_aggregation_mode: u8 = StorageAccess::<felt252>::read(
+            let u8_aggregation_mode: u8 = Store::<felt252>::read(
                 address_domain,
                 storage_base_address_from_felt252(
                     storage_address_from_base_and_offset(base, 4_u8).into()
@@ -409,11 +409,11 @@ mod Oracle {
             let timestamp_base = storage_base_address_from_felt252(
                 storage_address_from_base_and_offset(base, 0_u8).into()
             );
-            StorageAccess::write(address_domain, timestamp_base, value.timestamp)?;
+            Store::write(address_domain, timestamp_base, value.timestamp)?;
             let value_base = storage_base_address_from_felt252(
                 storage_address_from_base_and_offset(base, 1_u8).into()
             );
-            StorageAccess::write(address_domain, value_base, value.value.low)?;
+            Store::write(address_domain, value_base, value.value.low)?;
             storage_write_syscall(
                 address_domain,
                 storage_address_from_base_and_offset(value_base, 1_u8),
@@ -432,17 +432,17 @@ mod Oracle {
                 value.num_sources_aggregated.into(),
             )
         }
-        fn read_at_offset_internal(
+        fn read_at_offset(
             address_domain: u32, base: starknet::StorageBaseAddress, offset: u8
         ) -> starknet::SyscallResult<Checkpoint> {
-            CheckpointStorageAccess::read_at_offset_internal(address_domain, base, offset)
+            CheckpointStoreImpl::read_at_offset(address_domain, base, offset)
         }
-        fn write_at_offset_internal(
+        fn write_at_offset(
             address_domain: u32, base: starknet::StorageBaseAddress, offset: u8, value: Checkpoint
         ) -> starknet::SyscallResult<()> {
-            CheckpointStorageAccess::write_at_offset_internal(address_domain, base, offset, value)
+            CheckpointStoreImpl::write_at_offset(address_domain, base, offset, value)
         }
-        fn size_internal(value: Checkpoint) -> u8 {
+        fn size() -> u8 {
             4_u8
         }
     }
