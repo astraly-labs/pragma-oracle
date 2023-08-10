@@ -516,10 +516,12 @@ mod Oracle {
     #[constructor]
     fn constructor(
         ref self: ContractState,
+        admin_address: ContractAddress,
         publisher_registry_address: ContractAddress,
         currencies: Span<Currency>,
         pairs: Span<Pair>
     ) {
+        self.set_admin_address(admin_address);
         self.oracle_publisher_registry_address_storage.write(publisher_registry_address);
         self._set_keys_currencies(currencies);
         self._set_keys_pairs(pairs);
