@@ -10,7 +10,7 @@ casm = true   # Enable CASM codegen.
 [dependencies]
 alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria.git", rev = "9909280" }
 cubit = { git = "https://github.com/influenceth/cubit" }
-starknet = "2.0.0"
+starknet = "2.1.0"
 
 [[target.starknet-contract]]
 # Enable Sierra codegen.

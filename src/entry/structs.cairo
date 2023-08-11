@@ -119,14 +119,14 @@ enum ArrayEntry {
 }
 
 
-#[derive(Serde, Drop, Copy, storage_access::StorageAccess)]
+#[derive(Serde, Drop, Copy, starknet::Store)]
 struct Pair {
     id: felt252, // same as key currently (e.g. str_to_felt("ETH/USD") - force uppercase)
     quote_currency_id: felt252, // currency id - str_to_felt encode the ticker
     base_currency_id: felt252, // currency id - str_to_felt encode the ticker
 }
 
-#[derive(Serde, Drop, Copy, storage_access::StorageAccess)]
+#[derive(Serde, Drop, Copy, starknet::Store)]
 struct Currency {
     id: felt252,
     decimals: u32,
@@ -143,7 +143,7 @@ struct Checkpoint {
     num_sources_aggregated: u32,
 }
 
-#[derive(Serde, Drop, Copy, storage_access::StorageAccess)]
+#[derive(Serde, Drop, Copy, starknet::Store)]
 struct FetchCheckpoint {
     pair_id: felt252,
     type_of: felt252,
