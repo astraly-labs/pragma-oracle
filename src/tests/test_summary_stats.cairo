@@ -36,6 +36,9 @@ const ONE_ETH: felt252 = 1000000000000000000;
 const CHAIN_ID: felt252 = 'SN_MAIN';
 const BLOCK_TIMESTAMP: u64 = 103374042;
 
+const NOW: u64 = 100000;
+
+
 fn setup() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
     let mut currencies = ArrayTrait::<Currency>::new();
     currencies
@@ -168,55 +171,71 @@ fn setup() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
                 }
             )
         );
+
+    //checkpoint = 250000 (Median)
     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
-    starknet::testing::set_block_timestamp(now + 100);
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Mean(()));
+
+    starknet::testing::set_block_timestamp(now + 101);
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry {
+                        timestamp: now + 100, source: 2, publisher: 1
+                    }, pair_id: 2, price: 35 * 100000, volume: 0
+                }
+            )
+        );
+
+    //checkpoint = 275000 (Median)
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Mean(()));
+
+    starknet::testing::set_block_timestamp(now + 200);
+
     oracle
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
                     base: BaseEntry {
                         timestamp: now + 200, source: 2, publisher: 1
-                    }, pair_id: 2, price: 35 * 100000, volume: 0
+                    }, pair_id: 2, price: 4 * 1000000, volume: 0
                 }
             )
         );
+
+    //checkpoint = 300000 (Median)
     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
-    // starknet::testing::set_block_timestamp(now + 200);
-    // oracle
-    //     .publish_data(
-    //         PossibleEntries::Spot(
-    //             SpotEntry {
-    //                 base: BaseEntry {
-    //                     timestamp: now + 200, source: 2, publisher: 1
-    //                 }, pair_id: 2, price: 4 * 1000000, volume: 0
-    //             }
-    //         )
-    //     );
-    // oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
-    // starknet::testing::set_block_timestamp(now + 300);
-    // oracle
-    //     .publish_data(
-    //         PossibleEntries::Spot(
-    //             SpotEntry {
-    //                 base: BaseEntry {
-    //                     timestamp: now + 300, source: 2, publisher: 1
-    //                 }, pair_id: 2, price: 4 * 1000000, volume: 0
-    //             }
-    //         )
-    //     );
-    // oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
-    // starknet::testing::set_block_timestamp(now + 400);
-    // oracle
-    //     .publish_data(
-    //         PossibleEntries::Spot(
-    //             SpotEntry {
-    //                 base: BaseEntry {
-    //                     timestamp: now + 400, source: 2, publisher: 1
-    //                 }, pair_id: 2, price: 3 * 1000000, volume: 0
-    //             }
-    //         )
-    //     );
-    // oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Mean(()));
+    starknet::testing::set_block_timestamp(now + 300);
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry {
+                        timestamp: now + 300, source: 2, publisher: 1
+                    }, pair_id: 2, price: 4 * 1000000, volume: 0
+                }
+            )
+        );
+    //checkpoint = 300000 (Median)
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Mean(()));
+    starknet::testing::set_block_timestamp(now + 400);
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry {
+                        timestamp: now + 400, source: 2, publisher: 1
+                    }, pair_id: 2, price: 3 * 1000000, volume: 0
+                }
+            )
+        );
+    //checkpoint = 250000 (Median)
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Mean(()));
 
     (summary_stats, oracle)
 }
@@ -224,16 +243,64 @@ fn setup() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
 
 #[test]
 #[available_gas(200000000000)]
-fn test_summary_stats_mean() {
+fn test_summary_stats_mean_median() {
     let (summary_stats, oracle) = setup();
-    // starknet::testing::set_block_timestamp(100001);
+    starknet::testing::set_block_timestamp(NOW + 100);
+    let mean = summary_stats
+        .calculate_mean(
+            DataType::SpotEntry(2), 100000, (100002 + 400), AggregationMode::Median(())
+        );
 
-    starknet::testing::set_block_timestamp(100001 + 1100);
-    let check = oracle.get_checkpoint(DataType::SpotEntry(2), 1, AggregationMode::Median(()));
-    check.value.print();
-// let mean = summary_stats
-//     .calculate_mean(
-//         DataType::SpotEntry(2), 100001, (100001 + 400), AggregationMode::Median(())
-//     );
-// mean.print();
+    assert(mean == 2750000, 'wrong mean(1)');
+    let mean_1 = summary_stats
+        .calculate_mean(DataType::SpotEntry(2), 100000, (100002), AggregationMode::Median(()));
+    assert(mean_1 == 2500000, 'wrong mean(2)');
+    let mean_2 = summary_stats
+        .calculate_mean(
+            DataType::SpotEntry(2), 100000, (100002 + 100), AggregationMode::Median(())
+        );
+
+    assert(mean_2 == 2625000, 'wrong mean(3)');
+    let mean_3 = summary_stats
+        .calculate_mean(
+            DataType::SpotEntry(2), 100002, (100002 + 200), AggregationMode::Median(())
+        );
+    assert(mean_3 == 2750000, 'wrong mean(4)');
+    let mean_4 = summary_stats
+        .calculate_mean(
+            DataType::SpotEntry(2), 100002, (100002 + 300), AggregationMode::Median(())
+        );
+    assert(mean_4 == 2812500, 'wrong mean(5)');
+    let mean_5 = summary_stats
+        .calculate_mean(
+            DataType::SpotEntry(2), 100202, (100002 + 400), AggregationMode::Median(())
+        );
+    assert(mean_5 == 2833333, 'wrong mean(6)');
 }
+
+
+#[test]
+#[available_gas(200000000000)]
+fn test_summary_stats_mean_mean() {
+    let (summary_stats, oracle) = setup();
+    starknet::testing::set_block_timestamp(NOW + 100);
+    let mean = summary_stats
+        .calculate_mean(DataType::SpotEntry(2), 100000, (100002 + 400), AggregationMode::Mean(()));
+    assert(mean == 2750000, 'wrong mean(1)');
+    let mean_1 = summary_stats
+        .calculate_mean(DataType::SpotEntry(2), 100000, (100002), AggregationMode::Mean(()));
+    assert(mean_1 == 2500000, 'wrong mean(2)');
+    let mean_2 = summary_stats
+        .calculate_mean(DataType::SpotEntry(2), 100000, (100002 + 100), AggregationMode::Mean(()));
+    assert(mean_2 == 2625000, 'wrong mean(3)');
+    let mean_3 = summary_stats
+        .calculate_mean(DataType::SpotEntry(2), 100002, (100002 + 200), AggregationMode::Mean(()));
+    assert(mean_3 == 2750000, 'wrong mean(4)');
+    let mean_4 = summary_stats
+        .calculate_mean(DataType::SpotEntry(2), 100002, (100002 + 300), AggregationMode::Mean(()));
+    assert(mean_4 == 2812500, 'wrong mean(5)');
+    let mean_5 = summary_stats
+        .calculate_mean(DataType::SpotEntry(2), 100202, (100002 + 400), AggregationMode::Mean(()));
+    assert(mean_5 == 2833333, 'wrong mean(6)');
+}
+

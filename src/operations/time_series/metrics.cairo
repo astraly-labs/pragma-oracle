@@ -294,4 +294,3 @@ fn test_metrics() {
     let value = volatility(array.span());
     assert(volatility(array.span()) == 48830960, 'wrong volatility'); //10^8
 }
-

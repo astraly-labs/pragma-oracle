@@ -198,7 +198,8 @@ mod Oracle {
     use array::SpanTrait;
     use debug::PrintTrait;
     // const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
-    const BACKWARD_TIMESTAMP_BUFFER: u64 = 10;
+    const BACKWARD_TIMESTAMP_BUFFER: u64 = 100;
+
     #[storage]
     struct Storage {
         //oracle controller address storage, contractAddress
@@ -598,6 +599,7 @@ mod Oracle {
                 let last_updated_timestamp = get_latest_entry_timestamp(self, data_type, sources);
                 let current_timestamp: u64 = get_block_timestamp();
                 let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
+
                 let (entries, entries_len) = get_all_entries(
                     self, data_type, sources, conservative_current_timestamp
                 );
@@ -931,7 +933,6 @@ mod Oracle {
             aggregation_mode: AggregationMode,
         ) -> (Checkpoint, u64) {
             let idx = find_startpoint(self, data_type, aggregation_mode, timestamp);
-
             let checkpoint = get_checkpoint_by_index(self, data_type, idx, aggregation_mode);
 
             (checkpoint, idx)
@@ -1484,7 +1485,7 @@ mod Oracle {
                 PossibleEntries::Future(future_entry) => {
                     let is_entry_not_initialized: bool = future_entry.get_base_timestamp() == 0;
                     let condition: bool = is_entry_not_initialized
-                        & (future_entry
+                        && (future_entry
                             .get_base_timestamp() < (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
                     if !condition {
                         entries.append(PossibleEntries::Future(future_entry));
@@ -1635,7 +1636,8 @@ mod Oracle {
             return latest_checkpoint_index;
         }
         let first_cp = get_checkpoint_by_index(self, data_type, 0, aggregation_mode);
-        if (timestamp <= first_cp.timestamp) {
+
+        if (timestamp < first_cp.timestamp) {
             assert(false, 'Timestamp is too old');
             return 0;
         }
@@ -1658,8 +1660,7 @@ mod Oracle {
         }
 
         // Find the middle point
-        let midpoint = low + high / 2;
-
+        let midpoint = (low + high) / 2;
         if midpoint == 0 {
             return 0;
         }

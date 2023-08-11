@@ -68,22 +68,32 @@ mod SummaryStats {
 
             let (latest_checkpoint_index, _) = oracle_dispatcher
                 .get_latest_checkpoint_index(data_type, aggregation_mode);
+
             let (cp, start_index) = oracle_dispatcher
                 .get_last_checkpoint_before(data_type, start, aggregation_mode);
-            assert(start_index != latest_checkpoint_index, 'Not enough data');
+
+            let (stop_cp, stop_index) = oracle_dispatcher
+                .get_last_checkpoint_before(data_type, stop, aggregation_mode);
+            if (start_index == stop_index) {
+                return cp.value.try_into().unwrap();
+            }
+
+            if start_index == latest_checkpoint_index {
+                return cp.value.try_into().unwrap();
+            }
 
             let scaled_arr = _make_scaled_array(
                 oracle_address,
                 data_type,
                 start,
                 stop,
-                latest_checkpoint_index - start_index,
-                latest_checkpoint_index,
+                stop_index - start_index,
+                stop_index,
                 1,
                 aggregation_mode
             );
 
-            let mean = mean(scaled_arr.span());
+            let mean = mean(scaled_arr.span()) / ONE_u128;
 
             mean
         }
@@ -107,6 +117,7 @@ mod SummaryStats {
             let (_start_cp, start_index) = oracle_dispatcher
                 .get_last_checkpoint_before(data_type, start_tick, aggregation_mode);
             let mut end_index = 0;
+
             if (end_tick == 0) {
                 end_index = latest_checkpoint_index;
             } else {
@@ -118,6 +129,7 @@ mod SummaryStats {
             let mut tick_arr = ArrayTrait::<TickElem>::new();
             let skip_frequency = calculate_skip_frequency(end_index - start_index, num_samples);
             let total_samples = (end_index - start_index) / skip_frequency;
+
             let mut idx = 0;
             loop {
                 if (end_index <= idx * skip_frequency + start_index) {
@@ -175,14 +187,13 @@ mod SummaryStats {
         loop {
             let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
             let offset = latest_checkpoint_index - num_datapoints;
-            if (latest_checkpoint_index <= idx * skip_frequency + offset) {
+
+            if (latest_checkpoint_index < idx * skip_frequency + offset) {
                 break ();
             }
-            let test = idx * skip_frequency + offset;
 
             let cp = oracle_dispatcher
                 .get_checkpoint(data_type, idx * skip_frequency + offset, aggregation_mode);
-
             tick_arr
                 .append(
                     TickElem {
@@ -191,9 +202,12 @@ mod SummaryStats {
                 );
             idx += 1;
         };
-        let first = *tick_arr.at(0).value;
+
+        let first = *tick_arr.at(0).value.mag;
+
         let first_t = *tick_arr.at(0).tick;
-        let _scaled_arr = scale_data(start_tick, end_tick, tick_arr.span(), SCALED_ARR_SIZE);
-        return _scaled_arr;
+
+        // let _scaled_arr = scale_data(start_tick, end_tick, tick_arr.span(), SCALED_ARR_SIZE);
+        return tick_arr;
     }
 }

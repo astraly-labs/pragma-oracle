@@ -20,6 +20,7 @@ fn scale_data(
     start_tick: u64, end_tick: u64, tick_array: Span<TickElem>, num_intervals: u32
 ) -> Array<TickElem> {
     let interval = (end_tick - start_tick) / (num_intervals.into() - 1);
+
     let mut output: Array<TickElem> = ArrayTrait::new();
 
     let mut cur_index: u32 = 0;
