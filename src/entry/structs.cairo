@@ -10,14 +10,14 @@ const BOTH_TRUE: felt252 = 2;
 const USD_CURRENCY_ID: felt252 = 'USD';
 
 
-#[derive(Copy, Drop, Serde)]
+#[derive(Copy, Drop, Serde, starknet::Store)]
 struct BaseEntry {
     timestamp: u64,
     source: felt252,
     publisher: felt252,
 }
 
-
+#[derive(Serde, Drop, Copy)]
 struct GenericEntryStorage {
     timestamp__value: u256, 
 }
@@ -28,6 +28,12 @@ struct SpotEntry {
     price: u256,
     pair_id: felt252,
     volume: u256,
+}
+#[derive(Copy, Drop, Serde)]
+struct GenericEntry {
+    base: BaseEntry,
+    key: felt252,
+    value: u256,
 }
 
 #[derive(Copy, Drop, PartialOrd, Serde)]
@@ -87,6 +93,7 @@ struct FutureEntryStorage {
 enum DataType {
     SpotEntry: felt252,
     FutureEntry: (felt252, u64),
+    GenericEntry: felt252,
 // OptionEntry: (felt252, felt252),
 }
 
@@ -108,6 +115,7 @@ enum SimpleDataType {
 enum PossibleEntries {
     Spot: SpotEntry,
     Future: FutureEntry,
+    Generic: GenericEntry,
 // Option: OptionEntry,
 }
 
@@ -115,18 +123,19 @@ enum PossibleEntries {
 enum ArrayEntry {
     SpotEntry: Array<SpotEntry>,
     FutureEntry: Array<FutureEntry>,
+    GenericEntry: Array<GenericEntry>,
 // OptionEntry: Array<OptionEntry>,
 }
 
 
-#[derive(Serde, Drop, Copy, storage_access::StorageAccess)]
+#[derive(Serde, Drop, Copy, starknet::Store)]
 struct Pair {
     id: felt252, // same as key currently (e.g. str_to_felt("ETH/USD") - force uppercase)
     quote_currency_id: felt252, // currency id - str_to_felt encode the ticker
     base_currency_id: felt252, // currency id - str_to_felt encode the ticker
 }
 
-#[derive(Serde, Drop, Copy, storage_access::StorageAccess)]
+#[derive(Serde, Drop, Copy, starknet::Store)]
 struct Currency {
     id: felt252,
     decimals: u32,
@@ -143,7 +152,7 @@ struct Checkpoint {
     num_sources_aggregated: u32,
 }
 
-#[derive(Serde, Drop, Copy, storage_access::StorageAccess)]
+#[derive(Serde, Drop, Copy, starknet::Store)]
 struct FetchCheckpoint {
     pair_id: felt252,
     type_of: felt252,

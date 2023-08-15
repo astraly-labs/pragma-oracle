@@ -161,9 +161,9 @@ fn twap(arr: Span<TickElem>) -> u128 {
         sum_p = sum_p + weighted_prices;
         sum_t = sum_t + sub_timestamp;
         cur_idx = cur_idx + 1;
-        };
+    };
     twap = sum_p / sum_t.into();
-    return twap ;
+    return twap;
 }
 
 /// Computes a result array given two arrays and one operation

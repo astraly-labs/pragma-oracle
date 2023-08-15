@@ -46,12 +46,11 @@ mod SummaryStats {
     use traits::Into;
     use traits::TryInto;
     use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
-    use pragma::summary_stats::interface::ISummaryStats;
     use pragma::entry::structs::{DataType, AggregationMode};
     use pragma::operations::time_series::structs::TickElem;
     use pragma::operations::time_series::metrics::{volatility, mean, twap};
     use pragma::operations::time_series::scaler::scale_data;
-    use super::{FixedTrait, Fixed, ONE_u128, PrintTrait};
+    use super::{FixedTrait, Fixed, ONE_u128, PrintTrait, ISummaryStatsABI};
     const SCALED_ARR_SIZE: u32 = 30;
     #[storage]
     struct Storage {
@@ -64,7 +63,7 @@ mod SummaryStats {
     }
 
     #[external(v0)]
-    impl SummaryStatsImpl of ISummaryStats<ContractState> {
+    impl SummaryStatsImpl of ISummaryStatsABI<ContractState> {
         fn calculate_mean(
             self: @ContractState,
             data_type: DataType,
@@ -96,13 +95,13 @@ mod SummaryStats {
                 data_type,
                 start,
                 stop,
-                latest_checkpoint_index - start_index,
-                latest_checkpoint_index,
+                stop_index - start_index,
+                stop_index,
                 1,
                 aggregation_mode
             );
 
-            let mean = mean(scaled_arr.span());
+            let mean = mean(scaled_arr.span()) / ONE_u128;
 
             (mean, decimals)
         }
@@ -189,16 +188,16 @@ mod SummaryStats {
             };
             (twap(tick_arr.span()), decimals)
         }
+
+
+        fn get_oracle_address(self: @ContractState) -> ContractAddress {
+            self.oracle_address.read()
+        }
     }
 
     //
     // Views
     //
-
-    fn get_oracle_address(self: @ContractState) -> ContractAddress {
-        self.oracle_address.read()
-    }
-
 
     fn calculate_skip_frequency(total_samples: u64, num_samples: u64) -> u64 {
         let skip_frequency = total_samples / num_samples;
@@ -228,7 +227,7 @@ mod SummaryStats {
         loop {
             let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
             let offset = latest_checkpoint_index - num_datapoints;
-            if (latest_checkpoint_index <= idx * skip_frequency + offset) {
+            if (latest_checkpoint_index < idx * skip_frequency + offset) {
                 break ();
             }
             let test = idx * skip_frequency + offset;
@@ -246,7 +245,7 @@ mod SummaryStats {
         };
         let first = *tick_arr.at(0).value;
         let first_t = *tick_arr.at(0).tick;
-        let _scaled_arr = scale_data(start_tick, end_tick, tick_arr.span(), SCALED_ARR_SIZE);
-        return _scaled_arr;
+        // let _scaled_arr = scale_data(start_tick, end_tick, tick_arr.span(), SCALED_ARR_SIZE);
+        return tick_arr;
     }
 }

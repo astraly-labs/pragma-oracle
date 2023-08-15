@@ -19,9 +19,8 @@ use pragma::publisher_registry::publisher_registry::PublisherRegistry;
 use debug::PrintTrait;
 use starknet::ClassHash;
 use starknet::SyscallResultTrait;
-use starknet::testing::{
-    set_caller_address, set_contract_address, set_block_timestamp, set_chain_id,
-};
+use starknet::testing::{set_contract_address, set_block_timestamp, set_chain_id, };
+use starknet::get_caller_address;
 use starknet::syscalls::deploy_syscall;
 use starknet::class_hash::{Felt252TryIntoClassHash};
 use starknet::Felt252TryIntoContractAddress;
@@ -127,7 +126,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         );
 
     let admin = contract_address_const::<0x123456789>();
-    set_caller_address(admin);
+
     set_block_timestamp(BLOCK_TIMESTAMP);
     set_chain_id(CHAIN_ID);
     let now = 100000;
@@ -141,9 +140,10 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
     let mut publisher_registry = IPublisherRegistryABIDispatcher {
         contract_address: publisher_registry_address
     };
-
+    set_contract_address(admin);
     //Deploy the oracle
     let mut oracle_calldata = ArrayTrait::<felt252>::new();
+    admin.serialize(ref oracle_calldata);
     publisher_registry_address.serialize(ref oracle_calldata);
     currencies.serialize(ref oracle_calldata);
     pairs.serialize(ref oracle_calldata);
@@ -153,7 +153,6 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .unwrap_syscall();
 
     let mut oracle = IOracleABIDispatcher { contract_address: oracle_address };
-    set_contract_address(admin);
     publisher_registry.add_publisher(1, admin);
     // Add source 1 for publisher 1
     publisher_registry.add_source_for_publisher(1, 1);
@@ -417,12 +416,22 @@ fn data_treatment(entry: PossibleEntries) -> (u256, u64) {
         },
         PossibleEntries::Future(entry) => {
             (entry.price, entry.base.timestamp)
+        },
+        PossibleEntries::Generic(entry) => {
+            (entry.value, entry.base.timestamp)
         }
     }
 }
+
+
 #[test]
-#[available_gas(2000000000)]
-fn get_data_entry_for_source() {}
+#[available_gas(10000000000)]
+fn test_get_admin_address() {
+    let admin = contract_address_const::<0x123456789>();
+    let (publisher_registry, oracle) = setup();
+    let admin_address = oracle.get_admin_address();
+    assert(admin_address == admin, 'wrong admin address');
+}
 
 #[test]
 #[available_gas(2000000000)]
