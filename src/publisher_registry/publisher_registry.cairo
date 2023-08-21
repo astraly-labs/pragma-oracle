@@ -19,6 +19,8 @@ trait IPublisherRegistryABI<TContractState> {
     fn get_publisher_address(self: @TContractState, publisher: felt252) -> ContractAddress;
     fn set_admin_address(ref self: TContractState, new_admin_address: ContractAddress);
     fn get_admin_address(self: @TContractState) -> ContractAddress;
+    fn get_all_publishers(self: @TContractState) -> Array<felt252>;
+    fn get_publisher_sources(self: @TContractState, publisher: felt252) -> Array<felt252>;
 }
 
 #[starknet::contract]
@@ -257,18 +259,28 @@ mod PublisherRegistry {
             let res = Admin::get_admin_address(@state);
             res
         }
+
+        fn get_all_publishers(self: @ContractState) -> Array<felt252> {
+            let publishers_len = self.publishers_storage_len.read();
+            let mut publishers = ArrayTrait::new();
+
+            _build_array(self, 0_usize, publishers_len, ref publishers);
+
+            publishers
+        }
+
+        fn get_publisher_sources(self: @ContractState, publisher: felt252) -> Array<felt252> {
+            let cur_idx = self.publishers_sources_idx.read(publisher);
+            if (cur_idx == 0) {
+                return array![];
+            }
+
+            let mut sources = ArrayTrait::new();
+            _iter_publisher_sources(self, 0_usize, cur_idx, publisher, ref sources);
+
+            sources
+        }
     }
-
-
-    fn get_all_publishers(self: @ContractState) -> Array<felt252> {
-        let publishers_len = self.publishers_storage_len.read();
-        let mut publishers = ArrayTrait::new();
-
-        _build_array(self, 0_usize, publishers_len, ref publishers);
-
-        publishers
-    }
-
 
     //
     // Internals

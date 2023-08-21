@@ -42,3 +42,9 @@ tmp
 
 # scarb
 target
+
+# Scripts
+
+# Python
+scripts/__pycache__
+scripts/venv
