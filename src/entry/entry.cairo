@@ -29,7 +29,10 @@ impl GHasPriceImpl of HasPrice<GenericEntry> {
 }
 
 mod Entry {
-    use super::{ArrayTrait, BaseEntry, AggregationMode, merge, SpotEntry, FutureEntry, GenericEntry, TryInto, Into, OptionTrait, HasPrice};
+    use super::{
+        ArrayTrait, BaseEntry, AggregationMode, merge, SpotEntry, FutureEntry, GenericEntry,
+        TryInto, Into, OptionTrait, HasPrice
+    };
 
     trait hasBaseEntry<T> {
         fn get_base_entry(self: @T) -> BaseEntry;
@@ -60,7 +63,6 @@ mod Entry {
             (*self).base.timestamp
         }
     }
-
 
 
     //

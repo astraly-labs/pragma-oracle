@@ -106,7 +106,6 @@ fn setup() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
                 base_currency_id: USD_CURRENCY_ID, // currency id - str_to_felt encode the ticker
             }
         );
-    
 
     let admin = contract_address_const::<0x123456789>();
     set_contract_address(admin);
@@ -372,13 +371,7 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
                 base_currency_id: USD_CURRENCY_ID, // currency id - str_to_felt encode the ticker
             }
         );
-    pairs.append(
-        Pair{
-            id: 3, 
-            quote_currency_id: 222, 
-            base_currency_id: USD_CURRENCY_ID
-        }
-    );
+    pairs.append(Pair { id: 3, quote_currency_id: 222, base_currency_id: USD_CURRENCY_ID });
     let admin = contract_address_const::<0x123456789>();
     set_contract_address(admin);
     set_block_timestamp(BLOCK_TIMESTAMP);
@@ -421,7 +414,7 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
     // Add source 2 for publisher 1
     publisher_registry.add_source_for_publisher(1, 2);
     //Add source 3 for publisher 1
-    publisher_registry.add_source_for_publisher(1,3);
+    publisher_registry.add_source_for_publisher(1, 3);
     starknet::testing::set_block_timestamp(now);
     oracle
         .publish_data(
@@ -444,7 +437,7 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
             )
         );
     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
-    starknet::testing::set_block_timestamp(now+200);
+    starknet::testing::set_block_timestamp(now + 200);
     oracle
         .publish_data(
             PossibleEntries::Future(
@@ -457,9 +450,8 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         );
 
     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
-    
 
-    starknet::testing::set_block_timestamp(now+400);
+    starknet::testing::set_block_timestamp(now + 400);
     oracle
         .publish_data(
             PossibleEntries::Future(
@@ -471,7 +463,7 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
             )
         );
     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
-    starknet::testing::set_block_timestamp(now+600);
+    starknet::testing::set_block_timestamp(now + 600);
     oracle
         .publish_data(
             PossibleEntries::Future(
@@ -519,7 +511,7 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
             DataType::FutureEntry((3, 11111110)), AggregationMode::Median(())
         ); // 4 *10**6
 
-    starknet::testing::set_block_timestamp(now+200);
+    starknet::testing::set_block_timestamp(now + 200);
     oracle
         .publish_data(
             PossibleEntries::Future(
@@ -544,7 +536,7 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .set_checkpoint(
             DataType::FutureEntry((3, 11111110)), AggregationMode::Median(())
         ); // 8 *10**6
-    starknet::testing::set_block_timestamp(now+400);
+    starknet::testing::set_block_timestamp(now + 400);
     oracle
         .publish_data(
             PossibleEntries::Future(
@@ -579,7 +571,7 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .set_checkpoint(
             DataType::FutureEntry((3, 11111110)), AggregationMode::Median(())
         ); // 3 *10**6
-    starknet::testing::set_block_timestamp(now+600);
+    starknet::testing::set_block_timestamp(now + 600);
     oracle
         .publish_data(
             PossibleEntries::Future(
@@ -607,35 +599,41 @@ fn test_set_future_checkpoint() {
     set_contract_address(admin);
     let (summary_stats, oracle) = setup_twap();
 
-    let (twap_test,decimals) = summary_stats.calculate_twap(
-        DataType::FutureEntry((2, 11111110)),AggregationMode::Median(()), 10000, 100001
-    );
-    assert (twap_test == 4333333, 'wrong twap(1)');
-    assert (decimals == 6, 'wrong decimals(1)'); 
-    let (twap_test_2,decimals) = summary_stats.calculate_twap(
-         DataType::FutureEntry((2, 11111110)),AggregationMode::Median(()), 10000, 100201
-    );
-    
-    assert (twap_test_2 == 5500000, 'wrong twap(2)');
-    assert (decimals == 6, 'wrong decimals(2)'); 
-    let (twap_test_3,decimals) = summary_stats.calculate_twap(
-         DataType::FutureEntry((2, 11111110)),AggregationMode::Median(()), 10000, 100401
-    );
-    assert (twap_test_3 == 3000000, 'wrong twap(3)');
-    assert (decimals == 6, 'wrong decimals(3)'); 
-    let (twap_test_4,decimals) = summary_stats.calculate_twap(
-         DataType::FutureEntry((3, 11111110)),AggregationMode::Median(()), 10000, 100001
-    );
-    assert (twap_test_4 == 5000000, 'wrong twap(4)');
-    assert (decimals == 6, 'wrong decimals(4)'); 
-    let (twap_test_5,decimals) = summary_stats.calculate_twap(
-        DataType::FutureEntry((3, 11111110)),AggregationMode::Median(()), 10000, 100201
-    );
-    assert (twap_test_5 == 5500000,'wrong twap(5)');
-    assert (decimals == 6, 'wrong decimals(5)');  
-    let (twap_test_6,decimals) = summary_stats.calculate_twap(
-         DataType::FutureEntry((3, 11111110)),AggregationMode::Median(()), 10000, 100401
-    );
-    assert (twap_test_6 == 3000000, 'wrong twap(6)');
+    let (twap_test, decimals) = summary_stats
+        .calculate_twap(
+            DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()), 10000, 100001
+        );
+    assert(twap_test == 4333333, 'wrong twap(1)');
+    assert(decimals == 6, 'wrong decimals(1)');
+    let (twap_test_2, decimals) = summary_stats
+        .calculate_twap(
+            DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()), 10000, 100201
+        );
+
+    assert(twap_test_2 == 5500000, 'wrong twap(2)');
+    assert(decimals == 6, 'wrong decimals(2)');
+    let (twap_test_3, decimals) = summary_stats
+        .calculate_twap(
+            DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()), 10000, 100401
+        );
+    assert(twap_test_3 == 3000000, 'wrong twap(3)');
+    assert(decimals == 6, 'wrong decimals(3)');
+    let (twap_test_4, decimals) = summary_stats
+        .calculate_twap(
+            DataType::FutureEntry((3, 11111110)), AggregationMode::Median(()), 10000, 100001
+        );
+    assert(twap_test_4 == 5000000, 'wrong twap(4)');
+    assert(decimals == 6, 'wrong decimals(4)');
+    let (twap_test_5, decimals) = summary_stats
+        .calculate_twap(
+            DataType::FutureEntry((3, 11111110)), AggregationMode::Median(()), 10000, 100201
+        );
+    assert(twap_test_5 == 5500000, 'wrong twap(5)');
+    assert(decimals == 6, 'wrong decimals(5)');
+    let (twap_test_6, decimals) = summary_stats
+        .calculate_twap(
+            DataType::FutureEntry((3, 11111110)), AggregationMode::Median(()), 10000, 100401
+        );
+    assert(twap_test_6 == 3000000, 'wrong twap(6)');
     return ();
 }

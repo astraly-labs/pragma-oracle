@@ -18,7 +18,7 @@ use starknet::class_hash::ClassHash;
 use traits::{Into, TryInto};
 use result::{ResultTrait, ResultTraitImpl};
 use box::BoxTrait;
-use array::{SpanTrait,ArrayTrait};
+use array::{SpanTrait, ArrayTrait};
 use zeroable::Zeroable;
 
 #[starknet::interface]
@@ -168,7 +168,7 @@ mod Oracle {
         storage_read_syscall, storage_write_syscall, storage_address_from_base_and_offset,
         storage_base_address_from_felt252, Store, StorageBaseAddress, SyscallResult,
         ContractAddress, get_caller_address, ClassHash, Into, TryInto, ResultTrait, ResultTraitImpl,
-        BoxTrait, ArrayTrait, SpanTrait,Zeroable, IOracleABI, GenericEntryStorage
+        BoxTrait, ArrayTrait, SpanTrait, Zeroable, IOracleABI, GenericEntryStorage
     };
     use hash::LegacyHash;
     use pragma::entry::entry::Entry;
@@ -1224,7 +1224,7 @@ mod Oracle {
                     let res = self
                         .oracle_data_entry_storage
                         .read((generic_entry.key, GENERIC, generic_entry.base.source, 0));
-                        
+
                     if (res != 0) {
                         let entry: PossibleEntries = IOracleABI::get_data_entry(
                             @self,
@@ -1258,13 +1258,13 @@ mod Oracle {
                             Event::SubmittedGenericEntry(SubmittedGenericEntry { generic_entry })
                         );
                     let test = self
-                            .oracle_sources_len_storage
-                            .read((generic_entry.key, GENERIC, 0));
-                    
+                        .oracle_sources_len_storage
+                        .read((generic_entry.key, GENERIC, 0));
+
                     let conv_timestamp: u256 = u256 {
                         low: generic_entry.base.timestamp.into(), high: 0
                     };
-                    
+
                     let element = actual_set_element_at(0, 0, 31, conv_timestamp);
                     let element = actual_set_element_at(element, 32, 30, 0);
                     let element = actual_set_element_at(element, 63, 65, generic_entry.value);

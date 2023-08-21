@@ -139,15 +139,14 @@ mod YieldCurve {
             let oracle_address = self.oracle_address_storage.read();
 
             let on_keys = IYieldCurveABI::get_on_keys(self);
-            let mut on_yield_points = build_on_yield_points(self, on_keys, decimals);    
-                
+            let mut on_yield_points = build_on_yield_points(self, on_keys, decimals);
+
             let pair_ids = IYieldCurveABI::get_pair_ids(self);
             let future_spot_pragma_source_key = self.future_spot_pragma_source_key_storage.read();
             let yield_points = build_future_spot_yield_points(
                 self, pair_ids, future_spot_pragma_source_key, decimals, ref on_yield_points
             );
             return yield_points;
-        
         }
 
         fn get_admin_address(self: @ContractState) -> ContractAddress {
@@ -447,7 +446,7 @@ mod YieldCurve {
             }
             let output: PragmaPricesResponse = oracle_dispatcher
                 .get_data(DataType::GenericEntry(on_key), AggregationMode::Median(()));
-            
+
             if (output.last_updated_timestamp == 0) {
                 //No data, skip to the next one 
                 cur_idx = cur_idx + 1;
@@ -475,7 +474,7 @@ mod YieldCurve {
         self: @ContractState,
         pair_ids: Span<felt252>,
         future_spot_pragma_source_key: felt252,
-        output_decimals: u32, 
+        output_decimals: u32,
         ref yield_points: Array<YieldPoint>
     ) -> Span<YieldPoint> {
         let mut cur_idx = 0;
@@ -594,7 +593,7 @@ mod YieldCurve {
                 cur_idx = cur_idx + 1;
                 continue;
             }
-        
+
             if future_entry.base.timestamp != spot_entry.base.timestamp {
                 cur_idx = cur_idx + 1;
                 continue;
@@ -607,7 +606,7 @@ mod YieldCurve {
                 future_decimals,
                 output_decimals
             );
-             
+
             yield_points.append(yield_point);
             cur_idx = cur_idx + 1;
         };
