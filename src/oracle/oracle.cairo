@@ -524,7 +524,9 @@ mod Oracle {
         currencies: Span<Currency>,
         pairs: Span<Pair>
     ) {
-        self.set_admin_address(admin_address);
+        let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
+        Admin::initialize_admin_address(ref state, admin_address);
+
         self.oracle_publisher_registry_address_storage.write(publisher_registry_address);
         self._set_keys_currencies(currencies);
         self._set_keys_pairs(pairs);
