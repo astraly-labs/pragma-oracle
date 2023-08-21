@@ -618,51 +618,50 @@ fn test_set_checkpoint_should_fail_if_wrong_data_type() {
     let (publisher_registry, oracle) = setup();
     oracle.set_checkpoint(DataType::SpotEntry(6), AggregationMode::Median(()));
 }
- #[test]
- #[available_gas(2000000000)]
- fn test_get_last_checkpoint_before() {
-     let (publisher_registry, oracle) = setup();
-     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
-     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
+#[test]
+#[available_gas(2000000000)]
+fn test_get_last_checkpoint_before() {
+    let (publisher_registry, oracle) = setup();
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+    oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
 
-     let (checkpoint, idx) = oracle
-         .get_last_checkpoint_before(DataType::SpotEntry(2),  111111111,AggregationMode::Median(()));
-     assert(checkpoint.value == (2500000).into(), 'wrong checkpoint');
-     assert(idx == 0, 'wrong idx');
-     assert(checkpoint.timestamp <= 111111111, 'wrong timestamp');
-     let (checkpoint_2, idx_2) = oracle
-         .get_last_checkpoint_before(
-             DataType::FutureEntry((2, 11111110)), 1111111111,AggregationMode::Median(()),
-         );
+    let (checkpoint, idx) = oracle
+        .get_last_checkpoint_before(DataType::SpotEntry(2), 111111111, AggregationMode::Median(()));
+    assert(checkpoint.value == (2500000).into(), 'wrong checkpoint');
+    assert(idx == 0, 'wrong idx');
+    assert(checkpoint.timestamp <= 111111111, 'wrong timestamp');
+    let (checkpoint_2, idx_2) = oracle
+        .get_last_checkpoint_before(
+            DataType::FutureEntry((2, 11111110)), 1111111111, AggregationMode::Median(()), 
+        );
 
-     assert(checkpoint_2.value == (2000000).into(), 'wrong checkpoint');
-     assert(idx_2 == 0, 'wrong idx');
-     assert(checkpoint_2.timestamp <= 111111111, 'wrong timestamp');
- }
+    assert(checkpoint_2.value == (2000000).into(), 'wrong checkpoint');
+    assert(idx_2 == 0, 'wrong idx');
+    assert(checkpoint_2.timestamp <= 111111111, 'wrong timestamp');
+}
 
- #[test]
- #[should_panic]
- #[available_gas(2000000000)]
- fn test_get_last_checkpoint_before_should_fail_if_wrong_data_type() {
-     let (publisher_registry, oracle) = setup();
-     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
-     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
+#[test]
+#[should_panic]
+#[available_gas(2000000000)]
+fn test_get_last_checkpoint_before_should_fail_if_wrong_data_type() {
+    let (publisher_registry, oracle) = setup();
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+    oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
 
-     let (checkpoint, idx) = oracle
-         .get_last_checkpoint_before(DataType::SpotEntry(6),  111111111,AggregationMode::Median(()));
- }
+    let (checkpoint, idx) = oracle
+        .get_last_checkpoint_before(DataType::SpotEntry(6), 111111111, AggregationMode::Median(()));
+}
 
- #[test]
- #[should_panic]
- #[available_gas(2000000000)]
- fn test_get_last_checkpoint_before_should_fail_if_timestamp_too_old() {
-     //if timestamp is before the first checkpoint
-     let (publisher_registry, oracle) = setup();
-     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
-     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
+#[test]
+#[should_panic]
+#[available_gas(2000000000)]
+fn test_get_last_checkpoint_before_should_fail_if_timestamp_too_old() {
+    //if timestamp is before the first checkpoint
+    let (publisher_registry, oracle) = setup();
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+    oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
 
-     let (checkpoint, idx) = oracle
-         .get_last_checkpoint_before(DataType::SpotEntry(6), 111,AggregationMode::Median(()));
- }
-
+    let (checkpoint, idx) = oracle
+        .get_last_checkpoint_before(DataType::SpotEntry(6), 111, AggregationMode::Median(()));
+}
 

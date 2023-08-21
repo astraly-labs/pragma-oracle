@@ -2,7 +2,8 @@ use array::{ArrayTrait, SpanTrait};
 use starknet::ContractAddress;
 use starknet::syscalls::deploy_syscall;
 use pragma::entry::structs::{
-    Currency, Pair, PossibleEntries, SpotEntry, FutureEntry, BaseEntry, GenericEntry, DataType, AggregationMode
+    Currency, Pair, PossibleEntries, SpotEntry, FutureEntry, BaseEntry, GenericEntry, DataType,
+    AggregationMode
 };
 use starknet::testing::{set_contract_address, set_block_timestamp, set_chain_id, };
 use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
@@ -154,7 +155,7 @@ fn test_yield_curve_computation() {
     let (oracle, yield_curve) = setup();
     let output_decimals = 8;
     set_block_timestamp(STARKNET_STARTING_TIMESTAMP);
-    
+
     oracle
         .publish_data(
             PossibleEntries::Generic(
@@ -215,16 +216,16 @@ fn test_yield_curve_computation() {
                 }
             )
         );
-   
+
     let result = yield_curve.get_yield_points(output_decimals);
     let test = *result.at(0);
-    assert(test.rate==10000000, 'yield computation failed');
+    assert(test.rate == 10000000, 'yield computation failed');
     assert(test.expiry_timestamp == STARKNET_STARTING_TIMESTAMP, 'wrong on timestamp');
     let test_1 = *result.at(1);
-    assert(test_1.rate==0, 'yield computation failed');
-    assert(test_1.expiry_timestamp==1656039600, 'wrong expiry for 1st');
+    assert(test_1.rate == 0, 'yield computation failed');
+    assert(test_1.expiry_timestamp == 1656039600, 'wrong expiry for 1st');
     let test_2 = *result.at(2);
-    assert(test_2.rate==22661716, 'yield computation failed');
-    assert(test_2.expiry_timestamp==1664506800,'wrong expiry for 2nd');
+    assert(test_2.rate == 22661716, 'yield computation failed');
+    assert(test_2.expiry_timestamp == 1664506800, 'wrong expiry for 2nd');
     return ();
 }
