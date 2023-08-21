@@ -247,7 +247,7 @@ fn test_summary_stats_mean_median() {
         .calculate_mean(
             DataType::SpotEntry(2), 100000, (100002 + 400), AggregationMode::Median(())
         );
-    mean.print();
+
     assert(mean == 2750000, 'wrong mean(1)');
     let (mean_1, _) = summary_stats
         .calculate_mean(DataType::SpotEntry(2), 100000, (100002), AggregationMode::Median(()));
@@ -283,7 +283,6 @@ fn test_summary_stats_mean_mean() {
     starknet::testing::set_block_timestamp(NOW + 100);
     let (mean, _) = summary_stats
         .calculate_mean(DataType::SpotEntry(2), 100000, (100002 + 400), AggregationMode::Mean(()));
-    mean.print();
     assert(mean == 2750000, 'wrong mean(1)');
     let (mean_1, _) = summary_stats
         .calculate_mean(DataType::SpotEntry(2), 100000, (100002), AggregationMode::Mean(()));

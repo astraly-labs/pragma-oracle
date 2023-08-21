@@ -18,7 +18,7 @@ use starknet::class_hash::ClassHash;
 use traits::{Into, TryInto};
 use result::{ResultTrait, ResultTraitImpl};
 use box::BoxTrait;
-use array::ArrayTrait;
+use array::{SpanTrait,ArrayTrait};
 use zeroable::Zeroable;
 
 #[starknet::interface]
@@ -33,7 +33,7 @@ trait IOracleABI<TContractState> {
     ) -> PragmaPricesResponse;
     fn get_data_median_multi(
         self: @TContractState, data_types: Span<DataType>, sources: Span<felt252>
-    ) -> Array<PragmaPricesResponse>;
+    ) -> Span<PragmaPricesResponse>;
     fn get_data_entry(
         self: @TContractState, data_type: DataType, source: felt252
     ) -> PossibleEntries;
@@ -43,10 +43,10 @@ trait IOracleABI<TContractState> {
         aggregation_mode: AggregationMode,
         sources: Span<felt252>
     ) -> PragmaPricesResponse;
-    fn get_data_entries(self: @TContractState, data_type: DataType) -> Array<PossibleEntries>;
+    fn get_data_entries(self: @TContractState, data_type: DataType) -> Span<PossibleEntries>;
     fn get_data_entries_for_sources(
         self: @TContractState, data_type: DataType, sources: Span<felt252>
-    ) -> (Array<PossibleEntries>, u64);
+    ) -> (Span<PossibleEntries>, u64);
     fn get_last_checkpoint_before(
         self: @TContractState,
         data_type: DataType,
@@ -123,14 +123,14 @@ trait IPragmaABI<TContractState> {
 
     fn get_data_entries_for_sources(
         self: @TContractState, data_type: DataType, sources: Span<felt252>
-    ) -> (Array<PossibleEntries>, u64);
+    ) -> (Span<PossibleEntries>, u64);
 
     fn get_data_median_multi(
         self: @TContractState, data_types: Span<DataType>, sources: Span<felt252>
-    ) -> Array<PragmaPricesResponse>;
+    ) -> Span<PragmaPricesResponse>;
 
 
-    fn get_data_entries(self: @TContractState, data_type: DataType) -> Array<PossibleEntries>;
+    fn get_data_entries(self: @TContractState, data_type: DataType) -> Span<PossibleEntries>;
 
     fn get_last_checkpoint_before(
         self: @TContractState,
@@ -151,6 +151,10 @@ trait IPragmaABI<TContractState> {
     fn get_latest_checkpoint(
         self: @TContractState, data_type: DataType, aggregation_mode: AggregationMode
     ) -> Checkpoint;
+
+    fn get_latest_checkpoint_index(
+        self: @TContractState, data_type: DataType, aggregation_mode: AggregationMode
+    ) -> (u64, bool);
 }
 
 
@@ -164,7 +168,7 @@ mod Oracle {
         storage_read_syscall, storage_write_syscall, storage_address_from_base_and_offset,
         storage_base_address_from_felt252, Store, StorageBaseAddress, SyscallResult,
         ContractAddress, get_caller_address, ClassHash, Into, TryInto, ResultTrait, ResultTraitImpl,
-        BoxTrait, ArrayTrait, Zeroable, IOracleABI, GenericEntryStorage
+        BoxTrait, ArrayTrait, SpanTrait,Zeroable, IOracleABI, GenericEntryStorage
     };
     use hash::LegacyHash;
     use pragma::entry::entry::Entry;
@@ -180,7 +184,6 @@ mod Oracle {
 
     use cmp::{max, min};
     use option::OptionTrait;
-    use array::SpanTrait;
     use debug::PrintTrait;
     // const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 100;
@@ -582,7 +585,7 @@ mod Oracle {
 
         fn get_data_entries_for_sources(
             self: @ContractState, data_type: DataType, sources: Span<felt252>
-        ) -> (Array<PossibleEntries>, u64) {
+        ) -> (Span<PossibleEntries>, u64) {
             if (sources.len() == 0) {
                 let all_sources = get_all_sources(self, data_type);
                 let last_updated_timestamp = get_latest_entry_timestamp(
@@ -593,7 +596,7 @@ mod Oracle {
                 let (entries, entries_len) = get_all_entries(
                     self, data_type, all_sources.span(), conservative_current_timestamp
                 );
-                return (entries, conservative_current_timestamp);
+                return (entries.span(), conservative_current_timestamp);
             } else {
                 let last_updated_timestamp = get_latest_entry_timestamp(self, data_type, sources);
                 let current_timestamp: u64 = get_block_timestamp();
@@ -601,13 +604,13 @@ mod Oracle {
                 let (entries, entries_len) = get_all_entries(
                     self, data_type, sources, conservative_current_timestamp
                 );
-                return (entries, conservative_current_timestamp);
+                return (entries.span(), conservative_current_timestamp);
             }
         //TO BE CHECKED, FOR LAST_UPDATED_TIMESTAMP
         }
 
 
-        fn get_data_entries(self: @ContractState, data_type: DataType) -> Array<PossibleEntries> {
+        fn get_data_entries(self: @ContractState, data_type: DataType) -> Span<PossibleEntries> {
             let mut sources = ArrayTrait::<felt252>::new();
             let sources = get_all_sources(self, data_type).span();
             let (entries, _) = IOracleABI::get_data_entries_for_sources(self, data_type, sources);
@@ -636,7 +639,7 @@ mod Oracle {
 
         fn get_data_median_multi(
             self: @ContractState, data_types: Span<DataType>, sources: Span<felt252>
-        ) -> Array<PragmaPricesResponse> {
+        ) -> Span<PragmaPricesResponse> {
             let mut prices_response = ArrayTrait::<PragmaPricesResponse>::new();
             let mut cur_idx = 0;
             loop {
@@ -650,7 +653,7 @@ mod Oracle {
                 prices_response.append(cur_prices_response);
                 cur_idx += 1;
             };
-            prices_response
+            prices_response.span()
         }
 
 
@@ -658,7 +661,6 @@ mod Oracle {
             self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
         ) -> PragmaPricesResponse {
             let sources = get_all_sources(self, data_type).span();
-
             let prices_response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
                 self, data_type, aggregation_mode, sources
             );
@@ -690,7 +692,7 @@ mod Oracle {
             }
 
             // TODO: Return only array instead of `ArrayEntry`
-            let filtered_entries: ArrayEntry = filter_data_array(data_type, @entries);
+            let filtered_entries: ArrayEntry = filter_data_array(data_type, entries);
 
             match data_type {
                 DataType::SpotEntry(pair_id) => {
@@ -1061,8 +1063,9 @@ mod Oracle {
                 },
                 DataType::GenericEntry(key) => {
                     let u256_timestamp: u256 = actual_get_element_at(_entry, 0, 31);
+
                     let timestamp: u64 = u256_timestamp.try_into().unwrap();
-                    let value = actual_get_element_at(_entry, 32, 128);
+                    let value = actual_get_element_at(_entry, 63, 65);
                     PossibleEntries::Generic(
                         GenericEntry {
                             base: BaseEntry {
@@ -1221,12 +1224,14 @@ mod Oracle {
                     let res = self
                         .oracle_data_entry_storage
                         .read((generic_entry.key, GENERIC, generic_entry.base.source, 0));
+                        
                     if (res != 0) {
                         let entry: PossibleEntries = IOracleABI::get_data_entry(
                             @self,
                             DataType::GenericEntry(generic_entry.key),
                             generic_entry.base.source
                         );
+
                         match entry {
                             PossibleEntries::Spot(_) => {},
                             PossibleEntries::Future(_) => {},
@@ -1252,12 +1257,17 @@ mod Oracle {
                         .emit(
                             Event::SubmittedGenericEntry(SubmittedGenericEntry { generic_entry })
                         );
+                    let test = self
+                            .oracle_sources_len_storage
+                            .read((generic_entry.key, GENERIC, 0));
+                    
                     let conv_timestamp: u256 = u256 {
                         low: generic_entry.base.timestamp.into(), high: 0
                     };
-
+                    
                     let element = actual_set_element_at(0, 0, 31, conv_timestamp);
-                    let element = actual_set_element_at(element, 32, 128, generic_entry.value);
+                    let element = actual_set_element_at(element, 32, 30, 0);
+                    let element = actual_set_element_at(element, 63, 65, generic_entry.value);
                     let generic_entry_storage = GenericEntryStorage { timestamp__value: element };
                     self
                         .oracle_data_entry_storage
@@ -1681,7 +1691,7 @@ mod Oracle {
         build_entries_array(self, data_type, sources, ref entries, max_timestamp);
         (entries, entries.len())
     }
-    fn filter_data_array(data_type: DataType, data: @Array<PossibleEntries>) -> ArrayEntry {
+    fn filter_data_array(data_type: DataType, data: Span<PossibleEntries>) -> ArrayEntry {
         match data_type {
             DataType::SpotEntry(pair_id) => {
                 let mut cur_idx = 0;
