@@ -1,7 +1,7 @@
 use array::ArrayTrait;
 use pragma::entry::structs::{BaseEntry, AggregationMode};
 use pragma::operations::sorting::merge_sort::merge;
-use pragma::entry::structs::{SpotEntry, FutureEntry};
+use pragma::entry::structs::{SpotEntry, FutureEntry, GenericEntry};
 use traits::TryInto;
 use traits::Into;
 use option::OptionTrait;
@@ -21,15 +21,18 @@ impl FHasPriceImpl of HasPrice<FutureEntry> {
     }
 }
 
+
+impl GHasPriceImpl of HasPrice<GenericEntry> {
+    fn get_price(self: @GenericEntry) -> u256 {
+        (*self).value
+    }
+}
+
 mod Entry {
-    use array::ArrayTrait;
-    use pragma::entry::structs::{BaseEntry, AggregationMode};
-    use pragma::operations::sorting::merge_sort::merge;
-    use pragma::entry::structs::{SpotEntry, FutureEntry};
-    use traits::TryInto;
-    use traits::Into;
-    use option::OptionTrait;
-    use super::HasPrice;
+    use super::{
+        ArrayTrait, BaseEntry, AggregationMode, merge, SpotEntry, FutureEntry, GenericEntry,
+        TryInto, Into, OptionTrait, HasPrice
+    };
 
     trait hasBaseEntry<T> {
         fn get_base_entry(self: @T) -> BaseEntry;
@@ -49,6 +52,14 @@ mod Entry {
             (*self).base
         }
         fn get_base_timestamp(self: @FutureEntry) -> u64 {
+            (*self).base.timestamp
+        }
+    }
+    impl OhasBaseEntryImpl of hasBaseEntry<GenericEntry> {
+        fn get_base_entry(self: @GenericEntry) -> BaseEntry {
+            (*self).base
+        }
+        fn get_base_timestamp(self: @GenericEntry) -> u64 {
             (*self).base.timestamp
         }
     }

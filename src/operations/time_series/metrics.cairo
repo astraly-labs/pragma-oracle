@@ -147,6 +147,25 @@ fn _sum_volatility(arr: Span<TickElem>) -> Fixed {
     sum
 }
 
+fn twap(arr: Span<TickElem>) -> u128 {
+    let mut cur_idx = 1;
+    let mut twap = 0;
+    let mut sum_p = 0;
+    let mut sum_t = 0;
+    loop {
+        if (cur_idx == arr.len()) {
+            break ();
+        }
+        let sub_timestamp = *arr.at(cur_idx).tick - *arr.at(cur_idx - 1).tick;
+        let weighted_prices = *arr.at(cur_idx - 1).value.mag * sub_timestamp.into();
+        sum_p = sum_p + weighted_prices;
+        sum_t = sum_t + sub_timestamp;
+        cur_idx = cur_idx + 1;
+    };
+    twap = sum_p / sum_t.into();
+    return twap;
+}
+
 /// Computes a result array given two arrays and one operation
 /// e.g : [1, 2, 3] + [1, 2, 3] = [2, 4, 6]
 fn pairwise_1D(operation: Operations, x_len: u32, x: Span<Fixed>, y: Span<Fixed>) -> Span<Fixed> {
@@ -294,3 +313,4 @@ fn test_metrics() {
     let value = volatility(array.span());
     assert(volatility(array.span()) == 48830960, 'wrong volatility'); //10^8
 }
+
