@@ -17,7 +17,7 @@ Overview
 - <a href="/src/account">Account contract</a> mostly use for testing purposes and as a reference.
 - <a href="/src/admin">Admin contract</a> will be replaced by Argent's multisig as it gets released.
 - <a href="/src/entry">Entry & Data Structures</a> defines data structures used within the protocol along with generic aggregations methods. It is designed from the ground up to ensure that adding new entry types is done seamlessly without involving any breaking changes.
-- <a href="/src/admin">Operations</a> defines a few utilites libraries (time series, sorting, bits manipulation) that will be used for different aggregation methods and optimizing storage operations.
+- <a href="/src/admin">Operations</a> defines a few utilities libraries (time series, sorting, bits manipulation) that will be used for different aggregation methods and optimizing storage operations.
 - <a href="/src/admin">Oracle</a> is the main entrypoint of the protocol. It is the contract that end developers will interact with to fetch any kind of data. It's been thought and built for retro-compatibility and heavily leverages unique aspects of Cairo, notably enums, traits and generics.
 - <a href="/src/admin">Publisher Registry</a> handles the registration of different publishers along with the sources they are allowed to push data from.
 - <a href="/src/admin">Summary Stats</a> acts as a proxy contract for more sophisticated kind of data aggregation such as *volatility* and *mean*.
