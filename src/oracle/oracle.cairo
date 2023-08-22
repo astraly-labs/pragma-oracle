@@ -201,7 +201,6 @@ mod Oracle {
         oracle_currencies_storage: LegacyMap::<felt252, Currency>,
         //oralce_sources_storage, legacyMap between (pair_id ,(SPOT/FUTURES/OPTIONS/GENERIC), index, expiration_timestamp ) and the source
         oracle_sources_storage: LegacyMap::<(felt252, felt252, u64, u64), felt252>,
-        test: LegacyMap::<(felt252, felt252, felt252, felt252, felt252), u256>,
         //oracle_sources_len_storage, legacyMap between (pair_id ,(SPOT/FUTURES/OPTIONS/GENERIC), expiration_timestamp) and the len of the sources array
         oracle_sources_len_storage: LegacyMap::<(felt252, felt252, u64), u64>,
         //oracle_data_entry_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS/GENERIC), source, expiration_timestamp (0 for SPOT))

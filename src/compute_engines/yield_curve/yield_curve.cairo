@@ -58,7 +58,7 @@ trait IYieldCurveABI<TContractState> {
     //
 
     fn set_admin_address(ref self: TContractState, new_address: ContractAddress);
-    fn set_future_spot_empiric_source_key(ref self: TContractState, new_source_key: felt252);
+    fn set_future_spot_pragma_source_key(ref self: TContractState, new_source_key: felt252);
     fn set_oracle_address(ref self: TContractState, oracle_address: ContractAddress);
     fn add_pair_id(ref self: TContractState, pair_id: felt252, is_active: bool);
     fn set_pair_id_is_active(ref self: TContractState, pair_id: felt252, is_active: bool);
@@ -102,7 +102,7 @@ mod YieldCurve {
     use pragma::admin::admin::Admin;
     const ON_SOURCE_KEY: felt252 = 'ON'; // str_to_felt("ON")
     const FUTURE_SPOT_SOURCE_KEY: felt252 = 'FUTURE/SPOT'; // str_to_felt("FUTURE/SPOT")
-    const THEGRAPH_EMPIRIC_SOURCE_KEY: felt252 = 'THEGRAPH'; // str_to_felt("THEGRAPH")
+    const THEGRAPH_PRAGMA_SOURCE_KEY: felt252 = 'THEGRAPH'; // str_to_felt("THEGRAPH")
     const SECONDS_IN_YEAR: u64 = 31536000; // 365 * 24 * 60 * 60
     const DEFAULT_DECIMALS: u32 = 8;
     #[storage]
@@ -318,7 +318,7 @@ mod YieldCurve {
             return ();
         }
 
-        fn set_future_spot_empiric_source_key(ref self: ContractState, new_source_key: felt252) {
+        fn set_future_spot_pragma_source_key(ref self: ContractState, new_source_key: felt252) {
             let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
             self.future_spot_pragma_source_key_storage.write(new_source_key);
