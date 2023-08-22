@@ -106,7 +106,7 @@ fn setup() -> (IOracleABIDispatcher, IYieldCurveABIDispatcher) {
     // Add source 2 for publisher 1
     publisher_registry.add_source_for_publisher(1, 2);
     yield_curve.add_on_key(ON_KEY, true);
-    yield_curve.set_future_spot_pramga_source_key(1);
+    yield_curve.set_future_spot_pragma_source_key(1);
     yield_curve.add_pair_id(BTC_USD, true);
     yield_curve.add_future_expiry_timestamp(BTC_USD, 20220624, true, 1656039600);
     yield_curve.add_future_expiry_timestamp(BTC_USD, 20220930, true, 1664506800);
