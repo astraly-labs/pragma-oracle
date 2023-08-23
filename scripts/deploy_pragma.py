@@ -51,19 +51,13 @@ async def main():
         account.address,  # owner
     )
 
-    new_currencies = []
-    new_currencies.append(len(currencies))
-    for currency in currencies:
-        new_currencies.extend(currency.serialize())
-
-    new_pairs = []
-    new_pairs.append(len(pairs))
-    for pair in pairs:
-        new_pairs.extend(pair.serialize())
+    new_currencies = [currency.to_dict() for currency in currencies]
+    new_pairs = [pair.to_dict() for pair in pairs]
 
     deployments["pragma_Oracle"] = await deploy_v2(
         "pragma_Oracle", # 
-        deployments["publisher_registry"]["address"],  # publisher_registry
+        account.address, # admin
+        deployments["pragma_PublisherRegistry"]["address"],  # publisher_registry
         new_currencies, 
         new_pairs, 
     )

@@ -101,7 +101,7 @@ def str_to_felt(text):
 class Currency:
     id: int
     decimals: int
-    is_abstract_currency: int
+    is_abstract_currency: bool
     starknet_address: int
     ethereum_address: int
 
@@ -119,8 +119,8 @@ class Currency:
 
         self.decimals = decimals
 
-        if type(is_abstract_currency) == bool:
-            is_abstract_currency = int(is_abstract_currency)
+        if type(is_abstract_currency) == int:
+            is_abstract_currency = bool(is_abstract_currency)
         self.is_abstract_currency = is_abstract_currency
 
         if starknet_address is None:
@@ -183,7 +183,14 @@ currencies = [
     Currency("USD", 8, 1, 0, 0),
     Currency(
         "BTC",
-        18,
+        8,
+        1,
+        0,
+        0,
+    ),
+    Currency(
+        "WBTC",
+        8,
         0,
         0x03FE2B97C1FD336E750087D68B9B867997FD64A2661FF3CA5A7C771641E8E7AC,
         0x2260FAC5E5542A773AA44FBCFEDF7C193BC2C599,
@@ -220,6 +227,7 @@ currencies = [
 pairs = [
     Pair("ETH/USD", "ETH", "USD"),
     Pair("BTC/USD", "BTC", "USD"),
+    Pair("WBTC/USD", "WBTC", "USD"),
     Pair("USDC/USD", "USDC", "USD"),
     Pair("USDT/USD", "USDT", "USD"),
     Pair("DAI/USD", "DAI", "USD"),
