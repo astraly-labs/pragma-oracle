@@ -1020,8 +1020,8 @@ mod Oracle {
                 DataType::SpotEntry(pair_id) => {
                     let u128_timestamp: u128 = actual_get_element_at(_entry, 0, 31);
                     let timestamp: u64 = u128_timestamp.try_into().unwrap();
-                    let volume = actual_get_element_at(_entry, 32, 30);
-                    let price = actual_get_element_at(_entry, 63, 65);
+                    let volume = actual_get_element_at(_entry, 32, 100);
+                    let price = actual_get_element_at(_entry, 133, 65);
                     PossibleEntries::Spot(
                         SpotEntry {
                             base: BaseEntry {
@@ -1034,8 +1034,8 @@ mod Oracle {
                     pair_id, expiration_timestamp
                 )) => {
                     let timestamp: u64 = actual_get_element_at(_entry, 0, 31).try_into().unwrap();
-                    let volume = actual_get_element_at(_entry, 32, 30);
-                    let price = actual_get_element_at(_entry, 63, 65);
+                    let volume = actual_get_element_at(_entry, 32, 100);
+                    let price = actual_get_element_at(_entry, 133, 65);
                     PossibleEntries::Future(
                         FutureEntry {
                             base: BaseEntry {
@@ -1052,7 +1052,7 @@ mod Oracle {
                     let u128_timestamp: u128 = actual_get_element_at(_entry, 0, 31);
 
                     let timestamp: u64 = u128_timestamp.try_into().unwrap();
-                    let value = actual_get_element_at(_entry, 63, 65);
+                    let value = actual_get_element_at(_entry, 133, 65);
                     PossibleEntries::Generic(
                         GenericEntry {
                             base: BaseEntry {
@@ -1104,8 +1104,8 @@ mod Oracle {
                     self.emit(Event::SubmittedSpotEntry(SubmittedSpotEntry { spot_entry }));
 
                     let element = actual_set_element_at(0, 0, 31, spot_entry.base.timestamp.into());
-                    let element = actual_set_element_at(element, 32, 30, spot_entry.volume.into());
-                    let element = actual_set_element_at(element, 63, 65, spot_entry.price.into());
+                    let element = actual_set_element_at(element, 32, 100, spot_entry.volume.into());
+                    let element = actual_set_element_at(element, 133, 65, spot_entry.price.into());
 
                     let spot_entry_storage = SpotEntryStorage { timestamp__volume__price: element };
                     self
@@ -1178,9 +1178,9 @@ mod Oracle {
                         0, 0, 31, future_entry.base.timestamp.into()
                     );
                     let element = actual_set_element_at(
-                        element, 32, 30, future_entry.volume.into()
+                        element, 32, 100, future_entry.volume.into()
                     );
-                    let element = actual_set_element_at(element, 63, 65, future_entry.price.into());
+                    let element = actual_set_element_at(element, 133, 65, future_entry.price.into());
                     let future_entry_storage = FutureEntryStorage {
                         timestamp__volume__price: element
                     };
@@ -1250,9 +1250,9 @@ mod Oracle {
                     let element = actual_set_element_at(
                         0, 0, 31, generic_entry.base.timestamp.into()
                     );
-                    let element = actual_set_element_at(element, 32, 30, 0);
+                    let element = actual_set_element_at(element, 32, 100, 0);
                     let element = actual_set_element_at(
-                        element, 63, 65, generic_entry.value.into()
+                        element, 133, 65, generic_entry.value.into()
                     );
                     let generic_entry_storage = GenericEntryStorage { timestamp__value: element };
                     self
