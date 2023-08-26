@@ -1180,7 +1180,9 @@ mod Oracle {
                     let element = actual_set_element_at(
                         element, 32, 100, future_entry.volume.into()
                     );
-                    let element = actual_set_element_at(element, 133, 65, future_entry.price.into());
+                    let element = actual_set_element_at(
+                        element, 133, 65, future_entry.price.into()
+                    );
                     let future_entry_storage = FutureEntryStorage {
                         timestamp__volume__price: element
                     };
