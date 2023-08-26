@@ -319,37 +319,37 @@ fn test_data_entry() {
     let (publisher_registry, oracle) = setup();
     let entry = oracle.get_data_entry(DataType::SpotEntry(2), 1);
     let (price, timestamp) = data_treatment(entry);
-    assert(price == (2000000).into(), 'wrong price');
+    assert(price == (2000000), 'wrong price');
     let entry = oracle.get_data_entry(DataType::SpotEntry(2), 2);
     let (price, timestamp) = data_treatment(entry);
-    assert(price == (3000000).into(), 'wrong price');
+    assert(price == (3000000), 'wrong price');
     let entry = oracle.get_data_entry(DataType::SpotEntry(3), 1);
     let (price, timestamp) = data_treatment(entry);
-    assert(price == (8000000).into(), 'wrong price');
+    assert(price == (8000000), 'wrong price');
     let entry = oracle.get_data_entry(DataType::SpotEntry(4), 1);
     let (price, timestamp) = data_treatment(entry);
-    assert(price == (8000000).into(), 'wrong price');
+    assert(price == (8000000), 'wrong price');
     let entry = oracle.get_data_entry(DataType::SpotEntry(4), 2);
     let (price, timestamp) = data_treatment(entry);
-    assert(price == (3000000).into(), 'wrong price');
+    assert(price == (3000000), 'wrong price');
     let entry = oracle.get_data_entry(DataType::SpotEntry(5), 1);
     let (price, timestamp) = data_treatment(entry);
-    assert(price == (5000000).into(), 'wrong price');
+    assert(price == (5000000), 'wrong price');
     let entry = oracle.get_data_entry(DataType::FutureEntry((2, 11111110)), 1);
     let (price, timestamp) = data_treatment(entry);
-    assert(price == (2000000).into(), 'wrong price');
+    assert(price == (2000000), 'wrong price');
     let entry = oracle.get_data_entry(DataType::FutureEntry((2, 11111110)), 2);
     let (price, timestamp) = data_treatment(entry);
-    assert(price == (2000000).into(), 'wrong price');
+    assert(price == (2000000), 'wrong price');
     let entry = oracle.get_data_entry(DataType::FutureEntry((3, 11111110)), 1);
     let (price, timestamp) = data_treatment(entry);
-    assert(price == (3000000).into(), 'wrong price');
+    assert(price == (3000000), 'wrong price');
     let entry = oracle.get_data_entry(DataType::FutureEntry((4, 11111110)), 1);
     let (price, timestamp) = data_treatment(entry);
-    assert(price == (4000000).into(), 'wrong price');
+    assert(price == (4000000), 'wrong price');
     let entry = oracle.get_data_entry(DataType::FutureEntry((5, 11111110)), 1);
     let (price, timestamp) = data_treatment(entry);
-    assert(price == (5000000).into(), 'wrong price');
+    assert(price == (5000000), 'wrong price');
 }
 
 #[test]
@@ -384,32 +384,32 @@ fn test_data_entry_should_fail_if_not_found_3() {
 fn test_get_data() {
     let (publisher_registry, oracle) = setup();
     let entry = oracle.get_data(DataType::SpotEntry(2), AggregationMode::Median(()));
-    assert(entry.price == (2500000).into(), 'wrong price');
+    assert(entry.price == (2500000), 'wrong price');
     let entry = oracle.get_data(DataType::SpotEntry(3), AggregationMode::Median(()));
-    assert(entry.price == (8000000).into(), 'wrong price');
+    assert(entry.price == (8000000), 'wrong price');
     assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
     let entry = oracle.get_data(DataType::SpotEntry(4), AggregationMode::Median(()));
-    assert(entry.price == (5500000).into(), 'wrong price');
+    assert(entry.price == (5500000), 'wrong price');
     assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
     let entry = oracle.get_data(DataType::SpotEntry(5), AggregationMode::Median(()));
-    assert(entry.price == (5000000).into(), 'wrong price');
+    assert(entry.price == (5000000), 'wrong price');
     assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
     let entry = oracle.get_data(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
-    assert(entry.price == (2 * 1000000).into(), 'wrong price');
+    assert(entry.price == (2 * 1000000), 'wrong price');
     assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
     let entry = oracle.get_data(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
-    assert(entry.price == (2 * 1000000).into(), 'wrong price');
+    assert(entry.price == (2 * 1000000), 'wrong price');
     assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
     let entry = oracle.get_data(DataType::FutureEntry((3, 11111110)), AggregationMode::Median(()));
-    assert(entry.price == (3 * 1000000).into(), 'wrong price');
+    assert(entry.price == (3 * 1000000), 'wrong price');
     assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
     let entry = oracle.get_data(DataType::FutureEntry((4, 11111110)), AggregationMode::Median(()));
-    assert(entry.price == (4 * 1000000).into(), 'wrong price');
+    assert(entry.price == (4 * 1000000), 'wrong price');
     assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
     let entry = oracle.get_data(DataType::FutureEntry((5, 11111110)), AggregationMode::Median(()));
-    assert(entry.price == (5 * 1000000).into(), 'wrong price');
+    assert(entry.price == (5 * 1000000), 'wrong price');
 }
-fn data_treatment(entry: PossibleEntries) -> (u256, u64) {
+fn data_treatment(entry: PossibleEntries) -> (u128, u64) {
     match entry {
         PossibleEntries::Spot(entry) => {
             (entry.price, entry.base.timestamp)
@@ -438,21 +438,21 @@ fn test_get_admin_address() {
 fn get_data_median() {
     let (publisher_registry, oracle) = setup();
     let entry = oracle.get_data_median(DataType::SpotEntry(2));
-    assert(entry.price == (2500000).into(), 'wrong price');
+    assert(entry.price == (2500000), 'wrong price');
     let entry = oracle.get_data_median(DataType::SpotEntry(3));
-    assert(entry.price == (8000000).into(), 'wrong price');
+    assert(entry.price == (8000000), 'wrong price');
     assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
     let entry = oracle.get_data_median(DataType::SpotEntry(4));
-    assert(entry.price == (5500000).into(), 'wrong price');
+    assert(entry.price == (5500000), 'wrong price');
     assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
     let entry = oracle.get_data_median(DataType::SpotEntry(5));
-    assert(entry.price == (5000000).into(), 'wrong price');
+    assert(entry.price == (5000000), 'wrong price');
     assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
     let entry = oracle.get_data_median(DataType::FutureEntry((2, 11111110)));
-    assert(entry.price == (2 * 1000000).into(), 'wrong price');
+    assert(entry.price == (2 * 1000000), 'wrong price');
     assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
     let entry = oracle.get_data_median(DataType::FutureEntry((2, 11111110)));
-    assert(entry.price == (2 * 1000000).into(), 'wrong price');
+    assert(entry.price == (2 * 1000000), 'wrong price');
     assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
 }
 
@@ -464,7 +464,7 @@ fn get_data_median_for_sources() {
     sources.append(1);
     sources.append(2);
     let entry = oracle.get_data_median_for_sources(DataType::SpotEntry(2), sources.span());
-    assert(entry.price == (2500000).into(), 'wrong price');
+    assert(entry.price == (2500000), 'wrong price');
 }
 #[test]
 #[should_panic]
@@ -485,12 +485,12 @@ fn get_data_for_sources() {
     sources.append(2);
     let entry = oracle
         .get_data_for_sources(DataType::SpotEntry(2), AggregationMode::Median(()), sources.span());
-    assert(entry.price == (2500000).into(), 'wrong price');
+    assert(entry.price == (2500000), 'wrong price');
     let entry = oracle
         .get_data_for_sources(
             DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()), sources.span()
         );
-    assert(entry.price == (2000000).into(), 'wrong price');
+    assert(entry.price == (2000000), 'wrong price');
 }
 #[test]
 #[available_gas(2000000000)]
@@ -503,16 +503,16 @@ fn test_get_data_median_multi() {
     data_types.append(DataType::SpotEntry(2));
     data_types.append(DataType::SpotEntry(4));
     let res = oracle.get_data_median_multi(data_types.span(), sources.span());
-    assert(*res.at(0).price == (2500000).into(), 'wrong price');
-    assert(*res.at(1).price == (5500000).into(), 'wrong price');
+    assert(*res.at(0).price == (2500000), 'wrong price');
+    assert(*res.at(1).price == (5500000), 'wrong price');
     let mut data_types_2 = ArrayTrait::<DataType>::new();
     data_types_2.append(DataType::FutureEntry((2, 11111110)));
     data_types_2.append(DataType::FutureEntry((5, 11111110)));
     let res_2 = oracle.get_data_median_multi(data_types_2.span(), sources.span());
 
-    assert(*res_2.at(0).price == (2000000).into(), 'wrong price');
+    assert(*res_2.at(0).price == (2000000), 'wrong price');
 
-    assert(*res_2.at(1).price == (5000000).into(), 'wrong price');
+    assert(*res_2.at(1).price == (5000000), 'wrong price');
 }
 #[test]
 #[available_gas(2000000000)]
@@ -565,7 +565,7 @@ fn test_get_data_with_usd_hop() {
         .get_data_with_USD_hop(
             111, 222, AggregationMode::Median(()), SimpleDataType::SpotEntry(()), Option::Some(0)
         );
-    assert(entry.price == (312500).into(), 'wrong price-usdshop');
+    assert(entry.price == (312500), 'wrong price-usdshop');
     assert(entry.decimals == 6, 'wrong decimals-usdshop');
     let entry_2 = oracle
         .get_data_with_USD_hop(
@@ -575,7 +575,7 @@ fn test_get_data_with_usd_hop() {
             SimpleDataType::FutureEntry(()),
             Option::Some(11111110)
         );
-    assert(entry_2.price == (666666).into(), 'wrong price-usdfhop');
+    assert(entry_2.price == (666666), 'wrong price-usdfhop');
     assert(entry_2.decimals == 6, 'wrong decimals-usdfhop');
 }
 
@@ -599,7 +599,7 @@ fn test_set_checkpoint() {
         .get_latest_checkpoint_index(DataType::SpotEntry(2), AggregationMode::Median(()));
     let checkpoint: Checkpoint = oracle
         .get_checkpoint(DataType::SpotEntry(2), idx, AggregationMode::Median(()));
-    assert(checkpoint.value == (2500000).into(), 'wrong checkpoint');
+    assert(checkpoint.value == (2500000), 'wrong checkpoint');
     assert(checkpoint.num_sources_aggregated == 2, 'wrong num sources');
     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
     let (idx, _) = oracle
@@ -608,7 +608,7 @@ fn test_set_checkpoint() {
         );
     let checkpoint: Checkpoint = oracle
         .get_checkpoint(DataType::FutureEntry((2, 11111110)), idx, AggregationMode::Median(()));
-    assert(checkpoint.value == (2000000).into(), 'wrong checkpoint');
+    assert(checkpoint.value == (2000000), 'wrong checkpoint');
     assert(checkpoint.num_sources_aggregated == 2, 'wrong num sources');
 }
 #[test]
@@ -627,7 +627,7 @@ fn test_get_last_checkpoint_before() {
 
     let (checkpoint, idx) = oracle
         .get_last_checkpoint_before(DataType::SpotEntry(2), 111111111, AggregationMode::Median(()));
-    assert(checkpoint.value == (2500000).into(), 'wrong checkpoint');
+    assert(checkpoint.value == (2500000), 'wrong checkpoint');
     assert(idx == 0, 'wrong idx');
     assert(checkpoint.timestamp <= 111111111, 'wrong timestamp');
     let (checkpoint_2, idx_2) = oracle
@@ -635,7 +635,7 @@ fn test_get_last_checkpoint_before() {
             DataType::FutureEntry((2, 11111110)), 1111111111, AggregationMode::Median(()), 
         );
 
-    assert(checkpoint_2.value == (2000000).into(), 'wrong checkpoint');
+    assert(checkpoint_2.value == (2000000), 'wrong checkpoint');
     assert(idx_2 == 0, 'wrong idx');
     assert(checkpoint_2.timestamp <= 111111111, 'wrong timestamp');
 }

@@ -25,23 +25,23 @@ struct GenericEntryStorage {
 #[derive(Copy, Drop, Serde)]
 struct SpotEntry {
     base: BaseEntry,
-    price: u256,
+    price: u128,
     pair_id: felt252,
-    volume: u256,
+    volume: u128,
 }
 #[derive(Copy, Drop, Serde)]
 struct GenericEntry {
     base: BaseEntry,
     key: felt252,
-    value: u256,
+    value: u128,
 }
 
 #[derive(Copy, Drop, PartialOrd, Serde)]
 struct FutureEntry {
     base: BaseEntry,
-    price: u256,
+    price: u128,
     pair_id: felt252,
-    volume: u256,
+    volume: u128,
     expiration_timestamp: u64,
 }
 
@@ -101,14 +101,14 @@ enum DataType {
 enum PossibleEntryStorage {
     Spot: u256, //structure SpotEntryStorage
     Future: u256, //structure FutureEntryStorage
-// Option: OptionEntryStorage, //structure OptionEntryStorage
+//  Option: OptionEntryStorage, //structure OptionEntryStorage
 }
 
 #[derive(Drop, Copy, Serde)]
 enum SimpleDataType {
     SpotEntry: (),
     FutureEntry: (),
-// OptionEntry: (),
+//  OptionEntry: (),
 }
 
 #[derive(Drop, Copy, Serde)]
@@ -116,7 +116,7 @@ enum PossibleEntries {
     Spot: SpotEntry,
     Future: FutureEntry,
     Generic: GenericEntry,
-// Option: OptionEntry,
+//  Option: OptionEntry,
 }
 
 
@@ -124,7 +124,7 @@ enum ArrayEntry {
     SpotEntry: Array<SpotEntry>,
     FutureEntry: Array<FutureEntry>,
     GenericEntry: Array<GenericEntry>,
-// OptionEntry: Array<OptionEntry>,
+//  OptionEntry: Array<OptionEntry>,
 }
 
 
@@ -147,7 +147,7 @@ struct Currency {
 #[derive(Serde, Drop)]
 struct Checkpoint {
     timestamp: u64,
-    value: u256,
+    value: u128,
     aggregation_mode: AggregationMode,
     num_sources_aggregated: u32,
 }
@@ -163,7 +163,7 @@ struct FetchCheckpoint {
 
 #[derive(Serde, Drop, Copy)]
 struct PragmaPricesResponse {
-    price: u256,
+    price: u128,
     decimals: u32,
     last_updated_timestamp: u64,
     num_sources_aggregated: u32,
