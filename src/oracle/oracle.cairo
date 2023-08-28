@@ -261,16 +261,16 @@ mod Oracle {
     /// DataType should implement this trait
     /// If it has a `price` field defined in `self`
     trait HasPrice<T> {
-        fn get_price(self: @T) -> u256;
+        fn get_price(self: @T) -> u128;
     }
 
     impl SHasPriceImpl of HasPrice<SpotEntry> {
-        fn get_price(self: @SpotEntry) -> u256 {
+        fn get_price(self: @SpotEntry) -> u128 {
             (*self).price
         }
     }
     impl FHasPriceImpl of HasPrice<FutureEntry> {
-        fn get_price(self: @FutureEntry) -> u256 {
+        fn get_price(self: @FutureEntry) -> u128 {
             (*self).price
         }
     }
@@ -366,18 +366,11 @@ mod Oracle {
             let value_base = storage_base_address_from_felt252(
                 storage_address_from_base_and_offset(base, 1_u8).into()
             );
-            let value = u256 {
-                low: Store::<u128>::read(address_domain, value_base)?,
-                high: storage_read_syscall(
-                    address_domain, storage_address_from_base_and_offset(value_base, 1_u8)
-                )?
-                    .try_into()
-                    .expect('StoreU256 - non u256')
-            };
+            let value: u128 = Store::<u128>::read(address_domain, value_base)?;
             let u8_aggregation_mode: u8 = Store::<felt252>::read(
                 address_domain,
                 storage_base_address_from_felt252(
-                    storage_address_from_base_and_offset(base, 4_u8).into()
+                    storage_address_from_base_and_offset(base, 3_u8).into()
                 )
             )?
                 .try_into()
@@ -390,7 +383,7 @@ mod Oracle {
                     value: value,
                     aggregation_mode: aggregation_mode,
                     num_sources_aggregated: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 5_u8)
+                        address_domain, storage_address_from_base_and_offset(base, 4_u8)
                     )?
                         .try_into()
                         .unwrap(),
@@ -408,22 +401,16 @@ mod Oracle {
             let value_base = storage_base_address_from_felt252(
                 storage_address_from_base_and_offset(base, 1_u8).into()
             );
-            Store::write(address_domain, value_base, value.value.low)?;
-            storage_write_syscall(
-                address_domain,
-                storage_address_from_base_and_offset(value_base, 1_u8),
-                value.value.high.into()
-            )?;
-
+            Store::write(address_domain, value_base, value.value)?;
             let aggregation_mode_u8: u8 = value.aggregation_mode.into();
             storage_write_syscall(
                 address_domain,
-                storage_address_from_base_and_offset(base, 4_u8),
+                storage_address_from_base_and_offset(base, 3_u8),
                 aggregation_mode_u8.into(),
             )?;
             storage_write_syscall(
                 address_domain,
-                storage_address_from_base_and_offset(base, 5_u8),
+                storage_address_from_base_and_offset(base, 4_u8),
                 value.num_sources_aggregated.into(),
             )
         }
@@ -1031,10 +1018,10 @@ mod Oracle {
             assert(!_entry.is_zero(), 'No data entry found');
             match data_type {
                 DataType::SpotEntry(pair_id) => {
-                    let u256_timestamp: u256 = actual_get_element_at(_entry, 0, 31);
-                    let timestamp: u64 = u256_timestamp.try_into().unwrap();
-                    let volume = actual_get_element_at(_entry, 32, 30);
-                    let price = actual_get_element_at(_entry, 63, 65);
+                    let u128_timestamp: u128 = actual_get_element_at(_entry, 0, 31);
+                    let timestamp: u64 = u128_timestamp.try_into().unwrap();
+                    let volume = actual_get_element_at(_entry, 32, 100);
+                    let price = actual_get_element_at(_entry, 133, 65);
                     PossibleEntries::Spot(
                         SpotEntry {
                             base: BaseEntry {
@@ -1046,10 +1033,9 @@ mod Oracle {
                 DataType::FutureEntry((
                     pair_id, expiration_timestamp
                 )) => {
-                    let u256_timestamp: u256 = actual_get_element_at(_entry, 0, 31);
-                    let timestamp: u64 = u256_timestamp.try_into().unwrap();
-                    let volume = actual_get_element_at(_entry, 32, 30);
-                    let price = actual_get_element_at(_entry, 63, 65);
+                    let timestamp: u64 = actual_get_element_at(_entry, 0, 31).try_into().unwrap();
+                    let volume = actual_get_element_at(_entry, 32, 100);
+                    let price = actual_get_element_at(_entry, 133, 65);
                     PossibleEntries::Future(
                         FutureEntry {
                             base: BaseEntry {
@@ -1063,10 +1049,10 @@ mod Oracle {
                     )
                 },
                 DataType::GenericEntry(key) => {
-                    let u256_timestamp: u256 = actual_get_element_at(_entry, 0, 31);
+                    let u128_timestamp: u128 = actual_get_element_at(_entry, 0, 31);
 
-                    let timestamp: u64 = u256_timestamp.try_into().unwrap();
-                    let value = actual_get_element_at(_entry, 63, 65);
+                    let timestamp: u64 = u128_timestamp.try_into().unwrap();
+                    let value = actual_get_element_at(_entry, 133, 65);
                     PossibleEntries::Generic(
                         GenericEntry {
                             base: BaseEntry {
@@ -1116,13 +1102,10 @@ mod Oracle {
                             .write((spot_entry.pair_id, SPOT, 0), sources_len + 1);
                     }
                     self.emit(Event::SubmittedSpotEntry(SubmittedSpotEntry { spot_entry }));
-                    let conv_timestamp: u256 = u256 {
-                        low: spot_entry.base.timestamp.into(), high: 0
-                    };
 
-                    let element = actual_set_element_at(0, 0, 31, conv_timestamp);
-                    let element = actual_set_element_at(element, 32, 30, spot_entry.volume);
-                    let element = actual_set_element_at(element, 63, 65, spot_entry.price);
+                    let element = actual_set_element_at(0, 0, 31, spot_entry.base.timestamp.into());
+                    let element = actual_set_element_at(element, 32, 100, spot_entry.volume.into());
+                    let element = actual_set_element_at(element, 133, 65, spot_entry.price.into());
 
                     let spot_entry_storage = SpotEntryStorage { timestamp__volume__price: element };
                     self
@@ -1190,12 +1173,16 @@ mod Oracle {
                     }
 
                     self.emit(Event::SubmittedFutureEntry(SubmittedFutureEntry { future_entry }));
-                    let conv_timestamp: u256 = u256 {
-                        low: future_entry.base.timestamp.into(), high: 0
-                    };
-                    let element = actual_set_element_at(0, 0, 31, conv_timestamp);
-                    let element = actual_set_element_at(element, 32, 30, future_entry.volume);
-                    let element = actual_set_element_at(element, 63, 65, future_entry.price);
+
+                    let element = actual_set_element_at(
+                        0, 0, 31, future_entry.base.timestamp.into()
+                    );
+                    let element = actual_set_element_at(
+                        element, 32, 100, future_entry.volume.into()
+                    );
+                    let element = actual_set_element_at(
+                        element, 133, 65, future_entry.price.into()
+                    );
                     let future_entry_storage = FutureEntryStorage {
                         timestamp__volume__price: element
                     };
@@ -1262,13 +1249,13 @@ mod Oracle {
                         .oracle_sources_len_storage
                         .read((generic_entry.key, GENERIC, 0));
 
-                    let conv_timestamp: u256 = u256 {
-                        low: generic_entry.base.timestamp.into(), high: 0
-                    };
-
-                    let element = actual_set_element_at(0, 0, 31, conv_timestamp);
-                    let element = actual_set_element_at(element, 32, 30, 0);
-                    let element = actual_set_element_at(element, 63, 65, generic_entry.value);
+                    let element = actual_set_element_at(
+                        0, 0, 31, generic_entry.base.timestamp.into()
+                    );
+                    let element = actual_set_element_at(element, 32, 100, 0);
+                    let element = actual_set_element_at(
+                        element, 133, 65, generic_entry.value.into()
+                    );
                     let generic_entry_storage = GenericEntryStorage { timestamp__value: element };
                     self
                         .oracle_data_entry_storage

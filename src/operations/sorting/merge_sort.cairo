@@ -132,27 +132,27 @@ fn test_merge() {
     let entry_1 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000000, source: 1, publisher: 1001
-        }, price: 50.into(), pair_id: 1, volume: 10.into()
+        }, price: 50, pair_id: 1, volume: 10
     };
     let entry_2 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000001, source: 1, publisher: 0234
-        }, price: 100.into(), pair_id: 1, volume: 30.into()
+        }, price: 100, pair_id: 1, volume: 30
     };
     let entry_3 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 200.into(), pair_id: 1, volume: 30.into()
+        }, price: 200, pair_id: 1, volume: 30
     };
     let entry_4 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 80.into(), pair_id: 1, volume: 30.into()
+        }, price: 80, pair_id: 1, volume: 30
     };
     let entry_5 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 50.into(), pair_id: 1, volume: 30.into()
+        }, price: 50, pair_id: 1, volume: 30
     };
     entries.append(entry_1);
     entries.append(entry_2);
@@ -161,8 +161,8 @@ fn test_merge() {
     entries.append(entry_5);
     let sorted_entries = merge::<SpotEntry>(@entries);
     assert(sorted_entries.len() == 5, 'not good length');
-    assert((*sorted_entries.at(0)).get_price() == 50.into(), 'sorting failed(merge)');
-    assert((*sorted_entries.at(1)).get_price() == 50.into(), 'sorting failed(merge)');
-    assert((*sorted_entries.at(2)).get_price() == 80.into(), 'sorting failed(merge)');
-    assert((*sorted_entries.at(3)).get_price() == 100.into(), 'sorting failed(merge)');
+    assert((*sorted_entries.at(0)).get_price() == 50, 'sorting failed(merge)');
+    assert((*sorted_entries.at(1)).get_price() == 50, 'sorting failed(merge)');
+    assert((*sorted_entries.at(2)).get_price() == 80, 'sorting failed(merge)');
+    assert((*sorted_entries.at(3)).get_price() == 100, 'sorting failed(merge)');
 }

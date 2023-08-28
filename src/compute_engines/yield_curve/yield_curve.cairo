@@ -453,7 +453,7 @@ mod YieldCurve {
                 continue;
             } else {
                 let shifted_on_value = change_decimals(
-                    self, output.price.low, output.decimals, output_decimals
+                    self, output.price, output.decimals, output_decimals
                 );
                 yield_points
                     .append(
@@ -637,14 +637,13 @@ mod YieldCurve {
                 assert(exponent <= exponent_limit, 'YieldCurve: Decimals OO range');
                 let ratio_multiplier = fpow(10, exponent.into());
                 //TURNED THE U256 PRICE INTO U128: MAYBE CONSIDER USING ONLY U128 PRICES FOR NOW, FOR COMPUTATIONAL PURPOSES
-                shifted_ratio = (future_entry.price.low * ratio_multiplier) / spot_entry.price.low;
+                shifted_ratio = (future_entry.price * ratio_multiplier) / spot_entry.price;
             } else {
                 // Shift future/spot to the right by -1 * (output_decimals + spot_decimals - future_decimals)
                 let exponent = future_decimals - output_decimals - spot_decimals;
                 assert(exponent <= exponent_limit, 'YieldCurve: Decimals OO range');
                 let ratio_multiplier = fpow(10, exponent.into());
-                shifted_ratio = (future_entry.price.low)
-                    / (spot_entry.price.low * ratio_multiplier);
+                shifted_ratio = (future_entry.price) / (spot_entry.price * ratio_multiplier);
             }
             let interest_ratio = shifted_ratio - decimals_multiplier;
             time_scaled_value = (interest_ratio * time_multiplier) / decimals_multiplier

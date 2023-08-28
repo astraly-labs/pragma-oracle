@@ -1,12 +1,12 @@
 use traits::Into;
-use pragma::operations::bits_manipulation::pow2::pow2;
+use pragma::operations::bits_manipulation::pow2::{pow2};
 
-fn actual_get_element_at(input: u256, at: u256, number_of_bits: u256) -> u256 {
+fn actual_get_element_at(input: u256, at: u256, number_of_bits: u256) -> u128 {
     let mask = generate_get_mask(at, number_of_bits);
     let masked_response = input & mask;
     let divider = pow2(at);
     let response = masked_response / divider;
-    response
+    response.low
 }
 
 
@@ -32,7 +32,7 @@ fn actual_set_element_at(input: u256, at: u256, number_of_bits: u256, element: u
 fn assert_valid_felt(element: u256, number_of_bits: u256) {
     let max_element = pow2(number_of_bits) - 1.into();
 
-    assert(element <= max_element, 'Error u256 too big');
+    assert(element.into() <= max_element, 'Error u256 too big');
 }
 
 
@@ -53,9 +53,10 @@ fn assert_within_range(position: u256, number_of_bits: u256) {
 fn generate_set_mask(position: u256, number_of_bits: u256) -> u256 {
     assert_within_range(position, number_of_bits);
     let mask = generate_mask(position, number_of_bits);
-    let inverted_mask = 0xffffffffffffffffffffffffffffffff.into() - mask;
+    let inverted_mask = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffff - mask;
     inverted_mask
 }
+
 
 // @notice Will generate the mask part that is common to set_mask and get_mask
 // @dev Will fail if the position given would make it out of the 251 available bits
@@ -66,7 +67,7 @@ fn generate_mask(position: u256, number_of_bits: u256) -> u256 {
     assert_within_range(position, number_of_bits);
     let pow_big = pow2(position + number_of_bits);
     let pow_small = pow2(position);
-    let mask = (pow_big - 1.into()) - (pow_small - 1.into());
+    let mask = (pow_big - 1) - (pow_small - 1);
     mask
 }
 
@@ -76,7 +77,7 @@ fn generate_mask(position: u256, number_of_bits: u256) -> u256 {
 // @param element: The element that needs to be encoded
 // @return response: The new felt containing the encoded value a the given position on the given number of bits
 fn unsafe_set_element_at(input: u256, at: u256, element: u256) -> u256 {
-    let multiplier = pow2(at);
+    let multiplier = pow2(at.into());
     let multiplied_element = element * multiplier;
     input + multiplied_element
 }
@@ -99,12 +100,12 @@ use debug::PrintTrait;
 #[available_gas(100000000)]
 fn test_bits_manipulation() {
     let element = actual_set_element_at(0, 0, 31, 1688646892);
-    let element = actual_set_element_at(element, 32, 30, 123123);
-    let element = actual_set_element_at(element, 63, 65, 1232092993);
-    let u256_timestamp: u256 = actual_get_element_at(element, 0, 31);
-    let volume = actual_get_element_at(element, 32, 30);
-    let price = actual_get_element_at(element, 63, 65);
-    assert(u256_timestamp == 1688646892, 'Error timestamp');
-    assert(volume == 123123, 'Error volume');
+    let element = actual_set_element_at(element, 32, 100, 1231452345234524523);
+    let element = actual_set_element_at(element, 133, 65, 1232092993);
+    let u128_timestamp: u128 = actual_get_element_at(element, 0, 31);
+    let volume = actual_get_element_at(element, 32, 100);
+    let price = actual_get_element_at(element, 133, 65);
+    assert(u128_timestamp == 1688646892, 'Error timestamp');
+    assert(volume == 1231452345234524523, 'Error volume');
     assert(price == 1232092993, 'Error price');
 }

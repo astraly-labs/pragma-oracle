@@ -83,11 +83,11 @@ mod SummaryStats {
             let (stop_cp, stop_index) = oracle_dispatcher
                 .get_last_checkpoint_before(data_type, stop, aggregation_mode);
             if (start_index == stop_index) {
-                return (cp.value.try_into().unwrap(), decimals);
+                return (cp.value, decimals);
             }
 
             if start_index == latest_checkpoint_index {
-                return (cp.value.try_into().unwrap(), decimals);
+                return (cp.value, decimals);
             }
 
             let scaled_arr = _make_scaled_array(
@@ -147,9 +147,8 @@ mod SummaryStats {
                     .get_checkpoint(
                         data_type, idx * skip_frequency + start_index, aggregation_mode
                     );
-                let val = cp.value.into();
-                let u128_val: u128 = val.try_into().unwrap();
-                let fixed_val = FixedTrait::new(u128_val, false);
+
+                let fixed_val = FixedTrait::new(cp.value, false);
                 tick_arr.append(TickElem { tick: cp.timestamp, value: fixed_val });
                 idx += 1;
             };
@@ -180,9 +179,8 @@ mod SummaryStats {
                     break ();
                 }
                 let cp = oracle_dispatcher.get_checkpoint(data_type, idx, aggregation_mode);
-                let val = cp.value.into();
-                let u128_val: u128 = val.try_into().unwrap();
-                let fixed_val = FixedTrait::new(u128_val, false);
+
+                let fixed_val = FixedTrait::new(cp.value, false);
                 tick_arr.append(TickElem { tick: cp.timestamp, value: fixed_val });
                 idx += 1;
             };
@@ -238,7 +236,7 @@ mod SummaryStats {
             tick_arr
                 .append(
                     TickElem {
-                        tick: cp.timestamp, value: FixedTrait::new(cp.value.low * ONE_u128, false)
+                        tick: cp.timestamp, value: FixedTrait::new(cp.value * ONE_u128, false)
                     }
                 );
             idx += 1;

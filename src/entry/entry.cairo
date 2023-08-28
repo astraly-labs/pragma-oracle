@@ -7,23 +7,23 @@ use traits::Into;
 use option::OptionTrait;
 
 trait HasPrice<T> {
-    fn get_price(self: @T) -> u256;
+    fn get_price(self: @T) -> u128;
 }
 
 impl SHasPriceImpl of HasPrice<SpotEntry> {
-    fn get_price(self: @SpotEntry) -> u256 {
+    fn get_price(self: @SpotEntry) -> u128 {
         (*self).price
     }
 }
 impl FHasPriceImpl of HasPrice<FutureEntry> {
-    fn get_price(self: @FutureEntry) -> u256 {
+    fn get_price(self: @FutureEntry) -> u128 {
         (*self).price
     }
 }
 
 
 impl GHasPriceImpl of HasPrice<GenericEntry> {
-    fn get_price(self: @GenericEntry) -> u256 {
+    fn get_price(self: @GenericEntry) -> u128 {
         (*self).value
     }
 }
@@ -80,19 +80,19 @@ mod Entry {
         impl TDrop: Drop<T>,
     >(
         entries: @Array<T>, aggregation_mode: AggregationMode
-    ) -> u256 {
+    ) -> u128 {
         match aggregation_mode {
             AggregationMode::Median(()) => {
-                let value: u256 = entries_median(entries);
+                let value: u128 = entries_median(entries);
                 value
             },
             AggregationMode::Mean(()) => {
-                let value: u256 = entries_mean(entries);
+                let value: u128 = entries_mean(entries);
                 value
             },
             AggregationMode::Error(()) => {
                 panic_with_felt252('Wrong aggregation mode');
-                u256 { low: 0_u128, high: 0_u128 }
+                0
             }
         }
     }
@@ -132,7 +132,7 @@ mod Entry {
         impl THasPrice: HasPrice<T>,
     >(
         entries: @Array<T>
-    ) -> u256 {
+    ) -> u128 {
         let mut sorted_entries = ArrayTrait::<T>::new();
         sorted_entries = merge(entries);
         let entries_len = sorted_entries.len();
@@ -147,7 +147,7 @@ mod Entry {
             let median_idx_2 = median_idx_1 - 1;
             let median_entry_1 = (*sorted_entries.at(median_idx_1)).get_price();
             let median_entry_2 = (*sorted_entries.at(median_idx_2)).get_price();
-            (median_entry_1 + median_entry_2) / (2.into())
+            (median_entry_1 + median_entry_2) / (2)
         }
     }
 
@@ -156,13 +156,13 @@ mod Entry {
     // @return value: the mean value from the array of entries
     fn entries_mean<T, impl THasPrice: HasPrice<T>, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
         entries: @Array<T>
-    ) -> u256 {
-        let mut sum: u256 = 0.into();
+    ) -> u128 {
+        let mut sum: u128 = 0;
         let mut index: u32 = 0;
         let entries_len: u32 = entries.len();
         loop {
             if index >= entries.len() {
-                break (sum / u256 { low: entries_len.into(), high: 0_u128 });
+                break (sum / entries.len().into());
             }
             sum = sum + (*entries.at(index)).get_price();
             index = index + 1;
@@ -183,60 +183,60 @@ fn test_aggregate_entries_median() {
     let entry_1 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000000, source: 1, publisher: 1001
-        }, price: 10.into(), pair_id: 1, volume: 10.into()
+        }, price: 10, pair_id: 1, volume: 10
     };
     let entry_2 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000001, source: 1, publisher: 0234
-        }, price: 20.into(), pair_id: 1, volume: 30.into()
+        }, price: 20, pair_id: 1, volume: 30
     };
     let entry_3 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 30.into(), pair_id: 1, volume: 30.into()
+        }, price: 30, pair_id: 1, volume: 30
     };
     let entry_4 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 40.into(), pair_id: 1, volume: 30.into()
+        }, price: 40, pair_id: 1, volume: 30
     };
     let entry_5 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 50.into(), pair_id: 1, volume: 30.into()
+        }, price: 50, pair_id: 1, volume: 30
     };
     //1 element 
     entries.append(entry_1);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 10.into(),
+        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 10,
         'median aggregation failed(1)'
     );
 
     //2 elements
     entries.append(entry_2);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 15.into(),
+        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 15,
         'median aggregation failed(even)'
     );
 
     //3 elements
     entries.append(entry_3);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 20.into(),
+        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 20,
         'median aggregation failed(odd)'
     );
 
     //4 elements
     entries.append(entry_4);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 25.into(),
+        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 25,
         'median aggregation failed(even)'
     );
 
     //5 elements
     entries.append(entry_5);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 30.into(),
+        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 30,
         'median aggregation failed(odd)'
     );
 
@@ -246,59 +246,59 @@ fn test_aggregate_entries_median() {
     let entry_1 = FutureEntry {
         base: BaseEntry {
             timestamp: 1000000, source: 1, publisher: 1001
-        }, price: 10.into(), pair_id: 1, volume: 10.into(), expiration_timestamp: 1111111
+        }, price: 10, pair_id: 1, volume: 10, expiration_timestamp: 1111111
     };
     let entry_2 = FutureEntry {
         base: BaseEntry {
             timestamp: 1000001, source: 1, publisher: 0234
-        }, price: 20.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+        }, price: 20, pair_id: 1, volume: 30, expiration_timestamp: 1111111
     };
     let entry_3 = FutureEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 30.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+        }, price: 30, pair_id: 1, volume: 30, expiration_timestamp: 1111111
     };
     let entry_4 = FutureEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 40.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+        }, price: 40, pair_id: 1, volume: 30, expiration_timestamp: 1111111
     };
     let entry_5 = FutureEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 50.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+        }, price: 50, pair_id: 1, volume: 30, expiration_timestamp: 1111111
     };
     //1 element 
     f_entries.append(entry_1);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 10.into(),
+        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 10,
         'median aggregation failed(1)'
     );
     //2 elements
     f_entries.append(entry_2);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 15.into(),
+        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 15,
         'median aggregation failed(even)'
     );
 
     //3 elements
     f_entries.append(entry_3);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 20.into(),
+        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 20,
         'median aggregation failed(odd)'
     );
 
     //4 elements
     f_entries.append(entry_4);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 25.into(),
+        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 25,
         'median aggregation failed(even)'
     );
 
     //5 elements
     f_entries.append(entry_5);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 30.into(),
+        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 30,
         'median aggregation failed(odd)'
     );
 }
@@ -311,60 +311,60 @@ fn test_aggregate_entries_mean() {
     let entry_1 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000000, source: 1, publisher: 1001
-        }, price: 10.into(), pair_id: 1, volume: 10.into()
+        }, price: 10, pair_id: 1, volume: 10
     };
     let entry_2 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000001, source: 1, publisher: 0234
-        }, price: 20.into(), pair_id: 1, volume: 30.into()
+        }, price: 20, pair_id: 1, volume: 30
     };
     let entry_3 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 30.into(), pair_id: 1, volume: 30.into()
+        }, price: 30, pair_id: 1, volume: 30
     };
     let entry_4 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 40.into(), pair_id: 1, volume: 30.into()
+        }, price: 40, pair_id: 1, volume: 30
     };
     let entry_5 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 50.into(), pair_id: 1, volume: 30.into()
+        }, price: 50, pair_id: 1, volume: 30
     };
     //1 element 
     entries.append(entry_1);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 10.into(),
+        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 10,
         'Mean aggregation failed(1)'
     );
 
     //2 elements
     entries.append(entry_2);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 15.into(),
+        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 15,
         'Mean aggregation failed(even)'
     );
 
     //3 elements
     entries.append(entry_3);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 20.into(),
+        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 20,
         'Mean aggregation failed(odd)'
     );
 
     //4 elements
     entries.append(entry_4);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 25.into(),
+        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 25,
         'Mean aggregation failed(even)'
     );
 
     //5 elements
     entries.append(entry_5);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 30.into(),
+        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 30,
         'Mean aggregation failed(odd)'
     );
     //FUTURES
@@ -373,60 +373,60 @@ fn test_aggregate_entries_mean() {
     let entry_1 = FutureEntry {
         base: BaseEntry {
             timestamp: 1000000, source: 1, publisher: 1001
-        }, price: 10.into(), pair_id: 1, volume: 10.into(), expiration_timestamp: 1111111
+        }, price: 10, pair_id: 1, volume: 10, expiration_timestamp: 1111111
     };
     let entry_2 = FutureEntry {
         base: BaseEntry {
             timestamp: 1000001, source: 1, publisher: 0234
-        }, price: 20.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+        }, price: 20, pair_id: 1, volume: 30, expiration_timestamp: 1111111
     };
     let entry_3 = FutureEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 30.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+        }, price: 30, pair_id: 1, volume: 30, expiration_timestamp: 1111111
     };
     let entry_4 = FutureEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 40.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+        }, price: 40, pair_id: 1, volume: 30, expiration_timestamp: 1111111
     };
     let entry_5 = FutureEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 50.into(), pair_id: 1, volume: 30.into(), expiration_timestamp: 1111111
+        }, price: 50, pair_id: 1, volume: 30, expiration_timestamp: 1111111
     };
     //1 element 
     f_entries.append(entry_1);
 
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 10.into(),
+        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 10,
         'median aggregation failed(1)'
     );
     //2 elements
     f_entries.append(entry_2);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 15.into(),
+        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 15,
         'median aggregation failed(even)'
     );
 
     //3 elements
     f_entries.append(entry_3);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 20.into(),
+        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 20,
         'median aggregation failed(odd)'
     );
 
     //4 elements
     f_entries.append(entry_4);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 25.into(),
+        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 25,
         'median aggregation failed(even)'
     );
 
     //5 elements
     f_entries.append(entry_5);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 30.into(),
+        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 30,
         'median aggregation failed(odd)'
     );
 }
@@ -439,27 +439,27 @@ fn test_aggregate_timestamp_max() {
     let entry_1 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000000, source: 1, publisher: 1001
-        }, price: 10.into(), pair_id: 1, volume: 10.into()
+        }, price: 10, pair_id: 1, volume: 10
     };
     let entry_2 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000001, source: 1, publisher: 0234
-        }, price: 20.into(), pair_id: 1, volume: 30.into()
+        }, price: 20, pair_id: 1, volume: 30
     };
     let entry_3 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 30.into(), pair_id: 1, volume: 30.into()
+        }, price: 30, pair_id: 1, volume: 30
     };
     let entry_4 = SpotEntry {
         base: BaseEntry {
             timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 40.into(), pair_id: 1, volume: 30.into()
+        }, price: 40, pair_id: 1, volume: 30
     };
     let entry_5 = SpotEntry {
         base: BaseEntry {
             timestamp: 1003002, source: 1, publisher: 1334
-        }, price: 50.into(), pair_id: 1, volume: 30.into()
+        }, price: 50, pair_id: 1, volume: 30
     };
     //1 element 
     entries.append(entry_1);
