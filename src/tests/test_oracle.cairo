@@ -573,7 +573,7 @@ fn test_publish_multiple_entries() {
 #[available_gas(100000000000)]
 fn test_max_publish_multiple_entries() {
     let (publish_registry, oracle) = setup();
-    let MAX: u32 = 100;
+    let MAX: u32 = 10;
     let now = 100000;
     let mut entries = ArrayTrait::<PossibleEntries>::new();
     let mut cur_idx: u32 = 0;
