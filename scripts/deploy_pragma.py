@@ -17,7 +17,8 @@ from scripts.utils.starknet import (
     get_starknet_account,
     invoke,
     deploy_v2,
-    declare_v2
+    declare_v2,
+    call
 )
 
 logging.basicConfig()
@@ -55,7 +56,7 @@ async def main():
     new_pairs = [pair.to_dict() for pair in pairs]
 
     deployments["pragma_Oracle"] = await deploy_v2(
-        "pragma_Oracle", # 
+        "pragma_Oracle",
         account.address, # admin
         deployments["pragma_PublisherRegistry"]["address"],  # publisher_registry
         new_currencies, 
