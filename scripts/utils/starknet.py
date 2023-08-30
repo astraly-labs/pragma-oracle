@@ -39,6 +39,13 @@ def int_to_uint256(value):
     high = value >> 128
     return {"low": low, "high": high}
 
+def str_to_felt(text):
+    if text.upper() != text:
+        logger.warning(f"Converting lower to uppercase for str_to_felt: {text}")
+        text = text.upper()
+    b_text = bytes(text, "utf-8")
+    return int.from_bytes(b_text, "big")
+
 
 async def get_starknet_account(
     address=None,
@@ -239,3 +246,14 @@ async def invoke_cairo0(contract_name, function_name, *inputs, address=None):
         hex(response.transaction_hash),
     )
     return response.transaction_hash
+
+async def call(contract_name, function_name, *inputs, address=None):
+    deployments = get_deployments()
+    account = await get_starknet_account()
+    contract = Contract(
+        deployments[contract_name]["address"] if address is None else address,
+        json.loads(get_abi(contract_name=contract_name)),
+        account,
+        cairo_version=1
+    )
+    return await contract.functions[function_name].call(*inputs)
