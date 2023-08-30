@@ -1,6 +1,12 @@
 use traits::Into;
 use pragma::operations::bits_manipulation::pow2::{pow2};
 
+
+// @notice Will returns the corresponding u256, located a a certain position given by the at and number_of_bits parameters
+// @param input: the u256 from which it needs to be extracted
+// @param at: The position of the element that needs to be extracted
+// @param number_of_bits: The size of the element that needs to be extracted
+// @returns the requested element(since every element added to the input are u128 - see structs implementation, we can safely returns the .low part, without removing information)
 fn actual_get_element_at(input: u256, at: u256, number_of_bits: u256) -> u128 {
     let mask = generate_get_mask(at, number_of_bits);
     let masked_response = input & mask;
@@ -10,7 +16,7 @@ fn actual_get_element_at(input: u256, at: u256, number_of_bits: u256) -> u128 {
 }
 
 
-// @notice Will return the a new felt with the felt encoded at a certain position on a certain number of bits
+// @notice Will return the a new u256 with the given u256 encoded at a certain position on a certain number of bits
 // @dev This method can fail
 // @param input: The felt from which it needs to be included in
 // @param at: The position of the element that needs to be added, starts a 0

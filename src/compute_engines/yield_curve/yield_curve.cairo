@@ -120,6 +120,8 @@ mod YieldCurve {
         on_key_is_active_storage: LegacyMap::<felt252, bool>
     }
 
+
+
     #[constructor]
     fn constructor(
         ref self: ContractState, admin_address: ContractAddress, oracle_address: ContractAddress
@@ -135,6 +137,10 @@ mod YieldCurve {
         // Getters
         //
 
+
+        // @notice get the yield curve points (x: time to maturity, y: interest rate)
+        // @param decimals:  number of decimals for each yield curve point's int rate
+        // @return span of YieldPoint (see YieldPoint structure l.11)
         fn get_yield_points(self: @ContractState, decimals: u32) -> Span<YieldPoint> {
             let oracle_address = self.oracle_address_storage.read();
 
@@ -149,16 +155,25 @@ mod YieldCurve {
             return yield_points;
         }
 
+        // @notice get address for admin
+        // @return admin_address: address of current admin
         fn get_admin_address(self: @ContractState) -> ContractAddress {
             let state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::get_admin_address(@state)
         }
 
+        // @notice get address for oracle controller
+        // @return oracle_address: address for oracle controller
         fn get_oracle_address(self: @ContractState) -> ContractAddress {
             let oracle_address = self.oracle_address_storage.read();
             return oracle_address;
         }
 
+
+        // @notice get the key/id of the source for which we get spot and futures data
+        // @param pair_id: the pair id associated with the pair considered
+        // @param future_expiry_timestamp: the expiry timestamp (Pragma key) associated with the futures data to be considered
+        // @return Pragma key for the source used to bootstrap the yield curve
         fn get_future_spot_pragma_source_key(
             self: @ContractState, pair_id: felt252, future_expiry_timestamp: u64
         ) -> felt252 {
@@ -166,16 +181,25 @@ mod YieldCurve {
             return future_spot_pragma_source_key;
         }
 
+        // @notice get the key of the asset for which we get spot data to compare to futures data
+        // @param idx: index of the pair_id
+        // @return Pragma key for the asset used to bootstrap the yield curve (for example felt252('BTC/USD'))
         fn get_pair_id(self: @ContractState, idx: u64) -> felt252 {
             let pair_id = self.pair_id_storage.read(idx);
             return pair_id;
         }
 
+        // @notice: get the status of whether a spot key is used in the yield curve bootstrapping calculations
+        //  pair_id: pair id  for the asset to look up its status
+        //  pair_id_is_active: boolean for whether the given spot key is active
         fn get_pair_id_is_active(self: @ContractState, pair_id: felt252) -> bool {
             let pair_id_is_active = self.pair_id_is_active_storage.read(pair_id);
             return pair_id_is_active;
         }
 
+
+        // @notice get the key of the asset for which we get spot data to compare to futures data
+        // @return a span of pair_ids
         fn get_pair_ids(self: @ContractState) -> Span<felt252> {
             let mut pair_ids = ArrayTrait::<felt252>::new();
             let total_pair_ids_len = self.pair_id_len_storage.read();
@@ -199,11 +223,19 @@ mod YieldCurve {
             return pair_ids.span();
         }
 
+
+        // @notice get the key of the asset for which we get spot data to compare to futures data
+        // @param pair_id: pair id associated
+        // @param idx: index of the future_expiry_timestamp
+        // @return Pragma key for the future asset used to bootstrap the yield curve
         fn get_future_expiry_timestamp(self: @ContractState, pair_id: felt252, idx: u64) -> u64 {
             let future_expiry_timestamp = self.future_expiry_timestamp_storage.read((pair_id, idx));
             return future_expiry_timestamp;
         }
 
+        // @notice get all the keys of the asset for which we get spot data to compare to futures data
+        // @param pair_id: pair id associated
+        // @return of span of Pragma key for the future assets used to boostrap the yield curve
         fn get_future_expiry_timestamps(self: @ContractState, pair_id: felt252) -> Span<u64> {
             let mut future_expiry_timestamps = ArrayTrait::<u64>::new();
             let total_future_expiry_timestamps_len = self
@@ -235,6 +267,8 @@ mod YieldCurve {
         }
 
 
+        // @notice get all the keys of the overnight keys used to boostrap the yield curve
+        // @returns span of keys
         fn get_on_keys(self: @ContractState) -> Span<felt252> {
             let mut on_keys = ArrayTrait::<felt252>::new();
             let on_key_len = self.on_key_len_storage.read();
@@ -258,6 +292,10 @@ mod YieldCurve {
             return on_keys.span();
         }
 
+        // @notice get the status of whether a future key is used in the yield curve bootstrapping calculations
+        // @param pair_id: pair id associated
+        // @param future_expiry_timestamp: Pragma key for the asset to look up its status
+        // @return FutureKeyStatus, a struct describing the given future key's status 
         fn get_future_expiry_timestamp_status(
             self: @ContractState, pair_id: felt252, future_expiry_timestamp: u64
         ) -> FutureKeyStatus {
@@ -267,6 +305,11 @@ mod YieldCurve {
             return future_expiry_timestamp_status;
         }
 
+
+        // @notice get the status of whether a future key is used in the yield curve bootstrapping calculations
+        // @param pair_id: pair id associated
+        // @param future_expiry_timestamp: Pragma key for the asset to look up its status
+        // @return boolean, on whether the given future key is active or not
         fn get_future_expiry_timestamp_is_active(
             self: @ContractState, pair_id: felt252, future_expiry_timestamp: u64
         ) -> bool {
@@ -277,6 +320,10 @@ mod YieldCurve {
             return is_active;
         }
 
+        // @notice get the expiry of a quarterly future used in the yield curve bootstrapping calculations
+        // @param pair_id: pair id associated
+        // @param future_expiry_timestamp: Pragma key for the asset to look up its status
+        // @return future_expiry_timestamp_status: expiry timestamp of the given future key 
         fn get_future_expiry_timestamp_expiry(
             self: @ContractState, pair_id: felt252, future_expiry_timestamp: u64
         ) -> u64 {
@@ -287,12 +334,17 @@ mod YieldCurve {
             return expiry_timestamp;
         }
 
-
+        // @notice get the key of the overnight interest rate
+        // @param idx: index of the overight rate key
+        // @return on_key: Pragma key for the overnight rate used to bootstrap the yield curve
         fn get_on_key(self: @ContractState, idx: u64) -> felt252 {
             let on_key = self.on_key_storage.read(idx);
             return on_key;
         }
 
+        // @notice get the status of whether a overnight rate key is used in the yield curve bootstrapping calculations
+        // @param on_key: Pragma key for the overnight rate to look up its status
+        // @return on_key_is_active: boolean for whether the given key is active or not
         fn get_on_key_is_active(self: @ContractState, on_key: felt252) -> bool {
             let on_key_is_active = self.on_key_is_active_storage.read(on_key);
             return on_key_is_active;
@@ -301,6 +353,10 @@ mod YieldCurve {
         // Setters
         // 
 
+        
+        // @notice update admin address
+        // @dev only the admin can set the new address
+        // @param new_address: new admin address
         fn set_admin_address(ref self: ContractState, new_address: ContractAddress) {
             let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
@@ -311,6 +367,9 @@ mod YieldCurve {
             return ();
         }
 
+        // @notice update oracle controller address
+        // @dev only the admin can update this
+        // @param oracle_address: new oracle controller address
         fn set_oracle_address(ref self: ContractState, oracle_address: ContractAddress) {
             let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
@@ -318,13 +377,20 @@ mod YieldCurve {
             return ();
         }
 
+        // @notice set the source key for future and spot assets
+        // @dev only the admin can update this
+        // @param new_source_key: new Pragma source key
         fn set_future_spot_pragma_source_key(ref self: ContractState, new_source_key: felt252) {
             let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
             self.future_spot_pragma_source_key_storage.write(new_source_key);
             return ();
-        }
+        }   
 
+        // @notice add a new spot key to get data for bootstrapping the yield curve
+        // @dev only the admin can update this
+        // @param pair_id: new Pragma spot key
+        // @param is_active: whether the new key should be active immediately or not
         fn add_pair_id(ref self: ContractState, pair_id: felt252, is_active: bool) {
             let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
@@ -336,6 +402,11 @@ mod YieldCurve {
             return ();
         }
 
+
+        // @notice set the is_active status on a spot key
+        // @dev only the admin can update this
+        // @param pair_id: Pragma spot key
+        // @param is_active: new status of the spot key
         fn set_pair_id_is_active(ref self: ContractState, pair_id: felt252, is_active: bool) {
             let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
@@ -343,6 +414,14 @@ mod YieldCurve {
             return ();
         }
 
+
+        // @notice add a new future key to get data for bootstrapping the yield curve
+        // @dev only the admin can update this
+        // @dev have to add the spot key first
+        // @param pair_id: pair id associated
+        // @param future_expiry_timestamp: new Pragma future key
+        // @param is_active: status of the new future key
+        // @param expiry_timestamp: expiry timestamp of the new future (used to calculate time to maturity)
         fn add_future_expiry_timestamp(
             ref self: ContractState,
             pair_id: felt252,
@@ -371,6 +450,11 @@ mod YieldCurve {
             return ();
         }
 
+        // @notice set the status on a future key
+        // @dev only the admin can update this
+        // @param pair_id: pair id associated
+        // @param future_expiry_timestamp: Pragma future key
+        // @param new_future_expiry_timestamp_status: new status for the future key
         fn set_future_expiry_timestamp_status(
             ref self: ContractState,
             pair_id: felt252,
@@ -385,6 +469,11 @@ mod YieldCurve {
             return ();
         }
 
+        // @notice set the is_active status on a future key
+        // @dev only the admin can update this
+        // @param pair_id: pair id associated
+        // @param future_expiry_timestamp: Pragma future key
+        // @param new_is_active: new is_active of the future key
         fn set_future_expiry_timestamp_is_active(
             ref self: ContractState,
             pair_id: felt252,
@@ -408,6 +497,10 @@ mod YieldCurve {
             return ();
         }
 
+        // @notice add a new overnight rate key
+        // @dev only the admin can update this
+        // @param on_key: Pragma overnight rate key
+        // @param is_active: whether the new key should be active immediately or not
         fn add_on_key(ref self: ContractState, on_key: felt252, is_active: bool) {
             let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
@@ -418,6 +511,10 @@ mod YieldCurve {
             return ();
         }
 
+        // @notice set the is_active status on a overnight key
+        // @dev only the admin can update this
+        // @param on_key: Pragma overnight rate key
+        // @param is_active: new is_active of the overnight rate key
         fn set_on_key_is_active(ref self: ContractState, on_key: felt252, is_active: bool) {
             let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
@@ -426,7 +523,16 @@ mod YieldCurve {
         }
     }
 
+    //
+    // Helpers
+    //
 
+
+    // @notice build the subset of yield points based on overnight rate calculations
+    // @param on_keys: span of on keys to iterate over
+    // @param output_decimals: number of decimals to use for output
+    // @param on_keys: pointer to the first on_key
+    // @return an array of YieldPoint, overnight yield points in the array
     fn build_on_yield_points(
         self: @ContractState, on_keys: Span<felt252>, output_decimals: u32
     ) -> Array<YieldPoint> {
@@ -470,6 +576,12 @@ mod YieldCurve {
         return yield_points;
     }
 
+    // @notice build the subset of yield points based on future and spot price calculations
+    // @param pair_ids:  spot keys to iterate over
+    // @param future_spot_pragma_source_key: source key for future and spot data
+    // @param output_decimals: number of decimals to use for output
+    // @param yield_points: reference to the yield_points array to fill
+    // @return yield_points: span of Yield Points
     fn build_future_spot_yield_points(
         self: @ContractState,
         pair_ids: Span<felt252>,
@@ -536,6 +648,15 @@ mod YieldCurve {
         return yield_points.span();
     }
 
+
+    //@notice for a given spot key, build the subset of yield points based on the corresponding future keys
+    // @param future_expiry_timestamps: future keys to iterate over
+    // @param yield_points: reference to the yield_points array to fill
+    // @param future_spot_pragma_source_key: source key for future and spot data
+    // @param spot_entry: the most recent spot price datapoint
+    // @param oracle_dispatcher: oracle dispatcher used to call oracle functions
+    // @param spot_decimals: number of decimals used in the spot_entry
+    // @param output_decimals: number of decimals to use for output
     fn build_future_yield_points(
         self: @ContractState,
         future_expiry_timestamps: Span<u64>,
@@ -612,6 +733,14 @@ mod YieldCurve {
         };
     }
 
+    // @notice given a future and spot entry, calculate the yield point
+    // @param future_entry: the most recent future price datapoint
+    // @param future_expiry_timestamp: timestamp of future maturity
+    // @param spot_entry: the most recent spot price datapoint
+    // @param spot_decimals: number of decimals used in the spot_entry
+    // @param future_decimals: number of decimals used in the future_entry
+    // @param output_decimals: number of decimals to be used in the output
+    // @return the resulting yield point
     fn calculate_future_spot_yield_point(
         future_entry: FutureEntry,
         future_expiry_timestamp: u64,
@@ -656,6 +785,8 @@ mod YieldCurve {
         };
         return yield_point;
     }
+
+    
     fn change_decimals(
         self: @ContractState, value: u128, old_decimals: u32, new_decimals: u32
     ) -> u128 {
