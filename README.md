@@ -40,8 +40,8 @@ Deployment addresses
 This repo will gradually replace the previous Pragma implementation in Cairo 0 which you can find [here](https://github.com/Astraly-Labs/pragma-contracts).
 
 **Starknet Testnet**
-- Oracle Proxy : __TODO__
-- Publisher Registry : __TODO__
+- Oracle : [0x1ab2b1d9d084ed2c9fe185ac32b3bc7fa42f85e129b97459b4fe315f4247978](https://goerli.voyager.online/contract/0x01ab2b1d9d084ed2c9fe185ac32b3bc7fa42f85e129b97459b4fe315f4247978)
+- Publisher Registry : [0x1d28af342cbb06eb1e5a80dae0034f6a0ca0fb0d580cc4e0799cc43c11f99e9](https://goerli.voyager.online/contract/0x1d28af342cbb06eb1e5a80dae0034f6a0ca0fb0d580cc4e0799cc43c11f99e9)
 - Summary Stats : __TODO__
 
 **Starknet Mainnet**
@@ -51,13 +51,41 @@ This repo will gradually replace the previous Pragma implementation in Cairo 0 w
 Local Deployment
 ---
 
-__TODO__
+Prerequesites:
+- [Scarb](https://docs.swmansion.com/scarb/)
+- Python >= 3.9
+- [Poetry](https://python-poetry.org/)
+
+1. Install dependencies
+
+```bash
+poetry install
+```
+
+2. Compile contracts
+
+```bash
+scarb build
+```
+
+3. Deploy contracts & setup
+
+Make sure your local devnet is running, see latest instructions [here](https://0xspaceshard.github.io/starknet-devnet/docs/intro).
+
+```bash
+
+STARKNET_NETWORK=devnet poetry run python3 scripts/deploy_pragma.py
+STARKNET_NETWORK=devnet poetry run python3 scripts/register_publishers.py
+
+```
+
+Once the contracts are declared/deployed you'll find them under the `deployments/` folder at the root of the repo.
 
 
 Questions and feedback
 ---
 
-For any question or feedback you can send an email to matthias@pragmaoracle.com.
+For any question or feedback you can send an email to <matthias@pragmaoracle.com>
 
 License
 ---
