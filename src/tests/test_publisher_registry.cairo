@@ -22,6 +22,7 @@ fn deploy_publisher_registry() -> IPublisherRegistryABIDispatcher {
     let mut constructor_calldata = ArrayTrait::new();
     let admin_address = contract_address_const::<0x12345>();
     constructor_calldata.append(admin_address.into());
+
     let (publisher_registry_address, _) = deploy_syscall(
         PublisherRegistry::TEST_CLASS_HASH.try_into().unwrap(), 0, constructor_calldata.span(), true
     )
@@ -31,7 +32,8 @@ fn deploy_publisher_registry() -> IPublisherRegistryABIDispatcher {
     };
 
     // Add publisher
-    publisher_registry.add_publisher(1, admin_address);
+    let publisher_address = contract_address_const::<0x54321>();
+    publisher_registry.add_publisher(1, publisher_address);
 
     publisher_registry.add_source_for_publisher(1, 1);
     // Add source 2 for publisher 1
@@ -45,9 +47,11 @@ fn deploy_publisher_registry() -> IPublisherRegistryABIDispatcher {
 fn test_register_non_admin_fail() {
     set_contract_address(contract_address_const::<0x12345>());
     let publisher_registry = deploy_publisher_registry();
+
     let joe = contract_address_const::<0x98765>();
-    let test_add = contract_address_const::<0x1111111>();
     set_contract_address(joe);
+
+    let test_add = contract_address_const::<0x1111111>();
     publisher_registry.add_publisher(1, test_add);
 }
 
@@ -69,21 +73,26 @@ fn test_update_publisher_address() {
     set_contract_address(contract_address_const::<0x12345>());
     let publisher_registry = deploy_publisher_registry();
     let test_add = contract_address_const::<0x101202>();
-    let admin_address = contract_address_const::<0x12345>();
-    set_contract_address(admin_address);
+
+    let publisher_address = contract_address_const::<0x54321>();
+    set_contract_address(publisher_address);
+
     publisher_registry.update_publisher_address(1, test_add);
+
     assert(publisher_registry.get_publisher_address(1) == test_add, 'wrong publisher address');
 }
 
 #[test]
 #[should_panic]
 #[available_gas(20000000)]
-fn test_update_publisher_should_fail_if_not_admin() {
+fn test_update_publisher_should_fail_if_not_publisher() {
     set_contract_address(contract_address_const::<0x12345>());
     let publisher_registry = deploy_publisher_registry();
     let test_add = contract_address_const::<0x101202>();
+
     let joe = contract_address_const::<0x98765>();
     set_contract_address(joe);
+
     publisher_registry.update_publisher_address(1, test_add);
 }
 
