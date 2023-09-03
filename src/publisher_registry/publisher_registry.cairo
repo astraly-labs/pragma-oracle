@@ -103,8 +103,6 @@ mod PublisherRegistry {
         fn update_publisher_address(
             ref self: ContractState, publisher: felt252, new_publisher_address: ContractAddress
         ) {
-            let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
             let existing_publisher_address = PublisherRegistryImpl::get_publisher_address(
                 @self, publisher
             );
