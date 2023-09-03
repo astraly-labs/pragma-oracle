@@ -51,7 +51,7 @@ This repo will gradually replace the previous Pragma implementation in Cairo 0 w
 Local Deployment
 ---
 
-Prerequesites:
+Prerequisites:
 - [Scarb](https://docs.swmansion.com/scarb/)
 - Python >= 3.9
 - [Poetry](https://python-poetry.org/)
