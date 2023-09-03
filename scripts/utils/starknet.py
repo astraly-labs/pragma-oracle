@@ -109,8 +109,8 @@ def dump_deployments(deployments):
         {
             name: {
                 **deployment,
-                "address": hex(deployment["address"]),
-                "tx": hex(deployment["tx"]),
+                "address": hex(deployment["address"]) if type(deployment["address"]) == int else deployment["address"],
+                "tx": hex(deployment["tx"]) if type(deployment["tx"]) == int else deployment["tx"],
             }
             for name, deployment in deployments.items()
         },

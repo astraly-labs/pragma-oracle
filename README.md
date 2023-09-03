@@ -42,7 +42,7 @@ This repo will gradually replace the previous Pragma implementation in Cairo 0 w
 **Starknet Testnet**
 - Oracle : [0x1ab2b1d9d084ed2c9fe185ac32b3bc7fa42f85e129b97459b4fe315f4247978](https://goerli.voyager.online/contract/0x01ab2b1d9d084ed2c9fe185ac32b3bc7fa42f85e129b97459b4fe315f4247978)
 - Publisher Registry : [0x1d28af342cbb06eb1e5a80dae0034f6a0ca0fb0d580cc4e0799cc43c11f99e9](https://goerli.voyager.online/contract/0x1d28af342cbb06eb1e5a80dae0034f6a0ca0fb0d580cc4e0799cc43c11f99e9)
-- Summary Stats : __TODO__
+- Summary Stats : [0x7692d324980c3c7ad72198ba7a42487fd057dd97b8c89a8d71e48c28e3b8657](https://goerli.voyager.online/contract/0x7692d324980c3c7ad72198ba7a42487fd057dd97b8c89a8d71e48c28e3b8657)
 
 **Starknet Mainnet**
 
@@ -72,9 +72,12 @@ scarb build
 
 Make sure your local devnet is running, see latest instructions [here](https://0xspaceshard.github.io/starknet-devnet/docs/intro).
 
+You can also specify a different network by setting `STARKNET_NETWORK` to a different value e.g `testnet | mainnet`.
+
 ```bash
 
 STARKNET_NETWORK=devnet poetry run python3 scripts/deploy_pragma.py
+STARKNET_NETWORK=devnet poetry run python3 scripts/deploy_summary_stats.py
 STARKNET_NETWORK=devnet poetry run python3 scripts/register_publishers.py
 
 ```

@@ -184,13 +184,13 @@ tests-no-zope = ["cloudpickle", "hypothesis", "mypy (>=1.1.1)", "pympler", "pyte
 
 [[package]]
 name = "autoflake"
-version = "2.2.0"
+version = "2.2.1"
 description = "Removes unused imports and unused variables"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "autoflake-2.2.0-py3-none-any.whl", hash = "sha256:de409b009a34c1c2a7cc2aae84c4c05047f9773594317c6a6968bd497600d4a0"},
-    {file = "autoflake-2.2.0.tar.gz", hash = "sha256:62e1f74a0fdad898a96fee6f99fe8241af90ad99c7110c884b35855778412251"},
+    {file = "autoflake-2.2.1-py3-none-any.whl", hash = "sha256:265cde0a43c1f44ecfb4f30d95b0437796759d07be7706a2f70e4719234c0f79"},
+    {file = "autoflake-2.2.1.tar.gz", hash = "sha256:62b7b6449a692c3c9b0c916919bbc21648da7281e8506bcf8d3f8280e431ebc1"},
 ]
 
 [package.dependencies]
@@ -1773,12 +1773,12 @@ files = [
 
 [[package]]
 name = "pragma-sdk"
-version = "1.0.0a0"
+version = "1.0.0b4"
 description = "Core package for rollup-native Pragma Oracle"
 optional = false
 python-versions = ">=3.9,<3.10"
 files = [
-    {file = "pragma_sdk-1.0.0a0.tar.gz", hash = "sha256:e184fc52c3d5856ab91a66c302ec2f35371ce7857b657a9733944a54041b315c"},
+    {file = "pragma_sdk-1.0.0b4.tar.gz", hash = "sha256:28c7c9e8d31b7f4b6794ad1efda57c4d85ae796d93d05b5d35c2858fe93e83e4"},
 ]
 
 [package.dependencies]
@@ -1788,7 +1788,7 @@ deprecated = ">=1.2.14,<2.0.0"
 python-dotenv = ">=1.0.0,<2.0.0"
 requests-mock = ">=1.11.0,<2.0.0"
 starknet-devnet = ">=0.5.5,<0.6.0"
-"starknet.py" = "0.18.0a0"
+"starknet.py" = "0.18.1"
 typer = "0.6.1"
 
 [[package]]
@@ -1917,13 +1917,13 @@ files = [
 
 [[package]]
 name = "pytest"
-version = "7.4.0"
+version = "7.4.1"
 description = "pytest: simple powerful testing with Python"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pytest-7.4.0-py3-none-any.whl", hash = "sha256:78bf16451a2eb8c7a2ea98e32dc119fd2aa758f1d5d66dbf0a59d69a3969df32"},
-    {file = "pytest-7.4.0.tar.gz", hash = "sha256:b4bf8c45bd59934ed84001ad51e11b4ee40d40a1229d2c79f9c592b0a3f6bd8a"},
+    {file = "pytest-7.4.1-py3-none-any.whl", hash = "sha256:460c9a59b14e27c602eb5ece2e47bec99dc5fc5f6513cf924a7d03a578991b1f"},
+    {file = "pytest-7.4.1.tar.gz", hash = "sha256:2f2301e797521b23e4d2585a0a3d7b5e50fdddaaf7e7d6773ea26ddb17c213ab"},
 ]
 
 [package.dependencies]
@@ -2254,12 +2254,12 @@ Werkzeug = ">=2.0.3,<2.1.0"
 
 [[package]]
 name = "starknet-py"
-version = "0.18.0a0"
+version = "0.18.1"
 description = "A python SDK for Starknet"
 optional = false
 python-versions = ">=3.8,<3.12"
 files = [
-    {file = "starknet_py-0.18.0a0.tar.gz", hash = "sha256:7b205c08f9adfeae065db2032b628d26a868c7221aaa172fd4ff574c5187bf22"},
+    {file = "starknet_py-0.18.1.tar.gz", hash = "sha256:29be5df177569684dbafd9a398be770c8fb044aaa1e27a9847052d89af3f2d30"},
 ]
 
 [package.dependencies]
@@ -2692,4 +2692,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.10"
-content-hash = "5dc55439c520b63670776bfdcbdfc87eaf551733261f5daf011cc8dce1c94110"
+content-hash = "36629073f9a3378d231454ec7351f07ba56f1951d30263d52eca9abe61d596bf"
