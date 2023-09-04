@@ -64,7 +64,6 @@ mod SummaryStats {
 
     #[external(v0)]
     impl SummaryStatsImpl of ISummaryStatsABI<ContractState> {
-
         // @notice: compute the mean price for a given data type, for a given interval 
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @param start: initial timestamp, combined with final_timestamp, it helps define the period over which the mean is computed

@@ -77,7 +77,6 @@ mod PublisherRegistry {
 
     #[external(v0)]
     impl PublisherRegistryImpl of IPublisherRegistryABI<ContractState> {
-
         // @notice add a publisher to the registry 
         // @dev can be called only by admin
         // @param publisher: the publisher that needs to be added 

@@ -121,7 +121,6 @@ mod YieldCurve {
     }
 
 
-
     #[constructor]
     fn constructor(
         ref self: ContractState, admin_address: ContractAddress, oracle_address: ContractAddress
@@ -136,7 +135,6 @@ mod YieldCurve {
         //
         // Getters
         //
-
 
         // @notice get the yield curve points (x: time to maturity, y: interest rate)
         // @param decimals:  number of decimals for each yield curve point's int rate
@@ -353,7 +351,6 @@ mod YieldCurve {
         // Setters
         // 
 
-        
         // @notice update admin address
         // @dev only the admin can set the new address
         // @param new_address: new admin address
@@ -385,7 +382,7 @@ mod YieldCurve {
             Admin::assert_only_admin(@state);
             self.future_spot_pragma_source_key_storage.write(new_source_key);
             return ();
-        }   
+        }
 
         // @notice add a new spot key to get data for bootstrapping the yield curve
         // @dev only the admin can update this
@@ -526,7 +523,6 @@ mod YieldCurve {
     //
     // Helpers
     //
-
 
     // @notice build the subset of yield points based on overnight rate calculations
     // @param on_keys: span of on keys to iterate over
@@ -786,7 +782,7 @@ mod YieldCurve {
         return yield_point;
     }
 
-    
+
     fn change_decimals(
         self: @ContractState, value: u128, old_decimals: u32, new_decimals: u32
     ) -> u128 {

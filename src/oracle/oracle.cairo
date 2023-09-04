@@ -642,7 +642,7 @@ mod Oracle {
             prices_response
         }
 
-        / @notice aggregate the entries for specific sources, for multiple  data type, using MEDIAN as aggregation mode
+        // @notice aggregate the entries for specific sources, for multiple  data type, using MEDIAN as aggregation mode
         // @param data_type: an span of DataType
         // @params sources : a span of sources used for the aggregation
         // @returns a span of PragmaPricesResponse, a structure providing the main informations for each asset (see entry/structs for details)
@@ -680,7 +680,7 @@ mod Oracle {
             prices_response
         }
 
-         // @notice aggregate all the entries for a given data type and given sources, with a given aggregation mode
+        // @notice aggregate all the entries for a given data type and given sources, with a given aggregation mode
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @param aggregation_mode: the aggregation method to be used (e.g. AggregationMode::Median(()))
         // @params sources : a span of sources used for the aggregation
@@ -1011,7 +1011,7 @@ mod Oracle {
             get_checkpoint_by_index(self, data_type, checkpoint_index, aggregation_mode)
         }
 
-        
+
         fn get_sources_threshold(self: @ContractState) -> u32 {
             self.oracle_sources_threshold_storage.read()
         }
@@ -1124,7 +1124,7 @@ mod Oracle {
         //
         // Setters
         //
-    
+
         // @notice publish oracle data on chain
         // @notice in order to publish, the publisher must be registered for the specific source/asset. 
         // @param new_entry, the new entry that needs to be published
@@ -1536,7 +1536,7 @@ mod Oracle {
     // 
     // HELPERS
     //
-    
+
     // @notice retrieve all the available sources for a given data type
     // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
     // @returns a span of sources 
@@ -1565,7 +1565,7 @@ mod Oracle {
             }
         }
     }
-    
+
     // @notice retrieve a checkpoint based on its index
     // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
     // @param checkpoint_index : the index of the checkpoint to consider
