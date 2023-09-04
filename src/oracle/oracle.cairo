@@ -848,7 +848,7 @@ mod Oracle {
             self.oracle_publisher_registry_address_storage.read()
         }
 
-        // @notice retrive the precision (number of decimals) for a pair
+        // @notice retrieve the precision (number of decimals) for a pair
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @returns the precision for the given data type
         fn get_decimals(self: @ContractState, data_type: DataType) -> u32 {
