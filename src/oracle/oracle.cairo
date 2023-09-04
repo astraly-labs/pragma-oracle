@@ -582,7 +582,7 @@ mod Oracle {
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @param sources : a span of sources, if no sources are provided, all the sources will be considered. 
         // @returns a span of PossibleEntries, which can be spot entries, future entries, generic entries ...
-        // @retuns the last updated timestamp
+        // @returns the last updated timestamp
         fn get_data_entries_for_sources(
             self: @ContractState, data_type: DataType, sources: Span<felt252>
         ) -> (Span<PossibleEntries>, u64) {
@@ -608,7 +608,7 @@ mod Oracle {
             }
         }
 
-        // @notice retreive all the data enries for a given data type ( a data type is an asset id and a type)
+        // @notice retrieve all the data enries for a given data type ( a data type is an asset id and a type)
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @returns a span of PossibleEntries, which can be spot entries, future entries, generic entries...
         fn get_data_entries(self: @ContractState, data_type: DataType) -> Span<PossibleEntries> {
@@ -620,7 +620,7 @@ mod Oracle {
 
         // @notice aggregate all the entries for a given data type, using MEDIAN as aggregation mode
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
-        // @returns a PragmaPricesResponse, a structure providing the main informations for an asset (see entry/structs for details)
+        // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data_median(self: @ContractState, data_type: DataType) -> PragmaPricesResponse {
             let sources = get_all_sources(self, data_type).span();
             let prices_response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
@@ -632,7 +632,7 @@ mod Oracle {
         // @notice aggregate the entries for specific sources,  for a given data type, using MEDIAN as aggregation mode
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @params sources : a span of sources used for the aggregation
-        // @returns a PragmaPricesResponse, a structure providing the main informations for an asset (see entry/structs for details)
+        // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data_median_for_sources(
             self: @ContractState, data_type: DataType, sources: Span<felt252>
         ) -> PragmaPricesResponse {
@@ -645,7 +645,7 @@ mod Oracle {
         // @notice aggregate the entries for specific sources, for multiple  data type, using MEDIAN as aggregation mode
         // @param data_type: an span of DataType
         // @params sources : a span of sources used for the aggregation
-        // @returns a span of PragmaPricesResponse, a structure providing the main informations for each asset (see entry/structs for details)
+        // @returns a span of PragmaPricesResponse, a structure providing the main information for each asset (see entry/structs for details)
         fn get_data_median_multi(
             self: @ContractState, data_types: Span<DataType>, sources: Span<felt252>
         ) -> Span<PragmaPricesResponse> {
@@ -668,7 +668,7 @@ mod Oracle {
         // @notice aggregate all the entries for a given data type, with a given aggregation mode
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @param aggregation_mode: the aggregation method to be used (e.g. AggregationMode::Median(()))
-        // @returns a PragmaPricesResponse, a structure providing the main informations for an asset (see entry/structs for details)
+        // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data(
             self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
         ) -> PragmaPricesResponse {
@@ -684,7 +684,7 @@ mod Oracle {
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @param aggregation_mode: the aggregation method to be used (e.g. AggregationMode::Median(()))
         // @params sources : a span of sources used for the aggregation
-        // @returns a PragmaPricesResponse, a structure providing the main informations for an asset (see entry/structs for details)
+        // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data_for_sources(
             self: @ContractState,
             data_type: DataType,
@@ -843,7 +843,7 @@ mod Oracle {
         }
 
         // @notice get the publisher registry address associated with the oracle
-        // @returns the linked publisher registry addresss 
+        // @returns the linked publisher registry address
         fn get_publisher_registry_address(self: @ContractState) -> ContractAddress {
             self.oracle_publisher_registry_address_storage.read()
         }
@@ -881,13 +881,13 @@ mod Oracle {
             min(base_currency.decimals, quote_currency.decimals)
         }
 
-        // @notice aggregate entries informations using an USD hop (BTC/ETH => BTC/USD + ETH/USD)
+        // @notice aggregate entries information using an USD hop (BTC/ETH => BTC/USD + ETH/USD)
         // @param base_currency_id: the pragma key for the base currency
         // @param quote_currency_id : the pragma key for the quote currency id 
         // @param aggregation_mode :the aggregation method to be used (e.g. AggregationMode::Median(()))
         // @param typeof : the type of data to work with ( Spot, Future, ...)
         // @param expiration_timestamp : optional, for futures
-        // @returns a PragmaPricesResponse, a structure providing the main informations for an asset (see entry/structs for details)
+        // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data_with_USD_hop(
             self: @ContractState,
             base_currency_id: felt252,
@@ -964,7 +964,7 @@ mod Oracle {
             }
         }
 
-        // @notice get the last checkpoint index (a checkpoint is a 'save' of the oracle informations used for summary stats computations -realised volatility, twap, mean...)
+        // @notice get the last checkpoint index (a checkpoint is a 'save' of the oracle information used for summary stats computations -realised volatility, twap, mean...)
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @param aggregation_mode: the aggregation method to be used 
         // @returns last checkpoint index
@@ -1348,7 +1348,7 @@ mod Oracle {
         }
 
         // @notice update the publisher registry associated with the oracle 
-        // @param new_publisher_registry_address: the address fo the new publisher registry 
+        // @param new_publisher_registry_address: the address of the new publisher registry 
         fn update_publisher_registry_address(
             ref self: ContractState, new_publisher_registry_address: ContractAddress
         ) {
@@ -1773,7 +1773,7 @@ mod Oracle {
     }
 
 
-    // @notice retreive all the entries for a given data type 
+    // @notice retrieve all the entries for a given data type 
     // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
     // @param sources: a span of sources to consider
     // @param max_timestamp: max timestamp wanted

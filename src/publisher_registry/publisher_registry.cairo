@@ -250,10 +250,10 @@ mod PublisherRegistry {
             }
         }
 
-        // @notice checks wether a publisher can publish for a certain source or not 
+        // @notice checks whether a publisher can publish for a certain source or not 
         // @param the publisher to be checked
         // @param the source to be checked 
-        // @returns a boolean on wether the publisher can publish for the source or not
+        // @returns a boolean on whether the publisher can publish for the source or not
         fn can_publish_source(self: @ContractState, publisher: felt252, source: felt252) -> bool {
             let cur_idx = self.publishers_sources_idx.read(publisher);
             if (cur_idx == 0) {
@@ -352,7 +352,7 @@ mod PublisherRegistry {
     // @param max_idx : the total number of publishers
     // @param publisher : the publisher whose index needs to be found  
     // @returns the index of the publisher 
-    // @returns wether the publisher is found or not (in order to avoid conflicts, case 0)
+    // @returns whether the publisher is found or not (in order to avoid conflicts, case 0)
     fn _find_publisher_idx(
         self: @ContractState, cur_idx: usize, max_idx: usize, publisher: felt252
     ) -> (usize, bool) {
@@ -377,7 +377,7 @@ mod PublisherRegistry {
     // @param source: the source whose index needs to be found
     // @param an array of sources to work with 
     // @returns the index of the source  
-    // @returns wether the source is found or not (in order to avoid conflicts, case 0)
+    // @returns whether the source is found or not (in order to avoid conflicts, case 0)
     fn _find_source_idx(
         cur_idx: usize, source: felt252, sources_arr: @Array<felt252>
     ) -> (usize, bool) {

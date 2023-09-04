@@ -233,7 +233,7 @@ mod YieldCurve {
 
         // @notice get all the keys of the asset for which we get spot data to compare to futures data
         // @param pair_id: pair id associated
-        // @return of span of Pragma key for the future assets used to boostrap the yield curve
+        // @return of span of Pragma key for the future assets used to bootsrap the yield curve
         fn get_future_expiry_timestamps(self: @ContractState, pair_id: felt252) -> Span<u64> {
             let mut future_expiry_timestamps = ArrayTrait::<u64>::new();
             let total_future_expiry_timestamps_len = self
@@ -265,7 +265,7 @@ mod YieldCurve {
         }
 
 
-        // @notice get all the keys of the overnight keys used to boostrap the yield curve
+        // @notice get all the keys of the overnight keys used to bootsrap the yield curve
         // @returns span of keys
         fn get_on_keys(self: @ContractState) -> Span<felt252> {
             let mut on_keys = ArrayTrait::<felt252>::new();
