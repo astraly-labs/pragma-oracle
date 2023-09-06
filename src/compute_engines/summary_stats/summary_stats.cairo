@@ -179,7 +179,7 @@ mod SummaryStats {
         // @param time : represent the DURATION, used for the computation
         // @param start_time: the initial timestamp, the working interval is then [start_time, start_time+time]
         // @returns the time weighted average price 
-        // @returns the precision, the number of decimals (the real mean value is mean/(1o**decimals))
+        // @returns the precision, the number of decimals (the real mean value is mean / (10**decimals))
         fn calculate_twap(
             self: @ContractState,
             data_type: DataType,
