@@ -535,6 +535,8 @@ mod Oracle {
             return ();
         }
 
+        // @notice Check if the caller is the admin, use the contract Admin
+        //@dev internal function, fails if not called by the admin
         fn assert_only_admin(self: @ContractState) {
             let state: Admin::ContractState = Admin::unsafe_new_contract_state();
             let admin = Admin::get_admin_address(@state);
@@ -542,6 +544,8 @@ mod Oracle {
             assert(caller == admin, 'Admin: unauthorized');
         }
 
+        // @notice set the keys pairs, called by the constructor of the contract
+        // @dev internal function
         fn _set_keys_pairs(ref self: ContractState, key_pairs: Span<Pair>) {
             let mut idx: u32 = 0;
             loop {
@@ -558,6 +562,9 @@ mod Oracle {
             return ();
         }
 
+        // @notice upgrade the contract implementation, call to the contract Upgradeable
+        // @dev callable only by the admin
+        // @param impl_hash: the current implementation hash
         fn upgrade(self: @ContractState, impl_hash: ClassHash) {
             self.assert_only_admin();
             let mut upstate: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
@@ -571,6 +578,11 @@ mod Oracle {
         // Getters
         //
 
+        // @notice get all the data entries for given sources 
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @param sources : a span of sources, if no sources are provided, all the sources will be considered. 
+        // @returns a span of PossibleEntries, which can be spot entries, future entries, generic entries ...
+        // @returns the last updated timestamp
         fn get_data_entries_for_sources(
             self: @ContractState, data_type: DataType, sources: Span<felt252>
         ) -> (Span<PossibleEntries>, u64) {
@@ -594,10 +606,11 @@ mod Oracle {
                 );
                 return (entries.span(), conservative_current_timestamp);
             }
-        //TO BE CHECKED, FOR LAST_UPDATED_TIMESTAMP
         }
 
-
+        // @notice retrieve all the data enries for a given data type ( a data type is an asset id and a type)
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @returns a span of PossibleEntries, which can be spot entries, future entries, generic entries...
         fn get_data_entries(self: @ContractState, data_type: DataType) -> Span<PossibleEntries> {
             let mut sources = ArrayTrait::<felt252>::new();
             let sources = get_all_sources(self, data_type).span();
@@ -605,7 +618,9 @@ mod Oracle {
             entries
         }
 
-
+        // @notice aggregate all the entries for a given data type, using MEDIAN as aggregation mode
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data_median(self: @ContractState, data_type: DataType) -> PragmaPricesResponse {
             let sources = get_all_sources(self, data_type).span();
             let prices_response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
@@ -614,7 +629,10 @@ mod Oracle {
             prices_response
         }
 
-
+        // @notice aggregate the entries for specific sources,  for a given data type, using MEDIAN as aggregation mode
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @params sources : a span of sources used for the aggregation
+        // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data_median_for_sources(
             self: @ContractState, data_type: DataType, sources: Span<felt252>
         ) -> PragmaPricesResponse {
@@ -624,7 +642,10 @@ mod Oracle {
             prices_response
         }
 
-
+        // @notice aggregate the entries for specific sources, for multiple  data type, using MEDIAN as aggregation mode
+        // @param data_type: an span of DataType
+        // @params sources : a span of sources used for the aggregation
+        // @returns a span of PragmaPricesResponse, a structure providing the main information for each asset (see entry/structs for details)
         fn get_data_median_multi(
             self: @ContractState, data_types: Span<DataType>, sources: Span<felt252>
         ) -> Span<PragmaPricesResponse> {
@@ -644,7 +665,10 @@ mod Oracle {
             prices_response.span()
         }
 
-
+        // @notice aggregate all the entries for a given data type, with a given aggregation mode
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @param aggregation_mode: the aggregation method to be used (e.g. AggregationMode::Median(()))
+        // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data(
             self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
         ) -> PragmaPricesResponse {
@@ -656,7 +680,11 @@ mod Oracle {
             prices_response
         }
 
-
+        // @notice aggregate all the entries for a given data type and given sources, with a given aggregation mode
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @param aggregation_mode: the aggregation method to be used (e.g. AggregationMode::Median(()))
+        // @params sources : a span of sources used for the aggregation
+        // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data_for_sources(
             self: @ContractState,
             data_type: DataType,
@@ -814,13 +842,15 @@ mod Oracle {
             }
         }
 
-
+        // @notice get the publisher registry address associated with the oracle
+        // @returns the linked publisher registry address
         fn get_publisher_registry_address(self: @ContractState) -> ContractAddress {
             self.oracle_publisher_registry_address_storage.read()
         }
 
-
-        //Can be simplified using just the pair_id instead of the data_type
+        // @notice retrieve the precision (number of decimals) for a pair
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @returns the precision for the given data type
         fn get_decimals(self: @ContractState, data_type: DataType) -> u32 {
             let (base_currency, quote_currency) = match data_type {
                 DataType::SpotEntry(pair_id) => {
@@ -851,7 +881,13 @@ mod Oracle {
             min(base_currency.decimals, quote_currency.decimals)
         }
 
-
+        // @notice aggregate entries information using an USD hop (BTC/ETH => BTC/USD + ETH/USD)
+        // @param base_currency_id: the pragma key for the base currency
+        // @param quote_currency_id : the pragma key for the quote currency id 
+        // @param aggregation_mode :the aggregation method to be used (e.g. AggregationMode::Median(()))
+        // @param typeof : the type of data to work with ( Spot, Future, ...)
+        // @param expiration_timestamp : optional, for futures
+        // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data_with_USD_hop(
             self: @ContractState,
             base_currency_id: felt252,
@@ -928,14 +964,21 @@ mod Oracle {
             }
         }
 
-
+        // @notice get the last checkpoint index (a checkpoint is a 'save' of the oracle information used for summary stats computations -realised volatility, twap, mean...)
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @param aggregation_mode: the aggregation method to be used 
+        // @returns last checkpoint index
+        // @returns a boolean to verify if a checkpoint is actually set (case 0)
         fn get_latest_checkpoint_index(
             self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
         ) -> (u64, bool) {
             get_latest_checkpoint_index(self, data_type, aggregation_mode)
         }
 
-
+        // @notice get the latest checkpoint recorded 
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @param aggregation_mode: the aggregation method to be used         
+        // @returns the latest checkpoint (see entry/structs for the structure details)
         fn get_latest_checkpoint(
             self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
         ) -> Checkpoint {
@@ -954,7 +997,11 @@ mod Oracle {
             }
         }
 
-
+        // @notice retrieve a specific checkpoint by its index
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @param checkpoint_index: the index of the checkpoint to be considered
+        // @param aggregation_mode: the aggregation method to be used 
+        // @returns the checkpoint related
         fn get_checkpoint(
             self: @ContractState,
             data_type: DataType,
@@ -969,19 +1016,26 @@ mod Oracle {
             self.oracle_sources_threshold_storage.read()
         }
 
-
+        // @notice get the oracle admin address
+        // @returns the ContractAddress of the admin
         fn get_admin_address(self: @ContractState) -> ContractAddress {
             let state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::get_admin_address(@state)
         }
 
-
+        // @notice get the implementation hash of the oracle 
+        // @returns the related class hash 
         fn get_implementation_hash(self: @ContractState) -> ClassHash {
             let state: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
             Upgradeable::get_implementation_hash(@state)
         }
 
-
+        // @notice retrieve the last checkpoint before a given timestamp
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @param timestamp : the timestamp to consider
+        // @param aggregation_mode: the aggregation method to be used 
+        // @returns the checkpoint 
+        // @returns the index related to the checkpoint
         fn get_last_checkpoint_before(
             self: @ContractState,
             data_type: DataType,
@@ -995,7 +1049,10 @@ mod Oracle {
             (checkpoint, idx)
         }
 
-
+        // @notice get the data entry for a given data type and a source
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @param source: the source to retrieve the entry from
+        // @returns a PossibleEntries, linked to the type of data needed (Spot, futures, generic, ...)
         fn get_data_entry(
             self: @ContractState, data_type: DataType, source: felt252
         ) -> PossibleEntries {
@@ -1068,6 +1125,9 @@ mod Oracle {
         // Setters
         //
 
+        // @notice publish oracle data on chain
+        // @notice in order to publish, the publisher must be registered for the specific source/asset. 
+        // @param new_entry, the new entry that needs to be published
         fn publish_data(ref self: ContractState, new_entry: PossibleEntries) {
             match new_entry {
                 PossibleEntries::Spot(spot_entry) => {
@@ -1272,7 +1332,9 @@ mod Oracle {
             return ();
         }
 
-
+        // @notice publish oracle data on chain (multiple entries)
+        // @notice in order to publish, the publisher must be registered for the specific source/asset. 
+        // @param new_entries, span of  new entries that needs to be published
         fn publish_data_entries(ref self: ContractState, new_entries: Span<PossibleEntries>) {
             let mut cur_idx = 0;
             loop {
@@ -1285,7 +1347,8 @@ mod Oracle {
             }
         }
 
-
+        // @notice update the publisher registry associated with the oracle 
+        // @param new_publisher_registry_address: the address of the new publisher registry 
         fn update_publisher_registry_address(
             ref self: ContractState, new_publisher_registry_address: ContractAddress
         ) {
@@ -1305,7 +1368,9 @@ mod Oracle {
             return ();
         }
 
-
+        // @notice add a new currency to the oracle (e.g ETH)
+        // @dev can be called only by the admin
+        // @param new_currency: the new currency to be added 
         fn add_currency(ref self: ContractState, new_currency: Currency) {
             self.assert_only_admin();
             let existing_currency = self.oracle_currencies_storage.read(new_currency.id);
@@ -1315,7 +1380,9 @@ mod Oracle {
             return ();
         }
 
-
+        // @notice update an existing currency
+        // @dev can be called only by the admin
+        // @param currency: the currency to be updated
         fn update_currency(ref self: ContractState, currency: Currency) {
             self.assert_only_admin();
             self.oracle_currencies_storage.write(currency.id, currency);
@@ -1324,7 +1391,9 @@ mod Oracle {
             return ();
         }
 
-
+        // @notice add a new pair to the oracle (e.g ETH)
+        // @dev can be called only by the admin
+        // @param new_pair: the new pair to be added 
         fn add_pair(ref self: ContractState, new_pair: Pair) {
             self.assert_only_admin();
             let check_pair = self.oracle_pairs_storage.read(new_pair.id);
@@ -1337,7 +1406,9 @@ mod Oracle {
             return ();
         }
 
-
+        // @notice set a new checkpoint for a given data type and and aggregation mode
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @param aggregation_mode: the aggregation method to be used 
         fn set_checkpoint(
             ref self: ContractState, data_type: DataType, aggregation_mode: AggregationMode
         ) {
@@ -1417,7 +1488,9 @@ mod Oracle {
             return ();
         }
 
-
+        // @notice set checkpoints for a span of data_type, given an aggregation mode
+        // @param data_type: a span DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @param aggregation_mode: the aggregation method to be used 
         fn set_checkpoints(
             ref self: ContractState, data_types: Span<DataType>, aggregation_mode: AggregationMode
         ) {
@@ -1432,7 +1505,8 @@ mod Oracle {
             }
         }
 
-
+        // @notice set the oracle admin address
+        // @param  new_admin_address: the new admin address to be set 
         fn set_admin_address(ref self: ContractState, new_admin_address: ContractAddress) {
             let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
@@ -1442,7 +1516,8 @@ mod Oracle {
             Admin::set_admin_address(ref state, new_admin_address);
         }
 
-
+        // @notice set the source threshold 
+        // @param threshold: the new source threshold to be set 
         fn set_sources_threshold(ref self: ContractState, threshold: u32) {
             self.assert_only_admin();
             self.oracle_sources_threshold_storage.write(threshold);
@@ -1457,7 +1532,14 @@ mod Oracle {
             AggregationMode::Error(()) => 150_u8,
         }
     }
-    //ISSUE HERE, DO NOT RETURN ARRAY
+
+    // 
+    // HELPERS
+    //
+
+    // @notice retrieve all the available sources for a given data type
+    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+    // @returns a span of sources 
     fn get_all_sources(self: @ContractState, data_type: DataType) -> Array<felt252> {
         let mut sources = ArrayTrait::<felt252>::new();
         match data_type {
@@ -1484,6 +1566,11 @@ mod Oracle {
         }
     }
 
+    // @notice retrieve a checkpoint based on its index
+    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+    // @param checkpoint_index : the index of the checkpoint to consider
+    // @param aggregation_mode: the aggregation method used when saving the checkpoint 
+    // @returns the associated checkpoint
     fn get_checkpoint_by_index(
         self: @ContractState,
         data_type: DataType,
@@ -1521,7 +1608,11 @@ mod Oracle {
         return checkpoint;
     }
 
-
+    // @notice get the latest checkpoint index
+    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+    // @param aggregation_mode: the aggregation method to be used 
+    // @returns the index
+    // @returns a boolean verifying if a checkpoint is actually set (case 0)
     fn get_latest_checkpoint_index(
         self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
     ) -> (u64, bool) {
@@ -1548,7 +1639,8 @@ mod Oracle {
         }
     }
 
-
+    // @notice check if the publisher is registered, and allowed to publish the entry, calling the publisher registry contract
+    // @param entry: the entry to be published 
     fn validate_sender_for_source<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
         self: @ContractState, _entry: T
     ) {
@@ -1569,6 +1661,10 @@ mod Oracle {
         return ();
     }
 
+    // @notice retrieve the latest entry timestamp for a given data type and and sources 
+    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+    // @param a span of sources
+    // @returns the latest timestamp
     fn get_latest_entry_timestamp(
         self: @ContractState, data_type: DataType, sources: Span<felt252>
     ) -> u64 {
@@ -1621,6 +1717,12 @@ mod Oracle {
         }
     }
 
+    // @notice build an array of PossibleEntries (spot entries, future entries, ...)
+    // @dev recursive function
+    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+    // @param sources: a span of sources to consider 
+    // @aram entries: a reference to an array of PossibleEntries , to be filled
+    // @param latest_timestamp : max wanted timestamp
     fn build_entries_array(
         self: @ContractState,
         data_type: DataType,
@@ -1671,6 +1773,10 @@ mod Oracle {
     }
 
 
+    // @notice retrieve all the entries for a given data type 
+    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+    // @param sources: a span of sources to consider
+    // @param max_timestamp: max timestamp wanted
     fn get_all_entries(
         self: @ContractState, data_type: DataType, sources: Span<felt252>, max_timestamp: u64
     ) -> (Array<PossibleEntries>, u32) {
@@ -1679,6 +1785,11 @@ mod Oracle {
         build_entries_array(self, data_type, sources, ref entries, max_timestamp);
         (entries, entries.len())
     }
+
+    // @notice generate an ArrayEntry out of a span of possibleEntries 
+    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+    // @param data : the span of possibleEntries 
+    // @returns an ArrayEntry (see entry/structs)
     fn filter_data_array(data_type: DataType, data: Span<PossibleEntries>) -> ArrayEntry {
         match data_type {
             DataType::SpotEntry(pair_id) => {
@@ -1743,6 +1854,10 @@ mod Oracle {
         }
     }
 
+    // @notice check if the timestamp of the new entry is bigger than the timestamp of the old entry, and update the source storage 
+    // @dev should fail if the old_timestamp > new_timestamp
+    // @param new_entry : an entry (spot entry, future entry, ... )
+    // @param last_entry : an entry (with the same nature as new_entry)
     fn validate_data_timestamp<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
         ref self: ContractState, new_entry: PossibleEntries, last_entry: T, 
     ) {
@@ -1820,6 +1935,8 @@ mod Oracle {
         return ();
     }
 
+    // @notice add pair to the oracle, admin checkup done in the implementation
+    // @param pair: new pair to be added
     fn add_pair(ref self: ContractState, pair: Pair) {
         let check_pair = self.oracle_pairs_storage.read(pair.id);
         assert(check_pair.id == 0, 'Pair with this key registered');
@@ -1829,11 +1946,18 @@ mod Oracle {
         return ();
     }
 
-
+    // @notice set source threshold
+    // @param the threshold to be set 
     fn set_sources_threshold(ref self: ContractState, threshold: u32) {
         self.oracle_sources_threshold_storage.write(threshold);
         return ();
     }
+
+    // @notice find the checkpoint whose timestamp is immediately before the given timestamp
+    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+    // @param aggregation_mode: the aggregation method to be used 
+    // @param the timestamp to be considered
+    // @returns the index of the checkpoint before the given timestamp
     fn find_startpoint(
         self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode, timestamp: u64
     ) -> u64 {
@@ -1862,6 +1986,7 @@ mod Oracle {
         );
         return startpoint;
     }
+
     fn _binary_search(
         self: @ContractState,
         data_type: DataType,
@@ -1907,6 +2032,12 @@ mod Oracle {
         return _binary_search(self, data_type, midpoint + 1, high, target, aggregation_mode);
     }
 
+
+    // @notice retrieve all the sources from the storage and set it in an array 
+    // @dev recursive function
+    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+    // @param sources: reference to a sources array, to be filled 
+    // @param sources_len, the max number of sources for the given data_type/aggregation_mode
     fn build_sources_array(
         self: @ContractState, data_type: DataType, ref sources: Array<felt252>, sources_len: u64
     ) {

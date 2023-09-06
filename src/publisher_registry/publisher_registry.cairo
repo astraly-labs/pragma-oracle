@@ -77,6 +77,10 @@ mod PublisherRegistry {
 
     #[external(v0)]
     impl PublisherRegistryImpl of IPublisherRegistryABI<ContractState> {
+        // @notice add a publisher to the registry 
+        // @dev can be called only by admin
+        // @param publisher: the publisher that needs to be added 
+        // @param publisher_address: the address associated with the given publisher 
         fn add_publisher(
             ref self: ContractState, publisher: felt252, publisher_address: ContractAddress
         ) {
@@ -100,6 +104,11 @@ mod PublisherRegistry {
                 );
         }
 
+
+        // @notice update the publisher address
+        // @dev can be called only by the admin
+        // @param publisher: the publisher whose address needs to be updated
+        // @param  new_publisher_address the new publisher address
         fn update_publisher_address(
             ref self: ContractState, publisher: felt252, new_publisher_address: ContractAddress
         ) {
@@ -126,6 +135,8 @@ mod PublisherRegistry {
                 );
         }
 
+        // @notice remove a given publisher
+        // @param publisher : the publisher that needs to be removed
         fn remove_publisher(ref self: ContractState, publisher: felt252) {
             let state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
@@ -159,6 +170,9 @@ mod PublisherRegistry {
             }
         }
 
+        // @notice add source for publisher
+        // @param: the publisher for which we need to add a source
+        // @param: the source that needs to be added for the given publisher
         fn add_source_for_publisher(ref self: ContractState, publisher: felt252, source: felt252) {
             let state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
@@ -183,6 +197,9 @@ mod PublisherRegistry {
             }
         }
 
+        // @notice add multiple sources for a publisher 
+        // @param the publisher for which sources needs to be added 
+        // @param a span of sources that needs to be added for the given publisher
         fn add_sources_for_publisher(
             ref self: ContractState, publisher: felt252, sources: Span<felt252>
         ) {
@@ -200,6 +217,9 @@ mod PublisherRegistry {
             }
         }
 
+        // @notice remove a source for a given publisher
+        // @param  the publisher for which a source needs to be removed 
+        // @param source : the source that needs to be removed for the publisher
         fn remove_source_for_publisher(
             ref self: ContractState, publisher: felt252, source: felt252
         ) {
@@ -227,6 +247,11 @@ mod PublisherRegistry {
                 self.publishers_sources.write((publisher, source_idx), last_source);
             }
         }
+
+        // @notice checks whether a publisher can publish for a certain source or not 
+        // @param the publisher to be checked
+        // @param the source to be checked 
+        // @returns a boolean on whether the publisher can publish for the source or not
         fn can_publish_source(self: @ContractState, publisher: felt252, source: felt252) -> bool {
             let cur_idx = self.publishers_sources_idx.read(publisher);
             if (cur_idx == 0) {
@@ -240,10 +265,16 @@ mod PublisherRegistry {
             let (_, found) = _find_source_idx(0_usize, source, @sources_arr);
             found
         }
+
+        // @notice  get the publisher address
+        // @param the puublisher from which we want to retrieve the address
+        // @returns the address associated to the given publisher 
         fn get_publisher_address(self: @ContractState, publisher: felt252) -> ContractAddress {
             self.publisher_address_storage.read(publisher)
         }
 
+        // @notice set an admin address
+        // @param new_admin_address: the new admin address
         fn set_admin_address(ref self: ContractState, new_admin_address: ContractAddress) {
             let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
@@ -252,12 +283,17 @@ mod PublisherRegistry {
             assert(!new_admin_address.is_zero(), 'Admin address cannot be zero');
             Admin::set_admin_address(ref state, new_admin_address);
         }
+
+        // @notice get the current admin address
+        // @returns the admin address
         fn get_admin_address(self: @ContractState) -> ContractAddress {
             let state: Admin::ContractState = Admin::unsafe_new_contract_state();
             let res = Admin::get_admin_address(@state);
             res
         }
 
+        // @notice retrieve all the publishers
+        // @returns an array of publishers
         fn get_all_publishers(self: @ContractState) -> Array<felt252> {
             let publishers_len = self.publishers_storage_len.read();
             let mut publishers = ArrayTrait::new();
@@ -267,6 +303,10 @@ mod PublisherRegistry {
             publishers
         }
 
+
+        // @notice retrieve all the allowed sources for a given publisher
+        // @param publisher : the publisher
+        // @returns an array of sources
         fn get_publisher_sources(self: @ContractState, publisher: felt252) -> Array<felt252> {
             let cur_idx = self.publishers_sources_idx.read(publisher);
             if (cur_idx == 0) {
@@ -284,6 +324,11 @@ mod PublisherRegistry {
     // Internals
     //
 
+    // @notice retrieve all the publishers 
+    // @dev recursive function 
+    // @param index : current input index, should be set to 0 
+    // @param len : the total number of publishers
+    // @param publishers : a referennce to an array of publishers, to be filled
     fn _build_array(
         self: @ContractState, index: usize, len: usize, ref publishers: Array<felt252>
     ) {
@@ -298,6 +343,14 @@ mod PublisherRegistry {
         _build_array(self, index + 1_usize, len, ref publishers);
     }
 
+
+    // @notice find a publisher index, by looking at each publisher in the storage
+    // @dev recursive function 
+    // @param  cur_idx : the current index, should be set to 0
+    // @param max_idx : the total number of publishers
+    // @param publisher : the publisher whose index needs to be found  
+    // @returns the index of the publisher 
+    // @returns whether the publisher is found or not (in order to avoid conflicts, case 0)
     fn _find_publisher_idx(
         self: @ContractState, cur_idx: usize, max_idx: usize, publisher: felt252
     ) -> (usize, bool) {
@@ -315,6 +368,14 @@ mod PublisherRegistry {
         _find_publisher_idx(self, cur_idx + 1_usize, max_idx, publisher)
     }
 
+
+    // @notice find a source index
+    // @dev recursive function 
+    // @param  cur_idx : the current index, should be set to 0
+    // @param source: the source whose index needs to be found
+    // @param an array of sources to work with 
+    // @returns the index of the source  
+    // @returns whether the source is found or not (in order to avoid conflicts, case 0)
     fn _find_source_idx(
         cur_idx: usize, source: felt252, sources_arr: @Array<felt252>
     ) -> (usize, bool) {
@@ -330,6 +391,12 @@ mod PublisherRegistry {
         _find_source_idx(cur_idx + 1_usize, source, sources_arr)
     }
 
+    // @notice generate an array of sources from the storage for a given publisher
+    // @dev recursive function
+    // @param cur_idx : should be set to 0 
+    // @param max_idx : the total number of sources for a publisher
+    // @param publisher: the publisher to work with 
+    // @param sources_arr : an reference to an array of sources, to be filled
     fn _iter_publisher_sources(
         self: @ContractState,
         cur_idx: usize,

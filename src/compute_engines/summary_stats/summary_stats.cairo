@@ -64,6 +64,13 @@ mod SummaryStats {
 
     #[external(v0)]
     impl SummaryStatsImpl of ISummaryStatsABI<ContractState> {
+        // @notice: compute the mean price for a given data type, for a given interval 
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @param start: initial timestamp, combined with final_timestamp, it helps define the period over which the mean is computed
+        // @param stop : final timestamp. 
+        // @param aggregation_mode: specifies the method by which the oracle aggregates each price used in the computation 
+        // @returns the mean price
+        // @returns the precision, the number of decimals (the real mean value is mean / (10**decimals))
         fn calculate_mean(
             self: @ContractState,
             data_type: DataType,
@@ -106,6 +113,15 @@ mod SummaryStats {
             (mean, decimals)
         }
 
+
+        // @notice computes the realised volatility for a given data type and a given interval
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @param start_tick: initial timestamp, combined with final_timestamp, it helps define the period over which the mean is computed
+        // @param end_tick : final timestamp. 
+        // @param num_samples: the number of subdivision of the initial interval used for the computation
+        // @param aggregation_mode: specifies the method by which the oracle aggregates each price used in the computation 
+        // @returns the realized volatility
+        // @returns the precision, the number of decimals (the real mean value is mean / (10**decimals))
         fn calculate_volatility(
             self: @ContractState,
             data_type: DataType,
@@ -157,6 +173,13 @@ mod SummaryStats {
         }
 
 
+        // @notice compute the time weighted average price for a given data type, and a give interval
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @param aggregation_mode: specifies the method by which the oracle aggregates each price used in the computation 
+        // @param time : represent the DURATION, used for the computation
+        // @param start_time: the initial timestamp, the working interval is then [start_time, start_time+time]
+        // @returns the time weighted average price 
+        // @returns the precision, the number of decimals (the real mean value is mean / (10**decimals))
         fn calculate_twap(
             self: @ContractState,
             data_type: DataType,
@@ -197,6 +220,10 @@ mod SummaryStats {
     // Views
     //
 
+    // @notice create the subdivision, e.g the number by which we need to increment the cursor in order to comply with the given num_samples
+    // @param total_samples: the total number of data available within the interval
+    // @param num_samples: the number of samples needed
+    // @returns the incrementation
     fn calculate_skip_frequency(total_samples: u64, num_samples: u64) -> u64 {
         let skip_frequency = total_samples / num_samples;
         if (skip_frequency == 0) {
@@ -210,6 +237,16 @@ mod SummaryStats {
         }
     }
 
+
+    // @notice generate an array with incremented entries, complying with the calculate_skip_freqency specification
+    // @param oracle_address: the oracle address, used to call functions within the oracle
+    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+    // @param start_tick: initial timestamp
+    // @param end_tick: final timestamp
+    // @param num_datapoints: the total number of checkpoints available within the given interval
+    // @param latest_checkpoint_index : the latest checkpoint index within the given interval
+    // @param skip_frequency: the incrementation
+    // @param aggregation_mode: specifies the method by which the oracle aggregates each price used in the computation 
     fn _make_scaled_array(
         oracle_address: ContractAddress,
         data_type: DataType,
