@@ -70,7 +70,7 @@ mod SummaryStats {
         // @param stop : final timestamp. 
         // @param aggregation_mode: specifies the method by which the oracle aggregates each price used in the computation 
         // @returns the mean price
-        // @returns the precision, the number of decimals (the real mean value is mean/(1o**decimals))
+        // @returns the precision, the number of decimals (the real mean value is mean / (10**decimals))
         fn calculate_mean(
             self: @ContractState,
             data_type: DataType,
