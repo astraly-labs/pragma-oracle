@@ -181,29 +181,34 @@ use debug::PrintTrait;
 fn test_aggregate_entries_median() {
     let mut entries = ArrayTrait::<SpotEntry>::new();
     let entry_1 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000000, source: 1, publisher: 1001
-        }, price: 10, pair_id: 1, volume: 10
+        base: BaseEntry { timestamp: 1000000, source: 1, publisher: 1001 },
+        price: 10,
+        pair_id: 1,
+        volume: 10
     };
     let entry_2 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000001, source: 1, publisher: 0234
-        }, price: 20, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000001, source: 1, publisher: 0234 },
+        price: 20,
+        pair_id: 1,
+        volume: 30
     };
     let entry_3 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 30, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 30,
+        pair_id: 1,
+        volume: 30
     };
     let entry_4 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 40, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 40,
+        pair_id: 1,
+        volume: 30
     };
     let entry_5 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 50, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 50,
+        pair_id: 1,
+        volume: 30
     };
     //1 element 
     entries.append(entry_1);
@@ -244,29 +249,39 @@ fn test_aggregate_entries_median() {
 
     let mut f_entries = ArrayTrait::<FutureEntry>::new();
     let entry_1 = FutureEntry {
-        base: BaseEntry {
-            timestamp: 1000000, source: 1, publisher: 1001
-        }, price: 10, pair_id: 1, volume: 10, expiration_timestamp: 1111111
+        base: BaseEntry { timestamp: 1000000, source: 1, publisher: 1001 },
+        price: 10,
+        pair_id: 1,
+        volume: 10,
+        expiration_timestamp: 1111111
     };
     let entry_2 = FutureEntry {
-        base: BaseEntry {
-            timestamp: 1000001, source: 1, publisher: 0234
-        }, price: 20, pair_id: 1, volume: 30, expiration_timestamp: 1111111
+        base: BaseEntry { timestamp: 1000001, source: 1, publisher: 0234 },
+        price: 20,
+        pair_id: 1,
+        volume: 30,
+        expiration_timestamp: 1111111
     };
     let entry_3 = FutureEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 30, pair_id: 1, volume: 30, expiration_timestamp: 1111111
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 30,
+        pair_id: 1,
+        volume: 30,
+        expiration_timestamp: 1111111
     };
     let entry_4 = FutureEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 40, pair_id: 1, volume: 30, expiration_timestamp: 1111111
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 40,
+        pair_id: 1,
+        volume: 30,
+        expiration_timestamp: 1111111
     };
     let entry_5 = FutureEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 50, pair_id: 1, volume: 30, expiration_timestamp: 1111111
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 50,
+        pair_id: 1,
+        volume: 30,
+        expiration_timestamp: 1111111
     };
     //1 element 
     f_entries.append(entry_1);
@@ -309,29 +324,34 @@ fn test_aggregate_entries_median() {
 fn test_aggregate_entries_mean() {
     let mut entries = ArrayTrait::<SpotEntry>::new();
     let entry_1 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000000, source: 1, publisher: 1001
-        }, price: 10, pair_id: 1, volume: 10
+        base: BaseEntry { timestamp: 1000000, source: 1, publisher: 1001 },
+        price: 10,
+        pair_id: 1,
+        volume: 10
     };
     let entry_2 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000001, source: 1, publisher: 0234
-        }, price: 20, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000001, source: 1, publisher: 0234 },
+        price: 20,
+        pair_id: 1,
+        volume: 30
     };
     let entry_3 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 30, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 30,
+        pair_id: 1,
+        volume: 30
     };
     let entry_4 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 40, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 40,
+        pair_id: 1,
+        volume: 30
     };
     let entry_5 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 50, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 50,
+        pair_id: 1,
+        volume: 30
     };
     //1 element 
     entries.append(entry_1);
@@ -371,29 +391,39 @@ fn test_aggregate_entries_mean() {
 
     let mut f_entries = ArrayTrait::<FutureEntry>::new();
     let entry_1 = FutureEntry {
-        base: BaseEntry {
-            timestamp: 1000000, source: 1, publisher: 1001
-        }, price: 10, pair_id: 1, volume: 10, expiration_timestamp: 1111111
+        base: BaseEntry { timestamp: 1000000, source: 1, publisher: 1001 },
+        price: 10,
+        pair_id: 1,
+        volume: 10,
+        expiration_timestamp: 1111111
     };
     let entry_2 = FutureEntry {
-        base: BaseEntry {
-            timestamp: 1000001, source: 1, publisher: 0234
-        }, price: 20, pair_id: 1, volume: 30, expiration_timestamp: 1111111
+        base: BaseEntry { timestamp: 1000001, source: 1, publisher: 0234 },
+        price: 20,
+        pair_id: 1,
+        volume: 30,
+        expiration_timestamp: 1111111
     };
     let entry_3 = FutureEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 30, pair_id: 1, volume: 30, expiration_timestamp: 1111111
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 30,
+        pair_id: 1,
+        volume: 30,
+        expiration_timestamp: 1111111
     };
     let entry_4 = FutureEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 40, pair_id: 1, volume: 30, expiration_timestamp: 1111111
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 40,
+        pair_id: 1,
+        volume: 30,
+        expiration_timestamp: 1111111
     };
     let entry_5 = FutureEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 50, pair_id: 1, volume: 30, expiration_timestamp: 1111111
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 50,
+        pair_id: 1,
+        volume: 30,
+        expiration_timestamp: 1111111
     };
     //1 element 
     f_entries.append(entry_1);
@@ -437,29 +467,34 @@ fn test_aggregate_entries_mean() {
 fn test_aggregate_timestamp_max() {
     let mut entries = ArrayTrait::<SpotEntry>::new();
     let entry_1 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000000, source: 1, publisher: 1001
-        }, price: 10, pair_id: 1, volume: 10
+        base: BaseEntry { timestamp: 1000000, source: 1, publisher: 1001 },
+        price: 10,
+        pair_id: 1,
+        volume: 10
     };
     let entry_2 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000001, source: 1, publisher: 0234
-        }, price: 20, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000001, source: 1, publisher: 0234 },
+        price: 20,
+        pair_id: 1,
+        volume: 30
     };
     let entry_3 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 30, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 30,
+        pair_id: 1,
+        volume: 30
     };
     let entry_4 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 40, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 40,
+        pair_id: 1,
+        volume: 30
     };
     let entry_5 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1003002, source: 1, publisher: 1334
-        }, price: 50, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1003002, source: 1, publisher: 1334 },
+        price: 50,
+        pair_id: 1,
+        volume: 30
     };
     //1 element 
     entries.append(entry_1);

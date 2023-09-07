@@ -54,7 +54,7 @@ mod SummaryStats {
     const SCALED_ARR_SIZE: u32 = 30;
     #[storage]
     struct Storage {
-        oracle_address: ContractAddress, 
+        oracle_address: ContractAddress,
     }
 
     #[constructor]

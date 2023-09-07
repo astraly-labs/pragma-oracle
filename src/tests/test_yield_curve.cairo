@@ -5,7 +5,7 @@ use pragma::entry::structs::{
     Currency, Pair, PossibleEntries, SpotEntry, FutureEntry, BaseEntry, GenericEntry, DataType,
     AggregationMode
 };
-use starknet::testing::{set_contract_address, set_block_timestamp, set_chain_id, };
+use starknet::testing::{set_contract_address, set_block_timestamp, set_chain_id,};
 use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
 use pragma::publisher_registry::publisher_registry::{
     IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
@@ -162,7 +162,9 @@ fn test_yield_curve_computation() {
                 GenericEntry {
                     base: BaseEntry {
                         timestamp: STARKNET_STARTING_TIMESTAMP, source: 1, publisher: 1
-                    }, key: ON_KEY, value: 10000000,
+                    },
+                    key: ON_KEY,
+                    value: 10000000,
                 }
             )
         );
@@ -172,7 +174,10 @@ fn test_yield_curve_computation() {
                 SpotEntry {
                     base: BaseEntry {
                         timestamp: STARKNET_STARTING_TIMESTAMP, source: 1, publisher: 1
-                    }, pair_id: BTC_USD, price: 100, volume: 10
+                    },
+                    pair_id: BTC_USD,
+                    price: 100,
+                    volume: 10
                 }
             )
         );
@@ -182,7 +187,11 @@ fn test_yield_curve_computation() {
                 FutureEntry {
                     base: BaseEntry {
                         timestamp: STARKNET_STARTING_TIMESTAMP, source: 1, publisher: 1
-                    }, pair_id: BTC_USD, expiration_timestamp: 20220624, price: 90, volume: 10
+                    },
+                    pair_id: BTC_USD,
+                    expiration_timestamp: 20220624,
+                    price: 90,
+                    volume: 10
                 }
             )
         );
@@ -192,7 +201,11 @@ fn test_yield_curve_computation() {
                 FutureEntry {
                     base: BaseEntry {
                         timestamp: STARKNET_STARTING_TIMESTAMP, source: 1, publisher: 1
-                    }, pair_id: BTC_USD, expiration_timestamp: 20220930, price: 110, volume: 10
+                    },
+                    pair_id: BTC_USD,
+                    expiration_timestamp: 20220930,
+                    price: 110,
+                    volume: 10
                 }
             )
         );
@@ -202,7 +215,11 @@ fn test_yield_curve_computation() {
                 FutureEntry {
                     base: BaseEntry {
                         timestamp: STARKNET_STARTING_TIMESTAMP - 20, source: 1, publisher: 1
-                    }, pair_id: BTC_USD, expiration_timestamp: 20221230, price: 110, volume: 10
+                    },
+                    pair_id: BTC_USD,
+                    expiration_timestamp: 20221230,
+                    price: 110,
+                    volume: 10
                 }
             )
         );
@@ -212,7 +229,11 @@ fn test_yield_curve_computation() {
                 FutureEntry {
                     base: BaseEntry {
                         timestamp: STARKNET_STARTING_TIMESTAMP + 20, source: 1, publisher: 1
-                    }, pair_id: BTC_USD, expiration_timestamp: 20230330, price: 110, volume: 10
+                    },
+                    pair_id: BTC_USD,
+                    expiration_timestamp: 20230330,
+                    price: 110,
+                    volume: 10
                 }
             )
         );

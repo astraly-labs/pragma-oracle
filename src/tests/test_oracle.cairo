@@ -19,7 +19,7 @@ use pragma::publisher_registry::publisher_registry::PublisherRegistry;
 use debug::PrintTrait;
 use starknet::ClassHash;
 use starknet::SyscallResultTrait;
-use starknet::testing::{set_contract_address, set_block_timestamp, set_chain_id, };
+use starknet::testing::{set_contract_address, set_block_timestamp, set_chain_id,};
 use starknet::get_caller_address;
 use starknet::syscalls::deploy_syscall;
 use starknet::class_hash::{Felt252TryIntoClassHash};
@@ -162,9 +162,10 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 1, publisher: 1
-                    }, pair_id: 2, price: 2 * 1000000, volume: 0
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    pair_id: 2,
+                    price: 2 * 1000000,
+                    volume: 0
                 }
             )
         );
@@ -173,9 +174,10 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 2, publisher: 1
-                    }, pair_id: 2, price: 3 * 1000000, volume: 0
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    pair_id: 2,
+                    price: 3 * 1000000,
+                    volume: 0
                 }
             )
         );
@@ -183,9 +185,10 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 1, publisher: 1
-                    }, pair_id: 3, price: 8 * 1000000, volume: 0
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    pair_id: 3,
+                    price: 8 * 1000000,
+                    volume: 0
                 }
             )
         );
@@ -193,9 +196,10 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 1, publisher: 1
-                    }, pair_id: 4, price: 8 * 1000000, volume: 0
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    pair_id: 4,
+                    price: 8 * 1000000,
+                    volume: 0
                 }
             )
         );
@@ -203,9 +207,10 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 2, publisher: 1
-                    }, pair_id: 4, price: 3 * 1000000, volume: 0
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    pair_id: 4,
+                    price: 3 * 1000000,
+                    volume: 0
                 }
             )
         );
@@ -213,9 +218,10 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 1, publisher: 1
-                    }, pair_id: 5, price: 5 * 1000000, volume: 0
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    pair_id: 5,
+                    price: 5 * 1000000,
+                    volume: 0
                 }
             )
         );
@@ -223,9 +229,11 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 1, publisher: 1
-                    }, pair_id: 2, price: 2 * 1000000, volume: 0, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    pair_id: 2,
+                    price: 2 * 1000000,
+                    volume: 0,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -233,9 +241,11 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 2, publisher: 1
-                    }, pair_id: 2, price: 2 * 1000000, volume: 0, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    pair_id: 2,
+                    price: 2 * 1000000,
+                    volume: 0,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -243,9 +253,11 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 1, publisher: 1
-                    }, pair_id: 3, price: 3 * 1000000, volume: 0, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    pair_id: 3,
+                    price: 3 * 1000000,
+                    volume: 0,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -253,9 +265,11 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 1, publisher: 1
-                    }, pair_id: 4, price: 4 * 1000000, volume: 0, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    pair_id: 4,
+                    price: 4 * 1000000,
+                    volume: 0,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -263,9 +277,11 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 1, publisher: 1
-                    }, pair_id: 5, price: 5 * 1000000, volume: 0, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    pair_id: 5,
+                    price: 5 * 1000000,
+                    volume: 0,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -273,9 +289,11 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 2, publisher: 1
-                    }, pair_id: 5, price: 5 * 1000000, volume: 0, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    pair_id: 5,
+                    price: 5 * 1000000,
+                    volume: 0,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -500,44 +518,50 @@ fn test_publish_multiple_entries() {
     let entries = array![
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry {
-                    timestamp: now + 100, source: 1, publisher: 1
-                }, pair_id: 1, price: 2 * 1000000, volume: 150
+                base: BaseEntry { timestamp: now + 100, source: 1, publisher: 1 },
+                pair_id: 1,
+                price: 2 * 1000000,
+                volume: 150
             }
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry {
-                    timestamp: now + 100, source: 1, publisher: 1
-                }, pair_id: 4, price: 2 * 1000000, volume: 150
+                base: BaseEntry { timestamp: now + 100, source: 1, publisher: 1 },
+                pair_id: 4,
+                price: 2 * 1000000,
+                volume: 150
             }
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry {
-                    timestamp: now + 100, source: 1, publisher: 1
-                }, pair_id: 3, price: 2 * 1000000, volume: 20
+                base: BaseEntry { timestamp: now + 100, source: 1, publisher: 1 },
+                pair_id: 3,
+                price: 2 * 1000000,
+                volume: 20
             }
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry {
-                    timestamp: now + 100, source: 2, publisher: 1
-                }, pair_id: 4, price: 3 * 1000000, volume: 30
+                base: BaseEntry { timestamp: now + 100, source: 2, publisher: 1 },
+                pair_id: 4,
+                price: 3 * 1000000,
+                volume: 30
             }
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry {
-                    timestamp: now + 100, source: 2, publisher: 1
-                }, pair_id: 2, price: 3 * 1000000, volume: 30
+                base: BaseEntry { timestamp: now + 100, source: 2, publisher: 1 },
+                pair_id: 2,
+                price: 3 * 1000000,
+                volume: 30
             }
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry {
-                    timestamp: now + 100, source: 2, publisher: 1
-                }, pair_id: 3, price: 3 * 1000000, volume: 30
+                base: BaseEntry { timestamp: now + 100, source: 2, publisher: 1 },
+                pair_id: 3,
+                price: 3 * 1000000,
+                volume: 30
             }
         ),
     ];
@@ -587,7 +611,10 @@ fn test_max_publish_multiple_entries() {
                     SpotEntry {
                         base: BaseEntry {
                             timestamp: now + (cur_idx + 1).into() * 100, source: 1, publisher: 1
-                        }, pair_id: 3, price: 3 * 1000000 + (cur_idx + 1).into(), volume: 30
+                        },
+                        pair_id: 3,
+                        price: 3 * 1000000 + (cur_idx + 1).into(),
+                        volume: 30
                     }
                 )
             );
@@ -597,7 +624,10 @@ fn test_max_publish_multiple_entries() {
                     SpotEntry {
                         base: BaseEntry {
                             timestamp: now + (cur_idx + 1).into() * 100, source: 2, publisher: 1
-                        }, pair_id: 2, price: 3 * 1000000 + (cur_idx + 1).into(), volume: 30
+                        },
+                        pair_id: 2,
+                        price: 3 * 1000000 + (cur_idx + 1).into(),
+                        volume: 30
                     }
                 )
             );
@@ -607,7 +637,10 @@ fn test_max_publish_multiple_entries() {
                     SpotEntry {
                         base: BaseEntry {
                             timestamp: now + (cur_idx + 1).into() * 100, source: 1, publisher: 1
-                        }, pair_id: 4, price: 3 * 1000000 + (cur_idx + 1).into(), volume: 30
+                        },
+                        pair_id: 4,
+                        price: 3 * 1000000 + (cur_idx + 1).into(),
+                        volume: 30
                     }
                 )
             );
@@ -759,7 +792,7 @@ fn test_get_last_checkpoint_before() {
     assert(checkpoint.timestamp <= 111111111, 'wrong timestamp');
     let (checkpoint_2, idx_2) = oracle
         .get_last_checkpoint_before(
-            DataType::FutureEntry((2, 11111110)), 1111111111, AggregationMode::Median(()), 
+            DataType::FutureEntry((2, 11111110)), 1111111111, AggregationMode::Median(()),
         );
 
     assert(checkpoint_2.value == (2000000), 'wrong checkpoint');
