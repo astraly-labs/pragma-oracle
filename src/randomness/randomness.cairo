@@ -69,6 +69,7 @@ mod Randomness {
     use pragma::randomness::example_randomness::{
         IExampleRandomnessDispatcher, IExampleRandomnessDispatcherTrait
     };
+    use debug::PrintTrait;
 
     use array::{ArrayTrait, SpanTrait};
     use traits::{TryInto, Into};
