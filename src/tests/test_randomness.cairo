@@ -25,7 +25,9 @@ fn pop_log<T, impl TDrop: Drop<T>, impl TEvent: starknet::Event<T>>(
 }
 
 
-fn setup() -> (IRandomnessDispatcher, IExampleRandomnessDispatcher, ContractAddress, ContractAddress) {
+fn setup() -> (
+    IRandomnessDispatcher, IExampleRandomnessDispatcher, ContractAddress, ContractAddress
+) {
     let mut constructor_calldata = ArrayTrait::new();
     let admin_address = contract_address_const::<0x1234>();
     let public_key = 12345678;
@@ -45,7 +47,12 @@ fn setup() -> (IRandomnessDispatcher, IExampleRandomnessDispatcher, ContractAddr
     let example_randomness_dispatcher = IExampleRandomnessDispatcher {
         contract_address: example_randomness_contract
     };
-    return (randomness_dispatcher, example_randomness_dispatcher, randomness_contract, example_randomness_contract);
+    return (
+        randomness_dispatcher,
+        example_randomness_dispatcher,
+        randomness_contract,
+        example_randomness_contract
+    );
 }
 
 fn randomness_request_event_handler(
@@ -80,19 +87,38 @@ fn test_randomness() {
     let publish_delay = 1;
     let num_words = 1;
     let block_number = info::get_block_number();
-    let request_id = randomness.request_random(seed, callback_address, callback_gas_limit, publish_delay, num_words);
+    let request_id = randomness
+        .request_random(seed, callback_address, callback_gas_limit, publish_delay, num_words);
     randomness_request_event_handler(
-        randomness_address,0, requestor_address, seed, 1, callback_address, callback_gas_limit, num_words
+        randomness_address,
+        0,
+        requestor_address,
+        seed,
+        1,
+        callback_address,
+        callback_gas_limit,
+        num_words
     );
     let mut random_words = ArrayTrait::<felt252>::new();
     let res = example_randomness.get_last_random();
-    assert(res ==0, 'wrong random');
+    assert(res == 0, 'wrong random');
     let random_words = array![10000];
     let block_hash = 123456789;
-    let proof = array![100,200,300];
+    let proof = array![100, 200, 300];
     let minimum_block_number = 2;
     testing::set_block_number(4);
-    randomness.submit_random(0, requestor_address, seed, 1, callback_address, callback_gas_limit, random_words, block_hash, proof);
+    randomness
+        .submit_random(
+            0,
+            requestor_address,
+            seed,
+            1,
+            callback_address,
+            callback_gas_limit,
+            random_words,
+            block_hash,
+            proof
+        );
     let res = example_randomness.get_last_random();
-    assert(res ==10000, 'wrong random');
+    assert(res == 10000, 'wrong random');
 }
