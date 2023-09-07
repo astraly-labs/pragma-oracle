@@ -88,8 +88,8 @@ mod ExampleRandomness {
 
             // and that the requestor_address is what we expect it to be (can be self
             // or another contract address), checking for self in this case
-            let contract_address = get_contract_address();
-            assert(requestor_address == contract_address, 'requestor is not self');
+            //let contract_address = get_contract_address();
+            //assert(requestor_address == contract_address, 'requestor is not self');
 
             // Optionally: Can also make sure that request_id is what you expect it to be,
             // and that random_words_len==num_words

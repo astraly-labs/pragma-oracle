@@ -27,7 +27,7 @@ fn pop_log<T, impl TDrop: Drop<T>, impl TEvent: starknet::Event<T>>(
 
 fn setup() -> (IRandomnessDispatcher, IExampleRandomnessDispatcher, ContractAddress, ContractAddress) {
     let mut constructor_calldata = ArrayTrait::new();
-    let admin_address = contract_address_const::<0x12345>();
+    let admin_address = contract_address_const::<0x1234>();
     let public_key = 12345678;
     admin_address.serialize(ref constructor_calldata);
     public_key.serialize(ref constructor_calldata);
@@ -87,6 +87,12 @@ fn test_randomness() {
     let mut random_words = ArrayTrait::<felt252>::new();
     let res = example_randomness.get_last_random();
     assert(res ==0, 'wrong random');
+    let random_words = array![10000];
+    let block_hash = 123456789;
+    let proof = array![100,200,300];
+    let minimum_block_number = 2;
     testing::set_block_number(4);
-    randomness.
+    randomness.submit_random(0, requestor_address, seed, 1, callback_address, callback_gas_limit, random_words, block_hash, proof);
+    let res = example_randomness.get_last_random();
+    assert(res ==10000, 'wrong random');
 }
