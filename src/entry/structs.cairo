@@ -19,7 +19,7 @@ struct BaseEntry {
 
 #[derive(Serde, Drop, Copy)]
 struct GenericEntryStorage {
-    timestamp__value: u256, 
+    timestamp__value: u256,
 }
 
 #[derive(Copy, Drop, Serde)]
@@ -74,12 +74,12 @@ struct eSSVI {
 
 #[derive(Serde, Drop, Copy)]
 struct SpotEntryStorage {
-    timestamp__volume__price: u256, 
+    timestamp__volume__price: u256,
 }
 
 #[derive(Serde, Drop, Copy)]
 struct FutureEntryStorage {
-    timestamp__volume__price: u256, 
+    timestamp__volume__price: u256,
 }
 
 /// Data Types

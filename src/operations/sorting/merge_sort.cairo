@@ -130,29 +130,34 @@ fn fill_array<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
 fn test_merge() {
     let mut entries = ArrayTrait::<SpotEntry>::new();
     let entry_1 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000000, source: 1, publisher: 1001
-        }, price: 50, pair_id: 1, volume: 10
+        base: BaseEntry { timestamp: 1000000, source: 1, publisher: 1001 },
+        price: 50,
+        pair_id: 1,
+        volume: 10
     };
     let entry_2 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000001, source: 1, publisher: 0234
-        }, price: 100, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000001, source: 1, publisher: 0234 },
+        price: 100,
+        pair_id: 1,
+        volume: 30
     };
     let entry_3 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 200, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 200,
+        pair_id: 1,
+        volume: 30
     };
     let entry_4 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 80, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 80,
+        pair_id: 1,
+        volume: 30
     };
     let entry_5 = SpotEntry {
-        base: BaseEntry {
-            timestamp: 1000002, source: 1, publisher: 1334
-        }, price: 50, pair_id: 1, volume: 30
+        base: BaseEntry { timestamp: 1000002, source: 1, publisher: 1334 },
+        price: 50,
+        pair_id: 1,
+        volume: 30
     };
     entries.append(entry_1);
     entries.append(entry_2);

@@ -30,19 +30,19 @@ struct FutureKeyStatus {
 #[starknet::interface]
 trait IYieldCurveABI<TContractState> {
     fn get_yield_points(self: @TContractState, decimals: u32) -> Span<YieldPoint>;
-    fn get_admin_address(self: @TContractState, ) -> ContractAddress;
-    fn get_oracle_address(self: @TContractState, ) -> ContractAddress;
+    fn get_admin_address(self: @TContractState,) -> ContractAddress;
+    fn get_oracle_address(self: @TContractState,) -> ContractAddress;
     fn get_future_spot_pragma_source_key(
         self: @TContractState, pair_id: felt252, future_expiry_timestamp: u64
     ) -> felt252;
     fn get_pair_id(self: @TContractState, idx: u64) -> felt252;
     fn get_pair_id_is_active(self: @TContractState, pair_id: felt252) -> bool;
-    fn get_pair_ids(self: @TContractState, ) -> Span<felt252>;
+    fn get_pair_ids(self: @TContractState,) -> Span<felt252>;
     fn get_future_expiry_timestamp(self: @TContractState, pair_id: felt252, idx: u64) -> u64;
     fn get_future_expiry_timestamps(self: @TContractState, pair_id: felt252) -> Span<u64>;
     fn get_on_key(self: @TContractState, idx: u64) -> felt252;
     fn get_on_key_is_active(self: @TContractState, on_key: felt252) -> bool;
-    fn get_on_keys(self: @TContractState, ) -> Span<felt252>;
+    fn get_on_keys(self: @TContractState,) -> Span<felt252>;
     fn get_future_expiry_timestamp_status(
         self: @TContractState, pair_id: felt252, future_expiry_timestamp: u64
     ) -> FutureKeyStatus;
@@ -606,17 +606,19 @@ mod YieldCurve {
                 PossibleEntries::Future(_) => {
                     assert(false, 'fetching failed');
                     SpotEntry {
-                        base: BaseEntry {
-                            timestamp: 0, source: 0, publisher: 0
-                        }, price: 0, pair_id: 0, volume: 0
+                        base: BaseEntry { timestamp: 0, source: 0, publisher: 0 },
+                        price: 0,
+                        pair_id: 0,
+                        volume: 0
                     }
                 },
                 PossibleEntries::Generic(_) => {
                     assert(false, 'fetching failed');
                     SpotEntry {
-                        base: BaseEntry {
-                            timestamp: 0, source: 0, publisher: 0
-                        }, price: 0, pair_id: 0, volume: 0
+                        base: BaseEntry { timestamp: 0, source: 0, publisher: 0 },
+                        price: 0,
+                        pair_id: 0,
+                        volume: 0
                     }
                 },
             };
@@ -690,18 +692,22 @@ mod YieldCurve {
                 PossibleEntries::Spot(_) => {
                     assert(false, 'fetching failed');
                     FutureEntry {
-                        base: BaseEntry {
-                            timestamp: 0, source: 0, publisher: 0
-                        }, price: 0, pair_id: 0, volume: 0, expiration_timestamp: 0
+                        base: BaseEntry { timestamp: 0, source: 0, publisher: 0 },
+                        price: 0,
+                        pair_id: 0,
+                        volume: 0,
+                        expiration_timestamp: 0
                     }
                 },
                 PossibleEntries::Future(future_entry) => future_entry,
                 PossibleEntries::Generic(generic_entry) => {
                     assert(false, 'fetching failed');
                     FutureEntry {
-                        base: BaseEntry {
-                            timestamp: 0, source: 0, publisher: 0
-                        }, price: 0, pair_id: 0, volume: 0, expiration_timestamp: 0
+                        base: BaseEntry { timestamp: 0, source: 0, publisher: 0 },
+                        price: 0,
+                        pair_id: 0,
+                        volume: 0,
+                        expiration_timestamp: 0
                     }
                 }
             };

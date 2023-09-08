@@ -153,9 +153,10 @@ fn setup() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 1, publisher: 1
-                    }, pair_id: 2, price: 2 * 1000000, volume: 0
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    pair_id: 2,
+                    price: 2 * 1000000,
+                    volume: 0
                 }
             )
         );
@@ -163,9 +164,10 @@ fn setup() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 2, publisher: 1
-                    }, pair_id: 2, price: 3 * 1000000, volume: 0
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    pair_id: 2,
+                    price: 3 * 1000000,
+                    volume: 0
                 }
             )
         );
@@ -179,9 +181,10 @@ fn setup() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry {
-                        timestamp: now + 100, source: 2, publisher: 1
-                    }, pair_id: 2, price: 35 * 100000, volume: 0
+                    base: BaseEntry { timestamp: now + 100, source: 2, publisher: 1 },
+                    pair_id: 2,
+                    price: 35 * 100000,
+                    volume: 0
                 }
             )
         );
@@ -195,9 +198,10 @@ fn setup() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry {
-                        timestamp: now + 200, source: 2, publisher: 1
-                    }, pair_id: 2, price: 4 * 1000000, volume: 0
+                    base: BaseEntry { timestamp: now + 200, source: 2, publisher: 1 },
+                    pair_id: 2,
+                    price: 4 * 1000000,
+                    volume: 0
                 }
             )
         );
@@ -210,9 +214,10 @@ fn setup() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry {
-                        timestamp: now + 300, source: 2, publisher: 1
-                    }, pair_id: 2, price: 4 * 1000000, volume: 0
+                    base: BaseEntry { timestamp: now + 300, source: 2, publisher: 1 },
+                    pair_id: 2,
+                    price: 4 * 1000000,
+                    volume: 0
                 }
             )
         );
@@ -224,9 +229,10 @@ fn setup() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry {
-                        timestamp: now + 400, source: 2, publisher: 1
-                    }, pair_id: 2, price: 3 * 1000000, volume: 0
+                    base: BaseEntry { timestamp: now + 400, source: 2, publisher: 1 },
+                    pair_id: 2,
+                    price: 3 * 1000000,
+                    volume: 0
                 }
             )
         );
@@ -420,9 +426,10 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 1, publisher: 1
-                    }, pair_id: 2, price: 2 * 1000000, volume: 0
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    pair_id: 2,
+                    price: 2 * 1000000,
+                    volume: 0
                 }
             )
         );
@@ -430,9 +437,11 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 1, publisher: 1
-                    }, pair_id: 2, price: 2 * 1000000, volume: 100, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    pair_id: 2,
+                    price: 2 * 1000000,
+                    volume: 100,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -442,9 +451,11 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now + 200, source: 1, publisher: 1
-                    }, pair_id: 2, price: 8 * 1000000, volume: 100, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now + 200, source: 1, publisher: 1 },
+                    pair_id: 2,
+                    price: 8 * 1000000,
+                    volume: 100,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -456,9 +467,11 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now + 400, source: 1, publisher: 1
-                    }, pair_id: 2, price: 3 * 1000000, volume: 100, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now + 400, source: 1, publisher: 1 },
+                    pair_id: 2,
+                    price: 3 * 1000000,
+                    volume: 100,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -468,9 +481,11 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now + 600, source: 1, publisher: 1
-                    }, pair_id: 2, price: 5 * 1000000, volume: 100, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now + 600, source: 1, publisher: 1 },
+                    pair_id: 2,
+                    price: 5 * 1000000,
+                    volume: 100,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -480,9 +495,11 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 1, publisher: 1
-                    }, pair_id: 3, price: 2 * 1000000, volume: 100, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    pair_id: 3,
+                    price: 2 * 1000000,
+                    volume: 100,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -490,9 +507,11 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 2, publisher: 1
-                    }, pair_id: 3, price: 4 * 1000000, volume: 100, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    pair_id: 3,
+                    price: 4 * 1000000,
+                    volume: 100,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -500,9 +519,11 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now, source: 3, publisher: 1
-                    }, pair_id: 3, price: 6 * 1000000, volume: 100, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now, source: 3, publisher: 1 },
+                    pair_id: 3,
+                    price: 6 * 1000000,
+                    volume: 100,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -516,9 +537,11 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now + 200, source: 1, publisher: 1
-                    }, pair_id: 3, price: 8 * 1000000, volume: 100, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now + 200, source: 1, publisher: 1 },
+                    pair_id: 3,
+                    price: 8 * 1000000,
+                    volume: 100,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -526,9 +549,11 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now + 200, source: 2, publisher: 1
-                    }, pair_id: 3, price: 8 * 1000000, volume: 100, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now + 200, source: 2, publisher: 1 },
+                    pair_id: 3,
+                    price: 8 * 1000000,
+                    volume: 100,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -541,9 +566,11 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now + 400, source: 1, publisher: 1
-                    }, pair_id: 3, price: 2 * 1000000, volume: 100, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now + 400, source: 1, publisher: 1 },
+                    pair_id: 3,
+                    price: 2 * 1000000,
+                    volume: 100,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -551,9 +578,11 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now + 400, source: 2, publisher: 1
-                    }, pair_id: 3, price: 3 * 1000000, volume: 100, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now + 400, source: 2, publisher: 1 },
+                    pair_id: 3,
+                    price: 3 * 1000000,
+                    volume: 100,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -561,9 +590,11 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now + 400, source: 3, publisher: 1
-                    }, pair_id: 3, price: 4 * 1000000, volume: 100, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now + 400, source: 3, publisher: 1 },
+                    pair_id: 3,
+                    price: 4 * 1000000,
+                    volume: 100,
+                    expiration_timestamp: 11111110
                 }
             )
         );
@@ -576,9 +607,11 @@ fn setup_twap() -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry {
-                        timestamp: now + 600, source: 1, publisher: 1
-                    }, pair_id: 3, price: 5 * 1000000, volume: 100, expiration_timestamp: 11111110
+                    base: BaseEntry { timestamp: now + 600, source: 1, publisher: 1 },
+                    pair_id: 3,
+                    price: 5 * 1000000,
+                    volume: 100,
+                    expiration_timestamp: 11111110
                 }
             )
         );

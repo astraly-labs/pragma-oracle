@@ -74,8 +74,8 @@ trait IOracleABI<TContractState> {
         checkpoint_index: u64,
         aggregation_mode: AggregationMode
     ) -> Checkpoint;
-    fn get_sources_threshold(self: @TContractState, ) -> u32;
-    fn get_admin_address(self: @TContractState, ) -> ContractAddress;
+    fn get_sources_threshold(self: @TContractState,) -> u32;
+    fn get_admin_address(self: @TContractState,) -> ContractAddress;
     fn get_implementation_hash(self: @TContractState) -> ClassHash;
     fn publish_data(ref self: TContractState, new_entry: PossibleEntries);
     fn publish_data_entries(ref self: TContractState, new_entries: Span<PossibleEntries>);
@@ -93,6 +93,7 @@ trait IOracleABI<TContractState> {
         ref self: TContractState, data_types: Span<DataType>, aggregation_mode: AggregationMode
     );
     fn set_sources_threshold(ref self: TContractState, threshold: u32);
+    fn upgrade(self: @TContractState, impl_hash: ClassHash);
 }
 
 
@@ -479,7 +480,7 @@ mod Oracle {
 
     #[derive(Drop, starknet::Event)]
     struct CheckpointSpotEntry {
-        pair_id: felt252, 
+        pair_id: felt252,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -560,15 +561,6 @@ mod Oracle {
                 idx = idx + 1;
             };
             return ();
-        }
-
-        // @notice upgrade the contract implementation, call to the contract Upgradeable
-        // @dev callable only by the admin
-        // @param impl_hash: the current implementation hash
-        fn upgrade(self: @ContractState, impl_hash: ClassHash) {
-            self.assert_only_admin();
-            let mut upstate: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
-            Upgradeable::upgrade(ref upstate, impl_hash);
         }
     }
 
@@ -1027,7 +1019,7 @@ mod Oracle {
         // @returns the related class hash 
         fn get_implementation_hash(self: @ContractState) -> ClassHash {
             let state: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
-            Upgradeable::get_implementation_hash(@state)
+            Upgradeable::InternalImpl::get_implementation_hash(@state)
         }
 
         // @notice retrieve the last checkpoint before a given timestamp
@@ -1081,9 +1073,10 @@ mod Oracle {
                     let price = actual_get_element_at(_entry, 133, 65);
                     PossibleEntries::Spot(
                         SpotEntry {
-                            base: BaseEntry {
-                                timestamp: timestamp, source: source, publisher: 0
-                            }, pair_id: pair_id, price: price, volume: volume
+                            base: BaseEntry { timestamp: timestamp, source: source, publisher: 0 },
+                            pair_id: pair_id,
+                            price: price,
+                            volume: volume
                         }
                     )
                 },
@@ -1095,9 +1088,7 @@ mod Oracle {
                     let price = actual_get_element_at(_entry, 133, 65);
                     PossibleEntries::Future(
                         FutureEntry {
-                            base: BaseEntry {
-                                timestamp: timestamp, source: source, publisher: 0
-                            },
+                            base: BaseEntry { timestamp: timestamp, source: source, publisher: 0 },
                             pair_id: pair_id,
                             price: price,
                             volume: volume,
@@ -1112,9 +1103,9 @@ mod Oracle {
                     let value = actual_get_element_at(_entry, 133, 65);
                     PossibleEntries::Generic(
                         GenericEntry {
-                            base: BaseEntry {
-                                timestamp: timestamp, source: source, publisher: 0
-                            }, key: key, value: value
+                            base: BaseEntry { timestamp: timestamp, source: source, publisher: 0 },
+                            key: key,
+                            value: value
                         }
                     )
                 }
@@ -1522,6 +1513,15 @@ mod Oracle {
             self.assert_only_admin();
             self.oracle_sources_threshold_storage.write(threshold);
         }
+
+        // @notice upgrade the contract implementation, call to the contract Upgradeable
+        // @dev callable only by the admin
+        // @param impl_hash: the current implementation hash
+        fn upgrade(self: @ContractState, impl_hash: ClassHash) {
+            self.assert_only_admin();
+            let mut upstate: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
+            Upgradeable::InternalImpl::upgrade(ref upstate, impl_hash);
+        }
     }
 
 
@@ -1859,7 +1859,7 @@ mod Oracle {
     // @param new_entry : an entry (spot entry, future entry, ... )
     // @param last_entry : an entry (with the same nature as new_entry)
     fn validate_data_timestamp<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
-        ref self: ContractState, new_entry: PossibleEntries, last_entry: T, 
+        ref self: ContractState, new_entry: PossibleEntries, last_entry: T,
     ) {
         match new_entry {
             PossibleEntries::Spot(spot_entry) => {

@@ -1,37 +1,36 @@
 #[starknet::contract]
 mod Upgradeable {
-    use starknet::class_hash::ClassHash;
-    use zeroable::Zeroable;
-    use result::ResultTrait;
+    use starknet::ClassHash;
     use starknet::SyscallResult;
+    use zeroable::Zeroable;
 
     #[storage]
     struct Storage {
-        impl_hash: ClassHash, 
+        class_hash: ClassHash,
     }
 
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        Upgraded: Upgraded
+    }
 
     #[derive(Drop, starknet::Event)]
     struct Upgraded {
-        implementation: ClassHash
+        class_hash: ClassHash
     }
 
-    #[derive(Drop, starknet::Event)]
-    #[event]
-    enum Event {
-        Upgraded: Upgraded, 
-    }
+    #[generate_trait]
+    impl InternalImpl of InternalState {
+        fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
+            assert(!new_class_hash.is_zero(), 'Class hash cannot be zero');
+            starknet::replace_class_syscall(new_class_hash).unwrap();
+            self.class_hash.write(new_class_hash);
+            self.emit(Upgraded { class_hash: new_class_hash });
+        }
 
-
-    fn upgrade(ref self: ContractState, new_impl_hash: ClassHash) {
-        assert(!new_impl_hash.is_zero(), 'Class hash cannot be zero');
-        starknet::replace_class_syscall(new_impl_hash).unwrap_syscall();
-        self.impl_hash.write(new_impl_hash);
-        self.emit(Event::Upgraded(Upgraded { implementation: new_impl_hash }));
-    }
-
-
-    fn get_implementation_hash(self: @ContractState) -> ClassHash {
-        self.impl_hash.read()
+        fn get_implementation_hash(self: @ContractState) -> ClassHash {
+            self.class_hash.read()
+        }
     }
 }
