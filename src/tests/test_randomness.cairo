@@ -115,9 +115,9 @@ fn test_randomness() {
             1,
             callback_address,
             callback_gas_limit,
-            random_words,
+            random_words.span(),
             block_hash,
-            proof
+            proof.span()
         );
     let res = example_randomness.get_last_random();
     assert(res == 10000, 'wrong random');

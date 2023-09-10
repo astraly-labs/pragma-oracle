@@ -44,9 +44,9 @@ trait IRandomness<TContractState> {
         minimum_block_number: u64,
         callback_address: ContractAddress,
         callback_gas_limit: u64,
-        random_words: Array<felt252>,
+        random_words: Span<felt252>,
         block_hash: felt252,
-        proof: Array<felt252>,
+        proof: Span<felt252>,
     );
     fn get_pending_requests(
         self: @TContractState, requestor_address: ContractAddress, offset: u64, max_len: u64, 
@@ -69,16 +69,17 @@ mod Randomness {
     use pragma::randomness::example_randomness::{
         IExampleRandomnessDispatcher, IExampleRandomnessDispatcherTrait
     };
+    use poseidon::poseidon_hash_span;
     use debug::PrintTrait;
 
     use array::{ArrayTrait, SpanTrait};
     use traits::{TryInto, Into};
     #[storage]
     struct Storage {
-        Randomness__public_key: felt252,
-        Randomness__request_id: LegacyMap::<ContractAddress, u64>,
-        Randomness__request_hash: LegacyMap::<(ContractAddress, u64), felt252>,
-        Randomness__request_status: LegacyMap::<(ContractAddress, u64), RequestStatus>,
+        public_key: felt252,
+        request_id: LegacyMap::<ContractAddress, u64>,
+        request_hash: LegacyMap::<(ContractAddress, u64), felt252>,
+        request_status: LegacyMap::<(ContractAddress, u64), RequestStatus>,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -98,8 +99,8 @@ mod Randomness {
         requestor_address: ContractAddress,
         seed: u64,
         minimum_block_number: u64,
-        random_words: Array<felt252>,
-        proof: Array<felt252>
+        random_words: Span<felt252>,
+        proof: Span<felt252>
     }
 
     #[derive(Drop, starknet::Event)]
@@ -121,7 +122,7 @@ mod Randomness {
     fn constructor(ref self: ContractState, admin_address: ContractAddress, public_key: felt252) {
         let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
         Admin::initialize_admin_address(ref state, admin_address);
-        self.Randomness__public_key.write(public_key);
+        self.public_key.write(public_key);
         return ();
     }
 
@@ -134,7 +135,7 @@ mod Randomness {
             status: RequestStatus
         ) {
             assert_only_admin(@self);
-            self.Randomness__request_status.write((requestor_address, request_id), status);
+            self.request_status.write((requestor_address, request_id), status);
             return ();
         }
 
@@ -148,7 +149,7 @@ mod Randomness {
         ) -> u64 {
             let caller_address = get_caller_address();
             let current_block = get_block_number();
-            let request_id = self.Randomness__request_id.read(caller_address);
+            let request_id = self.request_id.read(caller_address);
             assert(num_words == 1, 'no more than one word');
             let minimum_block_number = current_block + publish_delay;
             let hash_ = hash_request(
@@ -162,7 +163,7 @@ mod Randomness {
             );
 
             // hash request
-            self.Randomness__request_hash.write((caller_address, request_id), hash_);
+            self.request_hash.write((caller_address, request_id), hash_);
             self
                 .emit(
                     Event::RandomnessRequest(
@@ -177,10 +178,8 @@ mod Randomness {
                         }
                     )
                 );
-            self
-                .Randomness__request_status
-                .write((caller_address, request_id), RequestStatus::RECEIVED(()));
-            self.Randomness__request_id.write(caller_address, request_id + 1);
+            self.request_status.write((caller_address, request_id), RequestStatus::RECEIVED(()));
+            self.request_id.write(caller_address, request_id + 1);
             return (request_id);
         }
 
@@ -204,7 +203,7 @@ mod Randomness {
                 callback_gas_limit,
                 num_words,
             );
-            let stored_hash_ = self.Randomness__request_hash.read((caller_address, request_id));
+            let stored_hash_ = self.request_hash.read((caller_address, request_id));
             assert(_hashed_value == stored_hash_, 'invalid request owner');
             assert(requestor_address == caller_address, 'invalid request owner');
             self
@@ -228,9 +227,9 @@ mod Randomness {
             minimum_block_number: u64,
             callback_address: ContractAddress,
             callback_gas_limit: u64,
-            random_words: Array<felt252>,
+            random_words: Span<felt252>,
             block_hash: felt252,
-            proof: Array<felt252>,
+            proof: Span<felt252>,
         ) {
             assert_only_admin(@self);
 
@@ -243,16 +242,16 @@ mod Randomness {
                 callback_gas_limit,
                 random_words.len().into(),
             );
-            let stored_hash_ = self.Randomness__request_hash.read((requestor_address, request_id));
+            let stored_hash_ = self.request_hash.read((requestor_address, request_id));
             assert(stored_hash_ == _hashed_value, 'Randomness hash mismatch');
 
             let example_randomness_dispatcher = IExampleRandomnessDispatcher {
                 contract_address: callback_address
             };
             example_randomness_dispatcher
-                .receive_random_words(requestor_address, request_id, random_words.span());
+                .receive_random_words(requestor_address, request_id, random_words);
             self
-                .Randomness__request_status
+                .request_status
                 .write((requestor_address, request_id), RequestStatus::FULFILLED(()));
             self
                 .emit(
@@ -285,7 +284,7 @@ mod Randomness {
         fn get_pending_requests(
             self: @ContractState, requestor_address: ContractAddress, offset: u64, max_len: u64, 
         ) -> Span<felt252> {
-            let max_index = self.Randomness__request_id.read(requestor_address);
+            let max_index = self.request_id.read(requestor_address);
             let mut requests = ArrayTrait::<felt252>::new();
             allocate_requests(self, 0, offset, max_index, max_len, requestor_address, ref requests);
             return requests.span();
@@ -294,9 +293,7 @@ mod Randomness {
         fn get_request_status(
             self: @ContractState, requestor_address: ContractAddress, request_id: u64
         ) -> RequestStatus {
-            let request_status = self
-                .Randomness__request_status
-                .read((requestor_address, request_id));
+            let request_status = self.request_status.read((requestor_address, request_id));
             return request_status;
         }
 
@@ -304,13 +301,13 @@ mod Randomness {
         fn requestor_current_index(
             self: @ContractState, requestor_address: ContractAddress
         ) -> u64 {
-            let current_index = self.Randomness__request_id.read(requestor_address);
+            let current_index = self.request_id.read(requestor_address);
             return current_index;
         }
 
 
         fn get_public_key(self: @ContractState, requestor_address: ContractAddress) -> felt252 {
-            let pub_key_ = self.Randomness__public_key.read();
+            let pub_key_ = self.public_key.read();
             return pub_key_;
         }
     }
@@ -324,12 +321,8 @@ mod Randomness {
         callback_gas_limit: u64,
         num_words: u64,
     ) -> felt252 {
-        let hash_ = pedersen(request_id.into(), requestor_address.into());
-        let hash_ = pedersen(hash_, seed.into());
-        let hash_ = pedersen(hash_, minimum_block_number.into());
-        let hash_ = pedersen(hash_, callback_address.into());
-        let hash_ = pedersen(hash_, callback_gas_limit.into());
-        let hash_ = pedersen(hash_, num_words.into());
+        let input = array![request_id.into(),requestor_address.into(), seed.into(), minimum_block_number.into(),callback_address.into(),callback_gas_limit.into(),num_words.into()];
+        let hash_ = poseidon_hash_span(input.span());
         return hash_;
     }
 
@@ -356,7 +349,7 @@ mod Randomness {
             return ();
         }
 
-        let status_ = self.Randomness__request_status.read((requestor_address, cur_idx + offset));
+        let status_ = self.request_status.read((requestor_address, cur_idx + offset));
 
         if (status_ == RequestStatus::UNINITIALIZED(())) {
             return ();
