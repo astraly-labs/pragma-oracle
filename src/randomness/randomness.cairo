@@ -321,7 +321,15 @@ mod Randomness {
         callback_gas_limit: u64,
         num_words: u64,
     ) -> felt252 {
-        let input = array![request_id.into(),requestor_address.into(), seed.into(), minimum_block_number.into(),callback_address.into(),callback_gas_limit.into(),num_words.into()];
+        let input = array![
+            request_id.into(),
+            requestor_address.into(),
+            seed.into(),
+            minimum_block_number.into(),
+            callback_address.into(),
+            callback_gas_limit.into(),
+            num_words.into()
+        ];
         let hash_ = poseidon_hash_span(input.span());
         return hash_;
     }
