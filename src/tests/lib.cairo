@@ -6,4 +6,5 @@ mod test_publisher_registry;
 mod test_summary_stats;
 #[cfg(test)]
 mod test_yield_curve;
-
+#[cfg(test)]
+mod test_randomness;
