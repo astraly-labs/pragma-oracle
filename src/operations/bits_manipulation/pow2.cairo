@@ -14,7 +14,6 @@ fn pow2(exp: u256) -> u256 {
 }
 
 
-
 //function from https://github.com/zkLinkProtocol/zklink-starknet-contracts/blob/497978ec4314ab5d3fd3cd70ea73b70197decbe8/src/utils/math.cairo
 
 fn u256_fast_pow2(exp: u256) -> u256 {

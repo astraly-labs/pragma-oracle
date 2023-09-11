@@ -81,7 +81,7 @@ mod Entry {
     >(
         entries: Span<T>, aggregation_mode: AggregationMode
     ) -> u128 {
-        if (entries.len() ==0) { 
+        if (entries.len() == 0) {
             return 0;
         }
         match aggregation_mode {
@@ -112,15 +112,15 @@ mod Entry {
     >(
         mut entries: Span<T>
     ) -> u64 {
-        if (entries.len() ==0) { 
+        if (entries.len() == 0) {
             return 0;
         }
         let mut max_timestamp: u64 = (*entries[0_usize]).get_base_timestamp();
         let mut index = 1_usize;
-        loop { 
-            match entries.pop_front() { 
+        loop {
+            match entries.pop_front() {
                 Option::Some(entry) => {
-                    if (*entry).get_base_timestamp() > max_timestamp { 
+                    if (*entry).get_base_timestamp() > max_timestamp {
                         max_timestamp = (*entry).get_base_timestamp();
                     }
                 },
@@ -142,7 +142,6 @@ mod Entry {
     >(
         entries: Span<T>
     ) -> u128 {
-        
         let sorted_entries = merge(entries);
         let entries_len = sorted_entries.len();
         assert(entries_len > 0_usize, 'entries must not be empty');
@@ -175,7 +174,7 @@ mod Entry {
                     sum += (*entry).get_price();
                 },
                 Option::None(_) => {
-                    break sum/entries_len.into();
+                    break sum / entries_len.into();
                 }
             };
         }
@@ -539,9 +538,15 @@ fn test_aggregate_timestamp_max() {
 
 #[test]
 #[available_gas(10000000000)]
-fn test_empty_array(){ 
+fn test_empty_array() {
     let mut entries = ArrayTrait::<SpotEntry>::new();
-    assert(Entry::aggregate_entries(entries.span(), AggregationMode::Mean(())) ==0 , 'wrong agg for empty array');
-    assert(Entry::aggregate_entries(entries.span(), AggregationMode::Median(())) ==0 , 'wrong agg for empty array');
-    assert(Entry::aggregate_timestamps_max(entries.span()) ==0 , 'wrong tmstp for empty array');
+    assert(
+        Entry::aggregate_entries(entries.span(), AggregationMode::Mean(())) == 0,
+        'wrong agg for empty array'
+    );
+    assert(
+        Entry::aggregate_entries(entries.span(), AggregationMode::Median(())) == 0,
+        'wrong agg for empty array'
+    );
+    assert(Entry::aggregate_timestamps_max(entries.span()) == 0, 'wrong tmstp for empty array');
 }

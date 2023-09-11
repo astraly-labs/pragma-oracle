@@ -813,7 +813,6 @@ mod Oracle {
                             };
                         },
                         ArrayEntry::GenericEntry(array_generic) => {
-                            
                             let price = Entry::aggregate_entries::<GenericEntry>(
                                 array_generic.span(), aggregation_mode
                             );

@@ -24,7 +24,9 @@ fn merge<
     if arr.len() > 1_u32 {
         // Create left and right arrays
         let middle = arr.len() / 2;
-        let (mut left_arr, mut right_arr) = (arr.slice(0, middle), arr.slice(middle, arr.len() - middle));
+        let (mut left_arr, mut right_arr) = (
+            arr.slice(0, middle), arr.slice(middle, arr.len() - middle)
+        );
         // Recursively sort the left and right arrays
         let mut sorted_left = merge(left_arr);
         let mut sorted_right = merge(right_arr);
@@ -86,8 +88,6 @@ fn merge_recursive<
 }
 
 
-
-
 //-----------------------------
 // Tests
 
@@ -141,16 +141,16 @@ fn test_merge() {
 
 #[test]
 #[available_gas(10000000)]
-fn test_slice() { 
+fn test_slice() {
     let array = array![10, 20, 30, 40, 50].span();
-    let middle = array.len() /2;
+    let middle = array.len() / 2;
 
-    let (arr_1, arr_2) = (array.slice(0,middle), array.slice(middle, array.len() - middle));
-    assert(arr_1.len()==2, 'wrong len');
-    assert(arr_2.len() ==3, 'wrong len');
-    assert(*arr_1.at(0) ==10, 'wrong value');
+    let (arr_1, arr_2) = (array.slice(0, middle), array.slice(middle, array.len() - middle));
+    assert(arr_1.len() == 2, 'wrong len');
+    assert(arr_2.len() == 3, 'wrong len');
+    assert(*arr_1.at(0) == 10, 'wrong value');
     assert(*arr_1.at(1) == 20, 'wrong value');
     assert(*arr_2.at(0) == 30, 'wrong value');
     assert(*arr_2.at(1) == 40, 'wrong value');
-    assert(*arr_2.at(2) ==50, 'wrong value');
+    assert(*arr_2.at(2) == 50, 'wrong value');
 }

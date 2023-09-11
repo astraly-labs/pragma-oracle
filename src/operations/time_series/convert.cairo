@@ -2,11 +2,9 @@ use alexandria_math::math::fpow;
 use traits::Into;
 use debug::PrintTrait;
 
-const MAX_POWER : u128 = 10000000000000000000000000000000;
+const MAX_POWER: u128 = 10000000000000000000000000000000;
 fn div_decimals(a_price: u128, b_price: u128, output_decimals: u128) -> u128 {
     let power = fpow(10_u128, output_decimals);
-
-
 
     assert(power <= MAX_POWER, 'Conversion overflow');
     assert(a_price <= MAX_POWER, 'Conversion overflow');
@@ -16,7 +14,6 @@ fn div_decimals(a_price: u128, b_price: u128, output_decimals: u128) -> u128 {
 
 fn mul_decimals(a_price: u128, b_price: u128, output_decimals: u128) -> u128 {
     let power = fpow(10_u128, output_decimals);
-
 
     assert(power <= MAX_POWER, 'Conversion overflow');
     assert(a_price <= MAX_POWER, 'Conversion overflow');

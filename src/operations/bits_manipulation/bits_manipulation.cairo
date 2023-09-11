@@ -1,5 +1,5 @@
 use traits::Into;
-use pragma::operations::bits_manipulation::pow2::{pow2,u256_fast_pow2};
+use pragma::operations::bits_manipulation::pow2::{pow2, u256_fast_pow2};
 
 
 // @notice Will returns the corresponding u256, located a a certain position given by the at and number_of_bits parameters
@@ -73,7 +73,7 @@ fn generate_mask(position: u256, number_of_bits: u256) -> u256 {
     assert_within_range(position, number_of_bits);
     let pow_big = u256_fast_pow2(position + number_of_bits);
     //TODO: need to determine why we cannot apply fast_pow2 without thread panicked here
-    let pow_small = pow2(position); 
+    let pow_small = pow2(position);
     let mask = (pow_big - 1) - (pow_small - 1);
     mask
 }
