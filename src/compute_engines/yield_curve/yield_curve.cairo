@@ -99,6 +99,7 @@ mod YieldCurve {
         GenericEntry
     };
     use debug::PrintTrait;
+    use starknet::get_caller_address;
     use pragma::admin::admin::Admin;
     const ON_SOURCE_KEY: felt252 = 'ON'; // str_to_felt("ON")
     const FUTURE_SPOT_SOURCE_KEY: felt252 = 'FUTURE/SPOT'; // str_to_felt("FUTURE/SPOT")
@@ -368,8 +369,7 @@ mod YieldCurve {
         // @dev only the admin can update this
         // @param oracle_address: new oracle controller address
         fn set_oracle_address(ref self: ContractState, oracle_address: ContractAddress) {
-            let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
+            assert_only_admin(@self);
             self.oracle_address_storage.write(oracle_address);
             return ();
         }
@@ -378,8 +378,7 @@ mod YieldCurve {
         // @dev only the admin can update this
         // @param new_source_key: new Pragma source key
         fn set_future_spot_pragma_source_key(ref self: ContractState, new_source_key: felt252) {
-            let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
+            assert_only_admin(@self);
             self.future_spot_pragma_source_key_storage.write(new_source_key);
             return ();
         }
@@ -389,8 +388,7 @@ mod YieldCurve {
         // @param pair_id: new Pragma spot key
         // @param is_active: whether the new key should be active immediately or not
         fn add_pair_id(ref self: ContractState, pair_id: felt252, is_active: bool) {
-            let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
+            assert_only_admin(@self);
             let total_pair_ids_len = self.pair_id_len_storage.read();
             let new_total_pair_ids_len = total_pair_ids_len + 1;
             self.pair_id_len_storage.write(new_total_pair_ids_len);
@@ -405,8 +403,7 @@ mod YieldCurve {
         // @param pair_id: Pragma spot key
         // @param is_active: new status of the spot key
         fn set_pair_id_is_active(ref self: ContractState, pair_id: felt252, is_active: bool) {
-            let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
+            assert_only_admin(@self);
             self.pair_id_is_active_storage.write(pair_id, is_active);
             return ();
         }
@@ -426,8 +423,7 @@ mod YieldCurve {
             is_active: bool,
             expiry_timestamp: u64
         ) {
-            let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
+            assert_only_admin(@self);
             let total_future_expiry_timestamps_len = self
                 .future_expiry_timestamp_len_storage
                 .read(pair_id);
@@ -458,8 +454,7 @@ mod YieldCurve {
             future_expiry_timestamp: u64,
             new_future_expiry_timestamp_status: FutureKeyStatus,
         ) {
-            let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
+            assert_only_admin(@self);
             self
                 .future_expiry_timestamp_status_storage
                 .write((pair_id, future_expiry_timestamp), new_future_expiry_timestamp_status);
@@ -477,8 +472,7 @@ mod YieldCurve {
             future_expiry_timestamp: u64,
             new_is_active: bool
         ) {
-            let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
+            assert_only_admin(@self);
             let old_expiry = IYieldCurveABI::get_future_expiry_timestamp_expiry(
                 @self, pair_id, future_expiry_timestamp
             );
@@ -499,8 +493,7 @@ mod YieldCurve {
         // @param on_key: Pragma overnight rate key
         // @param is_active: whether the new key should be active immediately or not
         fn add_on_key(ref self: ContractState, on_key: felt252, is_active: bool) {
-            let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
+            assert_only_admin(@self);
             let on_key_len = self.on_key_len_storage.read();
             self.on_key_storage.write(on_key_len, on_key);
             self.on_key_is_active_storage.write(on_key, is_active);
@@ -513,11 +506,19 @@ mod YieldCurve {
         // @param on_key: Pragma overnight rate key
         // @param is_active: new is_active of the overnight rate key
         fn set_on_key_is_active(ref self: ContractState, on_key: felt252, is_active: bool) {
-            let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
+            assert_only_admin(@self);
             self.on_key_is_active_storage.write(on_key, is_active);
             return ();
         }
+    }
+
+    // @notice Check if the caller is the admin, use the contract Admin
+    // @dev internal function, fails if not called by the admin
+    fn assert_only_admin(self: @ContractState) {
+        let state: Admin::ContractState = Admin::unsafe_new_contract_state();
+        let admin = Admin::get_admin_address(@state);
+        let caller = get_caller_address();
+        assert(caller == admin, 'Admin: unauthorized');
     }
 
     //

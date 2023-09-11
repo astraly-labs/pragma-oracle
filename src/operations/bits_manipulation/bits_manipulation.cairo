@@ -17,7 +17,7 @@ fn actual_get_element_at(input: u256, at: u256, number_of_bits: u256) -> u128 {
 
 
 // @notice Will return the a new u256 with the given u256 encoded at a certain position on a certain number of bits
-// @dev This method can fail
+// @dev This method can fail if at > 255
 // @param input: The felt from which it needs to be included in
 // @param at: The position of the element that needs to be added, starts a 0
 // @param number_of_bits: The size of the element that needs to be added
@@ -59,7 +59,7 @@ fn assert_within_range(position: u256, number_of_bits: u256) {
 fn generate_set_mask(position: u256, number_of_bits: u256) -> u256 {
     assert_within_range(position, number_of_bits);
     let mask = generate_mask(position, number_of_bits);
-    let inverted_mask = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffff - mask;
+    let inverted_mask = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff - mask;
     inverted_mask
 }
 
@@ -70,7 +70,6 @@ fn generate_set_mask(position: u256, number_of_bits: u256) -> u256 {
 // @param number_of_bits: the number of bits on which each element is encoded
 // @return mask: the mask corresponding to the position and the number of bits
 fn generate_mask(position: u256, number_of_bits: u256) -> u256 {
-    assert_within_range(position, number_of_bits);
     let pow_big = u256_fast_pow2(position + number_of_bits);
     //TODO: need to determine why we cannot apply fast_pow2 without thread panicked here
     let pow_small = pow2(position);

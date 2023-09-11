@@ -84,7 +84,7 @@ trait IOracleABI<TContractState> {
         ref self: TContractState, new_publisher_registry_address: ContractAddress
     );
     fn add_currency(ref self: TContractState, new_currency: Currency);
-    fn update_currency(ref self: TContractState, currency: Currency);
+    fn update_currency(ref self: TContractState, currency_id: felt252, currency: Currency);
     fn add_pair(ref self: TContractState, new_pair: Pair);
     fn set_checkpoint(
         ref self: TContractState, data_type: DataType, aggregation_mode: AggregationMode
@@ -1373,10 +1373,14 @@ mod Oracle {
 
         // @notice update an existing currency
         // @dev can be called only by the admin
+        // @param currency_id: the currency id to be updated
         // @param currency: the currency to be updated
-        fn update_currency(ref self: ContractState, currency: Currency) {
+        fn update_currency(ref self: ContractState, currency_id: felt252, currency: Currency) {
             self.assert_only_admin();
-            self.oracle_currencies_storage.write(currency.id, currency);
+            assert(currency_id == currency.id, 'Currency id not corresponding');
+            let existing_currency = self.oracle_currencies_storage.read(currency_id);
+            assert(existing_currency.id != 0, 'No currency recorded');
+            self.oracle_currencies_storage.write(currency_id, currency);
             self.emit(Event::UpdatedCurrency(UpdatedCurrency { currency: currency }));
 
             return ();
