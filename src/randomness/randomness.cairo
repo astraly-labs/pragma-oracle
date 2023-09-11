@@ -49,7 +49,7 @@ trait IRandomness<TContractState> {
         proof: Span<felt252>,
     );
     fn get_pending_requests(
-        self: @TContractState, requestor_address: ContractAddress, offset: u64, max_len: u64, 
+        self: @TContractState, requestor_address: ContractAddress, offset: u64, max_len: u64
     ) -> Span<felt252>;
 
     fn get_request_status(
@@ -282,7 +282,7 @@ mod Randomness {
 
 
         fn get_pending_requests(
-            self: @ContractState, requestor_address: ContractAddress, offset: u64, max_len: u64, 
+            self: @ContractState, requestor_address: ContractAddress, offset: u64, max_len: u64
         ) -> Span<felt252> {
             let max_index = self.request_id.read(requestor_address);
             let mut requests = ArrayTrait::<felt252>::new();
@@ -366,7 +366,7 @@ mod Randomness {
         if (status_ == RequestStatus::RECEIVED(())) {
             request_ids.append((cur_idx + offset).into());
             return allocate_requests(
-                self, cur_idx + 1, offset, max_index, max_len, requestor_address, ref request_ids, 
+                self, cur_idx + 1, offset, max_index, max_len, requestor_address, ref request_ids
             );
         } else {
             return allocate_requests(
