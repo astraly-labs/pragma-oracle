@@ -1,5 +1,5 @@
 use traits::Into;
-use pragma::operations::bits_manipulation::pow2::{pow2};
+use pragma::operations::bits_manipulation::pow2::{pow2,u256_fast_pow2};
 
 
 // @notice Will returns the corresponding u256, located a a certain position given by the at and number_of_bits parameters
@@ -10,7 +10,7 @@ use pragma::operations::bits_manipulation::pow2::{pow2};
 fn actual_get_element_at(input: u256, at: u256, number_of_bits: u256) -> u128 {
     let mask = generate_get_mask(at, number_of_bits);
     let masked_response = input & mask;
-    let divider = pow2(at);
+    let divider = u256_fast_pow2(at);
     let response = masked_response / divider;
     response.low
 }
@@ -36,13 +36,13 @@ fn actual_set_element_at(input: u256, at: u256, number_of_bits: u256, element: u
 // @param element: the element that needs to be checked
 // @param number_of_bits: the number of bits on which each element is encoded
 fn assert_valid_felt(element: u256, number_of_bits: u256) {
-    let max_element = pow2(number_of_bits) - 1.into();
+    let max_element = u256_fast_pow2(number_of_bits) - 1.into();
 
     assert(element.into() <= max_element, 'Error u256 too big');
 }
 
 
-// @notice Will check that the given position finumber_of_bitsts within the 251 bits available
+// @notice Will check that the given position finumber_of_bitsts within the 256 bits available
 // @dev Will fail if the position is too big +
 // @param position: The position of the element, starts a 0
 // @param number_of_bits: the number of bits on which each element is encoded
@@ -52,7 +52,7 @@ fn assert_within_range(position: u256, number_of_bits: u256) {
 
 
 // @notice Will generate a bit mask to be able to insert a felt within another felt
-// @dev Will fail if the position given would make it out of the 251 available bits
+// @dev Will fail if the position given would make it out of the 256 available bits
 // @param position: The position of the element that needs to be inserted, starts a 0
 // @param number_of_bits: the number of bits on which each element is encoded
 // @return mask: the "set" mask corresponding to the position and the number of bits
@@ -65,14 +65,15 @@ fn generate_set_mask(position: u256, number_of_bits: u256) -> u256 {
 
 
 // @notice Will generate the mask part that is common to set_mask and get_mask
-// @dev Will fail if the position given would make it out of the 251 available bits
+// @dev Will fail if the position given would make it out of the 256 available bits
 // @param position: The position of the element that needs to be inserted, starts a 0
 // @param number_of_bits: the number of bits on which each element is encoded
 // @return mask: the mask corresponding to the position and the number of bits
 fn generate_mask(position: u256, number_of_bits: u256) -> u256 {
     assert_within_range(position, number_of_bits);
-    let pow_big = pow2(position + number_of_bits);
-    let pow_small = pow2(position);
+    let pow_big = u256_fast_pow2(position + number_of_bits);
+    //TODO: need to determine why we cannot apply fast_pow2 without thread panicked here
+    let pow_small = pow2(position); 
     let mask = (pow_big - 1) - (pow_small - 1);
     mask
 }
@@ -83,7 +84,7 @@ fn generate_mask(position: u256, number_of_bits: u256) -> u256 {
 // @param element: The element that needs to be encoded
 // @return response: The new felt containing the encoded value a the given position on the given number of bits
 fn unsafe_set_element_at(input: u256, at: u256, element: u256) -> u256 {
-    let multiplier = pow2(at.into());
+    let multiplier = u256_fast_pow2(at);
     let multiplied_element = element * multiplier;
     input + multiplied_element
 }

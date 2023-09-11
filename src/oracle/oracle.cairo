@@ -707,12 +707,12 @@ mod Oracle {
                     match filtered_entries {
                         ArrayEntry::SpotEntry(array_spot) => {
                             let price = Entry::aggregate_entries::<SpotEntry>(
-                                @array_spot, aggregation_mode
+                                array_spot.span(), aggregation_mode
                             );
                             let decimals = IOracleABI::get_decimals(self, data_type);
                             let last_updated_timestamp =
                                 Entry::aggregate_timestamps_max::<SpotEntry>(
-                                @array_spot
+                                array_spot.span()
                             );
 
                             return PragmaPricesResponse {
@@ -763,12 +763,12 @@ mod Oracle {
                         },
                         ArrayEntry::FutureEntry(array_future) => {
                             let price = Entry::aggregate_entries::<FutureEntry>(
-                                @array_future, aggregation_mode
+                                array_future.span(), aggregation_mode
                             );
                             let decimals = IOracleABI::get_decimals(self, data_type);
                             let last_updated_timestamp =
                                 Entry::aggregate_timestamps_max::<FutureEntry>(
-                                @array_future
+                                array_future.span()
                             );
                             return PragmaPricesResponse {
                                 price: price,
@@ -813,13 +813,14 @@ mod Oracle {
                             };
                         },
                         ArrayEntry::GenericEntry(array_generic) => {
+                            
                             let price = Entry::aggregate_entries::<GenericEntry>(
-                                @array_generic, aggregation_mode
+                                array_generic.span(), aggregation_mode
                             );
                             let decimals = IOracleABI::get_decimals(self, data_type);
                             let last_updated_timestamp =
                                 Entry::aggregate_timestamps_max::<GenericEntry>(
-                                @array_generic
+                                array_generic.span()
                             );
                             return PragmaPricesResponse {
                                 price: price,
