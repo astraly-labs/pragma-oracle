@@ -1440,19 +1440,13 @@ mod Oracle {
                             .oracle_checkpoint_index
                             .read((pair_id, SPOT, 0, aggregation_mode.into()));
 
-                        let element = actual_set_element_at(
-                            0, 0, 31, new_checkpoint.timestamp.into()
+                        let element = pack_checkpoint(
+                            new_checkpoint.timestamp,
+                            new_checkpoint.value,
+                            new_checkpoint.aggregation_mode,
+                            new_checkpoint.num_sources_aggregated
                         );
-                        let element = actual_set_element_at(
-                            element, 32, 128, new_checkpoint.value.into()
-                        );
-                        let aggregation_mode: u8 = new_checkpoint.aggregation_mode.into();
-                        let element = actual_set_element_at(
-                            element, 161, 10, aggregation_mode.into()
-                        );
-                        let element = actual_set_element_at(
-                            element, 172, 83, new_checkpoint.num_sources_aggregated.into()
-                        );
+
                         self
                             .oracle_checkpoints
                             .write((pair_id, SPOT, cur_idx, 0, aggregation_mode.into()), element);
@@ -1467,18 +1461,11 @@ mod Oracle {
                         let cur_idx = self
                             .oracle_checkpoint_index
                             .read((pair_id, FUTURE, expiration_timestamp, aggregation_mode.into()));
-                        let element = actual_set_element_at(
-                            0, 0, 31, new_checkpoint.timestamp.into()
-                        );
-                        let element = actual_set_element_at(
-                            element, 32, 128, new_checkpoint.value.into()
-                        );
-                        let aggregation_mode: u8 = new_checkpoint.aggregation_mode.into();
-                        let element = actual_set_element_at(
-                            element, 161, 10, aggregation_mode.into()
-                        );
-                        let element = actual_set_element_at(
-                            element, 172, 83, new_checkpoint.num_sources_aggregated.into()
+                        let element = pack_checkpoint(
+                            new_checkpoint.timestamp,
+                            new_checkpoint.value,
+                            new_checkpoint.aggregation_mode,
+                            new_checkpoint.num_sources_aggregated
                         );
                         self
                             .oracle_checkpoints
@@ -1616,26 +1603,7 @@ mod Oracle {
                 let bitpack_checkpoint = self
                     .oracle_checkpoints
                     .read((pair_id, SPOT, checkpoint_index, 0, aggregation_mode.into()));
-                let u128_timestamp: u128 = actual_get_element_at(bitpack_checkpoint, 0, 31);
-                let timestamp = u128_timestamp.try_into().unwrap();
-                let value = actual_get_element_at(bitpack_checkpoint, 32, 128);
-                let u128_aggregation_mode: u128 = actual_get_element_at(
-                    bitpack_checkpoint, 161, 10
-                );
-                let u8_aggregation_mode: u8 = u128_aggregation_mode.try_into().unwrap();
-                let aggregation_mode: AggregationMode = u8_into_AggregationMode(
-                    u8_aggregation_mode
-                );
-                let u128_num_sources_aggregated = actual_get_element_at(
-                    bitpack_checkpoint, 172, 83
-                );
-                let num_sources_aggregated: u32 = u128_num_sources_aggregated.try_into().unwrap();
-                Checkpoint {
-                    timestamp: timestamp,
-                    value: value,
-                    aggregation_mode: aggregation_mode,
-                    num_sources_aggregated: num_sources_aggregated,
-                }
+                unpack_checkpoint(bitpack_checkpoint)
             },
             DataType::FutureEntry((
                 pair_id, expiration_timestamp
@@ -1651,26 +1619,7 @@ mod Oracle {
                             aggregation_mode.into()
                         )
                     );
-                let u128_timestamp: u128 = actual_get_element_at(bitpack_checkpoint, 0, 31);
-                let timestamp = u128_timestamp.try_into().unwrap();
-                let value = actual_get_element_at(bitpack_checkpoint, 32, 128);
-                let u128_aggregation_mode: u128 = actual_get_element_at(
-                    bitpack_checkpoint, 161, 10
-                );
-                let u8_aggregation_mode: u8 = u128_aggregation_mode.try_into().unwrap();
-                let aggregation_mode: AggregationMode = u8_into_AggregationMode(
-                    u8_aggregation_mode
-                );
-                let u128_num_sources_aggregated = actual_get_element_at(
-                    bitpack_checkpoint, 172, 83
-                );
-                let num_sources_aggregated: u32 = u128_num_sources_aggregated.try_into().unwrap();
-                Checkpoint {
-                    timestamp: timestamp,
-                    value: value,
-                    aggregation_mode: aggregation_mode,
-                    num_sources_aggregated: num_sources_aggregated,
-                }
+                unpack_checkpoint(bitpack_checkpoint)
             },
             DataType::GenericEntry(key) => {
                 let bitpack_checkpoint = self
@@ -2080,6 +2029,41 @@ mod Oracle {
         );
         return startpoint;
     }
+
+
+    fn pack_checkpoint(
+        checkpoint_timestamp: u64,
+        checkpoint_value: u128,
+        checkpoint_aggregation_mode: AggregationMode,
+        checkpoint_num_sources_aggregated: u32
+    ) -> u256 {
+        let element = actual_set_element_at(0, 0, 31, checkpoint_timestamp.into());
+        let element = actual_set_element_at(element, 32, 128, checkpoint_value.into());
+        let aggregation_mode: u8 = checkpoint_aggregation_mode.into();
+        let element = actual_set_element_at(element, 161, 10, aggregation_mode.into());
+        let element = actual_set_element_at(
+            element, 172, 83, checkpoint_num_sources_aggregated.into()
+        );
+        element
+    }
+
+    fn unpack_checkpoint(bitpack_checkpoint: u256) -> Checkpoint {
+        let u128_timestamp: u128 = actual_get_element_at(bitpack_checkpoint, 0, 31);
+        let timestamp = u128_timestamp.try_into().unwrap();
+        let value = actual_get_element_at(bitpack_checkpoint, 32, 128);
+        let u128_aggregation_mode: u128 = actual_get_element_at(bitpack_checkpoint, 161, 10);
+        let u8_aggregation_mode: u8 = u128_aggregation_mode.try_into().unwrap();
+        let aggregation_mode: AggregationMode = u8_into_AggregationMode(u8_aggregation_mode);
+        let u128_num_sources_aggregated = actual_get_element_at(bitpack_checkpoint, 172, 83);
+        let num_sources_aggregated: u32 = u128_num_sources_aggregated.try_into().unwrap();
+        Checkpoint {
+            timestamp: timestamp,
+            value: value,
+            aggregation_mode: aggregation_mode,
+            num_sources_aggregated: num_sources_aggregated,
+        }
+    }
+
 
     fn _binary_search(
         self: @ContractState,
