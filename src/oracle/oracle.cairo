@@ -209,7 +209,7 @@ mod Oracle {
         //oracle_data_entry_storage len , legacyMap between pair_id, (SPOT/FUTURES/OPTIONS/GENERIC), expiration_timestamp and the length
         oracle_data_len_all_sources: LegacyMap::<(felt252, felt252, u64), u64>,
         //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT), aggregation_mode) associated to a checkpoint
-        oracle_checkpoints: LegacyMap::<(felt252, felt252, u64, u64, u8), Checkpoint>,
+        oracle_checkpoints: LegacyMap::<(felt252, felt252, u64, u64, u8), u256>,
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
         oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u64, u8), u64>,
         oracle_sources_threshold_storage: u32,
@@ -1435,10 +1435,15 @@ mod Oracle {
                             .oracle_checkpoint_index
                             .read((pair_id, SPOT, 0, aggregation_mode.into()));
 
+                        let element = actual_set_element_at(0,0,31, new_checkpoint.timestamp.into());
+                        let element = actual_set_element_at(element,32, 128,  new_checkpoint.value.into());
+                        let aggregation_mode : u8 = new_checkpoint.aggregation_mode.into();
+                        let element = actual_set_element_at(element, 161, 10, aggregation_mode.into());
+                        let element = actual_set_element_at(element, 172, 83, new_checkpoint.num_sources_aggregated.into());
                         self
                             .oracle_checkpoints
                             .write(
-                                (pair_id, SPOT, cur_idx, 0, aggregation_mode.into()), new_checkpoint
+                                (pair_id, SPOT, cur_idx, 0, aggregation_mode.into()), element
                             );
                         self
                             .oracle_checkpoint_index
@@ -1451,7 +1456,11 @@ mod Oracle {
                         let cur_idx = self
                             .oracle_checkpoint_index
                             .read((pair_id, FUTURE, expiration_timestamp, aggregation_mode.into()));
-
+                        let element = actual_set_element_at(0,0,31, new_checkpoint.timestamp.into());
+                        let element = actual_set_element_at(element,32, 128,  new_checkpoint.value.into());
+                        let aggregation_mode : u8 = new_checkpoint.aggregation_mode.into();
+                        let element = actual_set_element_at(element, 161, 10, aggregation_mode.into());
+                        let element = actual_set_element_at(element, 172, 83, new_checkpoint.num_sources_aggregated.into());
                         self
                             .oracle_checkpoints
                             .write(
@@ -1462,7 +1471,7 @@ mod Oracle {
                                     expiration_timestamp,
                                     aggregation_mode.into()
                                 ),
-                                new_checkpoint
+                                element
                             );
                         self
                             .oracle_checkpoint_index
@@ -1583,14 +1592,34 @@ mod Oracle {
     ) -> Checkpoint {
         let checkpoint = match data_type {
             DataType::SpotEntry(pair_id) => {
-                self
+                let bitpack_checkpoint = self
                     .oracle_checkpoints
-                    .read((pair_id, SPOT, checkpoint_index, 0, aggregation_mode.into()))
+                    .read((pair_id, SPOT, checkpoint_index, 0, aggregation_mode.into()));
+                let u128_timestamp: u128 = actual_get_element_at(bitpack_checkpoint, 0, 31);
+                let timestamp = u128_timestamp.try_into().unwrap();
+                let value = actual_get_element_at(bitpack_checkpoint, 32, 128);
+                let u128_aggregation_mode: u128 = actual_get_element_at(
+                    bitpack_checkpoint, 161, 10
+                );
+                let u8_aggregation_mode: u8 = u128_aggregation_mode.try_into().unwrap();
+                let aggregation_mode: AggregationMode = u8_into_AggregationMode(
+                    u8_aggregation_mode
+                );
+                let u128_num_sources_aggregated = actual_get_element_at(
+                    bitpack_checkpoint, 172, 83
+                );
+                let num_sources_aggregated: u32 = u128_num_sources_aggregated.try_into().unwrap();
+                Checkpoint {
+                    timestamp: timestamp,
+                    value: value,
+                    aggregation_mode: aggregation_mode,
+                    num_sources_aggregated: num_sources_aggregated,
+                }
             },
             DataType::FutureEntry((
                 pair_id, expiration_timestamp
             )) => {
-                self
+                let bitpack_checkpoint = self
                     .oracle_checkpoints
                     .read(
                         (
@@ -1600,12 +1629,46 @@ mod Oracle {
                             expiration_timestamp,
                             aggregation_mode.into()
                         )
-                    )
+                    );
+                let u128_timestamp: u128 = actual_get_element_at(bitpack_checkpoint, 0, 31);
+                let timestamp = u128_timestamp.try_into().unwrap();
+                let value = actual_get_element_at(bitpack_checkpoint, 32, 128);
+                let u128_aggregation_mode: u128 = actual_get_element_at(
+                    bitpack_checkpoint, 161, 10
+                );
+                let u8_aggregation_mode: u8 = u128_aggregation_mode.try_into().unwrap();
+                let aggregation_mode: AggregationMode = u8_into_AggregationMode(
+                    u8_aggregation_mode
+                );
+                let u128_num_sources_aggregated = actual_get_element_at(
+                    bitpack_checkpoint, 172, 83
+                );
+                let num_sources_aggregated: u32 = u128_num_sources_aggregated.try_into().unwrap();
+                Checkpoint {
+                    timestamp: timestamp,
+                    value: value,
+                    aggregation_mode: aggregation_mode,
+                    num_sources_aggregated: num_sources_aggregated,
+                }
             },
             DataType::GenericEntry(key) => {
-                self
+                let bitpack_checkpoint = self
                     .oracle_checkpoints
-                    .read((key, GENERIC, checkpoint_index, 0, aggregation_mode.into()))
+                    .read((key, GENERIC, checkpoint_index, 0, aggregation_mode.into()));
+                 let u128_timestamp: u128 = actual_get_element_at(bitpack_checkpoint, 0, 31);
+                    let timestamp = u128_timestamp.try_into().unwrap();
+                    let value = actual_get_element_at(bitpack_checkpoint, 32, 128);
+                    let u128_aggregation_mode: u128  = actual_get_element_at(bitpack_checkpoint, 161, 10);
+                    let u8_aggregation_mode : u8 = u128_aggregation_mode.try_into().unwrap();
+                    let aggregation_mode : AggregationMode = u8_into_AggregationMode(u8_aggregation_mode);
+                    let u128_num_sources_aggregated = actual_get_element_at(bitpack_checkpoint,172,83);
+                    let num_sources_aggregated : u32 = u128_num_sources_aggregated.try_into().unwrap();
+                    Checkpoint{
+                        timestamp: timestamp, 
+                        value: value, 
+                        aggregation_mode: aggregation_mode, 
+                        num_sources_aggregated : num_sources_aggregated,
+                    }
             }
         };
         assert(!checkpoint.timestamp.is_zero(), 'Checkpoint does not exist');
