@@ -504,7 +504,7 @@ mod Oracle {
         UpdatedCurrency: UpdatedCurrency,
         SubmittedPair: SubmittedPair,
         CheckpointSpotEntry: CheckpointSpotEntry,
-        CheckpointFutureEntry: CheckpointFutureEntry, 
+        CheckpointFutureEntry: CheckpointFutureEntry,
         ChangedAdmin: ChangedAdmin
     }
 
