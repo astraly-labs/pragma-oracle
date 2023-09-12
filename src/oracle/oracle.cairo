@@ -505,7 +505,7 @@ mod Oracle {
         SubmittedPair: SubmittedPair,
         CheckpointSpotEntry: CheckpointSpotEntry,
         CheckpointFutureEntry: CheckpointFutureEntry, 
-        ChangedAdmin : ChangedAdmin,
+        ChangedAdmin : ChangedAdmin
     }
 
     #[constructor]
