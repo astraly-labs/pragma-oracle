@@ -476,6 +476,10 @@ mod Oracle {
     struct SubmittedPair {
         pair: Pair
     }
+    #[derive(Drop, starknet::Event)]
+    struct ChangedAdmin {
+        new_admin: ContractAddress
+    }
 
 
     #[derive(Drop, starknet::Event)]
@@ -500,7 +504,8 @@ mod Oracle {
         UpdatedCurrency: UpdatedCurrency,
         SubmittedPair: SubmittedPair,
         CheckpointSpotEntry: CheckpointSpotEntry,
-        CheckpointFutureEntry: CheckpointFutureEntry
+        CheckpointFutureEntry: CheckpointFutureEntry, 
+        ChangedAdmin : ChangedAdmin,
     }
 
     #[constructor]
@@ -1525,6 +1530,7 @@ mod Oracle {
 
         // @notice set the oracle admin address
         // @param  new_admin_address: the new admin address to be set 
+        // @improvement recommendation to update to a 2 step admin update process - the newly appointed admin also has to accept the role before they are assigned; in the mean time, the old admin can revoke the appointment
         fn set_admin_address(ref self: ContractState, new_admin_address: ContractAddress) {
             let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
@@ -1532,6 +1538,7 @@ mod Oracle {
             assert(new_admin_address != old_admin, 'Same admin address');
             assert(!new_admin_address.is_zero(), 'Admin address cannot be zero');
             Admin::set_admin_address(ref state, new_admin_address);
+            self.emit(Event::ChangedAdmin(ChangedAdmin { new_admin: new_admin_address }));
         }
 
         // @notice set the source threshold 
