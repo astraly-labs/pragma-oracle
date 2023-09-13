@@ -2,13 +2,12 @@ use alexandria_math::math::fpow;
 use traits::Into;
 use debug::PrintTrait;
 
+const MAX_POWER: u128 = 10000000000000000000000000000000;
 fn div_decimals(a_price: u128, b_price: u128, output_decimals: u128) -> u128 {
     let power = fpow(10_u128, output_decimals);
 
-    let max_power = fpow(10_u128, 31_u128);
-
-    assert(power <= max_power, 'Conversion overflow');
-    assert(a_price <= max_power, 'Conversion overflow');
+    assert(power <= MAX_POWER, 'Conversion overflow');
+    assert(a_price <= MAX_POWER, 'Conversion overflow');
 
     a_price * power / b_price
 }
@@ -16,23 +15,20 @@ fn div_decimals(a_price: u128, b_price: u128, output_decimals: u128) -> u128 {
 fn mul_decimals(a_price: u128, b_price: u128, output_decimals: u128) -> u128 {
     let power = fpow(10_u128, output_decimals);
 
-    let max_power = fpow(10_u128, 31_u128);
+    assert(power <= MAX_POWER, 'Conversion overflow');
+    assert(a_price <= MAX_POWER, 'Conversion overflow');
 
-    assert(power <= max_power, 'Conversion overflow');
-    assert(a_price <= max_power, 'Conversion overflow');
-
-    assert(power <= max_power, 'Conversion overflow');
-    assert(a_price <= max_power, 'Conversion overflow');
+    assert(power <= MAX_POWER, 'Conversion overflow');
+    assert(a_price <= MAX_POWER, 'Conversion overflow');
 
     a_price * b_price * power
 }
 
 fn convert_via_usd(a_price_in_usd: u128, b_price_in_usd: u128, output_decimals: u32) -> u128 {
     let power: u128 = fpow(10_u128, output_decimals.into()).into();
-    let max_power: u128 = fpow(10_u128, 31_u128).into();
 
-    assert(power <= max_power, 'Conversion overflow');
-    assert(a_price_in_usd <= max_power, 'Conversion overflow');
+    assert(power <= MAX_POWER, 'Conversion overflow');
+    assert(a_price_in_usd <= MAX_POWER, 'Conversion overflow');
 
     a_price_in_usd * power / b_price_in_usd
 }

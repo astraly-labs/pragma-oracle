@@ -1,4 +1,4 @@
-use array::ArrayTrait;
+use array::{ArrayTrait, SpanTrait};
 use pragma::entry::structs::{BaseEntry, AggregationMode};
 use pragma::operations::sorting::merge_sort::merge;
 use pragma::entry::structs::{SpotEntry, FutureEntry, GenericEntry};
@@ -31,7 +31,7 @@ impl GHasPriceImpl of HasPrice<GenericEntry> {
 mod Entry {
     use super::{
         ArrayTrait, BaseEntry, AggregationMode, merge, SpotEntry, FutureEntry, GenericEntry,
-        TryInto, Into, OptionTrait, HasPrice
+        TryInto, Into, OptionTrait, HasPrice, SpanTrait,
     };
 
     trait hasBaseEntry<T> {
@@ -79,8 +79,11 @@ mod Entry {
         impl TCopy: Copy<T>,
         impl TDrop: Drop<T>,
     >(
-        entries: @Array<T>, aggregation_mode: AggregationMode
+        entries: Span<T>, aggregation_mode: AggregationMode
     ) -> u128 {
+        if (entries.len() == 0) {
+            return 0;
+        }
         match aggregation_mode {
             AggregationMode::Median(()) => {
                 let value: u128 = entries_median(entries);
@@ -107,18 +110,24 @@ mod Entry {
         impl TCopy: Copy<T>,
         impl TDrop: Drop<T>
     >(
-        entries: @Array<T>
+        mut entries: Span<T>
     ) -> u64 {
+        if (entries.len() == 0) {
+            return 0;
+        }
         let mut max_timestamp: u64 = (*entries[0_usize]).get_base_timestamp();
         let mut index = 1_usize;
         loop {
-            if index >= entries.len() {
-                break max_timestamp;
-            }
-            if (*entries[index]).get_base_timestamp() > max_timestamp {
-                max_timestamp = (*entries[index]).get_base_timestamp();
-            }
-            index = index + 1;
+            match entries.pop_front() {
+                Option::Some(entry) => {
+                    if (*entry).get_base_timestamp() > max_timestamp {
+                        max_timestamp = (*entry).get_base_timestamp();
+                    }
+                },
+                Option::None(_) => {
+                    break max_timestamp;
+                }
+            };
         }
     }
 
@@ -131,10 +140,9 @@ mod Entry {
         impl TDrop: Drop<T>, // impl TPartialOrd: PartialOrd<T>,
         impl THasPrice: HasPrice<T>,
     >(
-        entries: @Array<T>
+        entries: Span<T>
     ) -> u128 {
-        let mut sorted_entries = ArrayTrait::<T>::new();
-        sorted_entries = merge(entries);
+        let sorted_entries = merge(entries);
         let entries_len = sorted_entries.len();
         assert(entries_len > 0_usize, 'entries must not be empty');
         let is_even = 1 - entries_len % 2_usize;
@@ -155,17 +163,20 @@ mod Entry {
     // @param entries: entries array to aggregate
     // @return value: the mean value from the array of entries
     fn entries_mean<T, impl THasPrice: HasPrice<T>, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
-        entries: @Array<T>
+        mut entries: Span<T>
     ) -> u128 {
         let mut sum: u128 = 0;
         let mut index: u32 = 0;
         let entries_len: u32 = entries.len();
         loop {
-            if index >= entries.len() {
-                break (sum / entries.len().into());
-            }
-            sum = sum + (*entries.at(index)).get_price();
-            index = index + 1;
+            match entries.pop_front() {
+                Option::Some(entry) => {
+                    sum += (*entry).get_price();
+                },
+                Option::None(_) => {
+                    break sum / entries_len.into();
+                }
+            };
         }
     }
 }
@@ -213,35 +224,35 @@ fn test_aggregate_entries_median() {
     //1 element 
     entries.append(entry_1);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 10,
+        Entry::aggregate_entries(entries.span(), AggregationMode::Median(())) == 10,
         'median aggregation failed(1)'
     );
 
     //2 elements
     entries.append(entry_2);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 15,
+        Entry::aggregate_entries(entries.span(), AggregationMode::Median(())) == 15,
         'median aggregation failed(even)'
     );
 
     //3 elements
     entries.append(entry_3);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 20,
+        Entry::aggregate_entries(entries.span(), AggregationMode::Median(())) == 20,
         'median aggregation failed(odd)'
     );
 
     //4 elements
     entries.append(entry_4);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 25,
+        Entry::aggregate_entries(entries.span(), AggregationMode::Median(())) == 25,
         'median aggregation failed(even)'
     );
 
     //5 elements
     entries.append(entry_5);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Median(())) == 30,
+        Entry::aggregate_entries(entries.span(), AggregationMode::Median(())) == 30,
         'median aggregation failed(odd)'
     );
 
@@ -286,34 +297,34 @@ fn test_aggregate_entries_median() {
     //1 element 
     f_entries.append(entry_1);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 10,
+        Entry::aggregate_entries(f_entries.span(), AggregationMode::Median(())) == 10,
         'median aggregation failed(1)'
     );
     //2 elements
     f_entries.append(entry_2);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 15,
+        Entry::aggregate_entries(f_entries.span(), AggregationMode::Median(())) == 15,
         'median aggregation failed(even)'
     );
 
     //3 elements
     f_entries.append(entry_3);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 20,
+        Entry::aggregate_entries(f_entries.span(), AggregationMode::Median(())) == 20,
         'median aggregation failed(odd)'
     );
 
     //4 elements
     f_entries.append(entry_4);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 25,
+        Entry::aggregate_entries(f_entries.span(), AggregationMode::Median(())) == 25,
         'median aggregation failed(even)'
     );
 
     //5 elements
     f_entries.append(entry_5);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Median(())) == 30,
+        Entry::aggregate_entries(f_entries.span(), AggregationMode::Median(())) == 30,
         'median aggregation failed(odd)'
     );
 }
@@ -356,35 +367,35 @@ fn test_aggregate_entries_mean() {
     //1 element 
     entries.append(entry_1);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 10,
+        Entry::aggregate_entries(entries.span(), AggregationMode::Mean(())) == 10,
         'Mean aggregation failed(1)'
     );
 
     //2 elements
     entries.append(entry_2);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 15,
+        Entry::aggregate_entries(entries.span(), AggregationMode::Mean(())) == 15,
         'Mean aggregation failed(even)'
     );
 
     //3 elements
     entries.append(entry_3);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 20,
+        Entry::aggregate_entries(entries.span(), AggregationMode::Mean(())) == 20,
         'Mean aggregation failed(odd)'
     );
 
     //4 elements
     entries.append(entry_4);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 25,
+        Entry::aggregate_entries(entries.span(), AggregationMode::Mean(())) == 25,
         'Mean aggregation failed(even)'
     );
 
     //5 elements
     entries.append(entry_5);
     assert(
-        Entry::aggregate_entries(@entries, AggregationMode::Mean(())) == 30,
+        Entry::aggregate_entries(entries.span(), AggregationMode::Mean(())) == 30,
         'Mean aggregation failed(odd)'
     );
     //FUTURES
@@ -429,34 +440,34 @@ fn test_aggregate_entries_mean() {
     f_entries.append(entry_1);
 
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 10,
+        Entry::aggregate_entries(f_entries.span(), AggregationMode::Mean(())) == 10,
         'median aggregation failed(1)'
     );
     //2 elements
     f_entries.append(entry_2);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 15,
+        Entry::aggregate_entries(f_entries.span(), AggregationMode::Mean(())) == 15,
         'median aggregation failed(even)'
     );
 
     //3 elements
     f_entries.append(entry_3);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 20,
+        Entry::aggregate_entries(f_entries.span(), AggregationMode::Mean(())) == 20,
         'median aggregation failed(odd)'
     );
 
     //4 elements
     f_entries.append(entry_4);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 25,
+        Entry::aggregate_entries(f_entries.span(), AggregationMode::Mean(())) == 25,
         'median aggregation failed(even)'
     );
 
     //5 elements
     f_entries.append(entry_5);
     assert(
-        Entry::aggregate_entries(@f_entries, AggregationMode::Mean(())) == 30,
+        Entry::aggregate_entries(f_entries.span(), AggregationMode::Mean(())) == 30,
         'median aggregation failed(odd)'
     );
 }
@@ -499,27 +510,43 @@ fn test_aggregate_timestamp_max() {
     //1 element 
     entries.append(entry_1);
     assert(
-        Entry::aggregate_timestamps_max(@entries) == 1000000.try_into().unwrap(),
+        Entry::aggregate_timestamps_max(entries.span()) == 1000000.try_into().unwrap(),
         'max timestp aggregation failed'
     );
     entries.append(entry_2);
     assert(
-        Entry::aggregate_timestamps_max(@entries) == 1000001.try_into().unwrap(),
+        Entry::aggregate_timestamps_max(entries.span()) == 1000001.try_into().unwrap(),
         'max timestp aggregation failed'
     );
     entries.append(entry_3);
     assert(
-        Entry::aggregate_timestamps_max(@entries) == 1000002.try_into().unwrap(),
+        Entry::aggregate_timestamps_max(entries.span()) == 1000002.try_into().unwrap(),
         'max timestp aggregation failed'
     );
     entries.append(entry_4);
     assert(
-        Entry::aggregate_timestamps_max(@entries) == 1000002.try_into().unwrap(),
+        Entry::aggregate_timestamps_max(entries.span()) == 1000002.try_into().unwrap(),
         'max timestp aggregation failed'
     );
     entries.append(entry_5);
     assert(
-        Entry::aggregate_timestamps_max(@entries) == 1003002.try_into().unwrap(),
+        Entry::aggregate_timestamps_max(entries.span()) == 1003002.try_into().unwrap(),
         'max timestp aggregation failed'
     );
+}
+
+
+#[test]
+#[available_gas(10000000000)]
+fn test_empty_array() {
+    let mut entries = ArrayTrait::<SpotEntry>::new();
+    assert(
+        Entry::aggregate_entries(entries.span(), AggregationMode::Mean(())) == 0,
+        'wrong agg for empty array'
+    );
+    assert(
+        Entry::aggregate_entries(entries.span(), AggregationMode::Median(())) == 0,
+        'wrong agg for empty array'
+    );
+    assert(Entry::aggregate_timestamps_max(entries.span()) == 0, 'wrong tmstp for empty array');
 }

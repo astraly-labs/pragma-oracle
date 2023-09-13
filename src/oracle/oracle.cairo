@@ -84,7 +84,7 @@ trait IOracleABI<TContractState> {
         ref self: TContractState, new_publisher_registry_address: ContractAddress
     );
     fn add_currency(ref self: TContractState, new_currency: Currency);
-    fn update_currency(ref self: TContractState, currency: Currency);
+    fn update_currency(ref self: TContractState, currency_id: felt252, currency: Currency);
     fn add_pair(ref self: TContractState, new_pair: Pair);
     fn set_checkpoint(
         ref self: TContractState, data_type: DataType, aggregation_mode: AggregationMode
@@ -209,7 +209,7 @@ mod Oracle {
         //oracle_data_entry_storage len , legacyMap between pair_id, (SPOT/FUTURES/OPTIONS/GENERIC), expiration_timestamp and the length
         oracle_data_len_all_sources: LegacyMap::<(felt252, felt252, u64), u64>,
         //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT), aggregation_mode) associated to a checkpoint
-        oracle_checkpoints: LegacyMap::<(felt252, felt252, u64, u64, u8), Checkpoint>,
+        oracle_checkpoints: LegacyMap::<(felt252, felt252, u64, u64, u8), u256>,
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
         oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u64, u8), u64>,
         oracle_sources_threshold_storage: u32,
@@ -476,6 +476,10 @@ mod Oracle {
     struct SubmittedPair {
         pair: Pair
     }
+    #[derive(Drop, starknet::Event)]
+    struct ChangedAdmin {
+        new_admin: ContractAddress
+    }
 
 
     #[derive(Drop, starknet::Event)]
@@ -500,7 +504,8 @@ mod Oracle {
         UpdatedCurrency: UpdatedCurrency,
         SubmittedPair: SubmittedPair,
         CheckpointSpotEntry: CheckpointSpotEntry,
-        CheckpointFutureEntry: CheckpointFutureEntry
+        CheckpointFutureEntry: CheckpointFutureEntry,
+        ChangedAdmin: ChangedAdmin
     }
 
     #[constructor]
@@ -707,12 +712,12 @@ mod Oracle {
                     match filtered_entries {
                         ArrayEntry::SpotEntry(array_spot) => {
                             let price = Entry::aggregate_entries::<SpotEntry>(
-                                @array_spot, aggregation_mode
+                                array_spot.span(), aggregation_mode
                             );
                             let decimals = IOracleABI::get_decimals(self, data_type);
                             let last_updated_timestamp =
                                 Entry::aggregate_timestamps_max::<SpotEntry>(
-                                @array_spot
+                                array_spot.span()
                             );
 
                             return PragmaPricesResponse {
@@ -763,12 +768,12 @@ mod Oracle {
                         },
                         ArrayEntry::FutureEntry(array_future) => {
                             let price = Entry::aggregate_entries::<FutureEntry>(
-                                @array_future, aggregation_mode
+                                array_future.span(), aggregation_mode
                             );
                             let decimals = IOracleABI::get_decimals(self, data_type);
                             let last_updated_timestamp =
                                 Entry::aggregate_timestamps_max::<FutureEntry>(
-                                @array_future
+                                array_future.span()
                             );
                             return PragmaPricesResponse {
                                 price: price,
@@ -814,12 +819,12 @@ mod Oracle {
                         },
                         ArrayEntry::GenericEntry(array_generic) => {
                             let price = Entry::aggregate_entries::<GenericEntry>(
-                                @array_generic, aggregation_mode
+                                array_generic.span(), aggregation_mode
                             );
                             let decimals = IOracleABI::get_decimals(self, data_type);
                             let last_updated_timestamp =
                                 Entry::aggregate_timestamps_max::<GenericEntry>(
-                                @array_generic
+                                array_generic.span()
                             );
                             return PragmaPricesResponse {
                                 price: price,
@@ -1373,10 +1378,14 @@ mod Oracle {
 
         // @notice update an existing currency
         // @dev can be called only by the admin
+        // @param currency_id: the currency id to be updated
         // @param currency: the currency to be updated
-        fn update_currency(ref self: ContractState, currency: Currency) {
+        fn update_currency(ref self: ContractState, currency_id: felt252, currency: Currency) {
             self.assert_only_admin();
-            self.oracle_currencies_storage.write(currency.id, currency);
+            assert(currency_id == currency.id, 'Currency id not corresponding');
+            let existing_currency = self.oracle_currencies_storage.read(currency_id);
+            assert(existing_currency.id != 0, 'No currency recorded');
+            self.oracle_currencies_storage.write(currency_id, currency);
             self.emit(Event::UpdatedCurrency(UpdatedCurrency { currency: currency }));
 
             return ();
@@ -1431,11 +1440,16 @@ mod Oracle {
                             .oracle_checkpoint_index
                             .read((pair_id, SPOT, 0, aggregation_mode.into()));
 
+                        let element = pack_checkpoint(
+                            new_checkpoint.timestamp,
+                            new_checkpoint.value,
+                            new_checkpoint.aggregation_mode,
+                            new_checkpoint.num_sources_aggregated
+                        );
+
                         self
                             .oracle_checkpoints
-                            .write(
-                                (pair_id, SPOT, cur_idx, 0, aggregation_mode.into()), new_checkpoint
-                            );
+                            .write((pair_id, SPOT, cur_idx, 0, aggregation_mode.into()), element);
                         self
                             .oracle_checkpoint_index
                             .write((pair_id, SPOT, 0, aggregation_mode.into()), cur_idx + 1);
@@ -1447,7 +1461,12 @@ mod Oracle {
                         let cur_idx = self
                             .oracle_checkpoint_index
                             .read((pair_id, FUTURE, expiration_timestamp, aggregation_mode.into()));
-
+                        let element = pack_checkpoint(
+                            new_checkpoint.timestamp,
+                            new_checkpoint.value,
+                            new_checkpoint.aggregation_mode,
+                            new_checkpoint.num_sources_aggregated
+                        );
                         self
                             .oracle_checkpoints
                             .write(
@@ -1458,7 +1477,7 @@ mod Oracle {
                                     expiration_timestamp,
                                     aggregation_mode.into()
                                 ),
-                                new_checkpoint
+                                element
                             );
                         self
                             .oracle_checkpoint_index
@@ -1498,6 +1517,7 @@ mod Oracle {
 
         // @notice set the oracle admin address
         // @param  new_admin_address: the new admin address to be set 
+        // @improvement recommendation to update to a 2 step admin update process - the newly appointed admin also has to accept the role before they are assigned; in the mean time, the old admin can revoke the appointment
         fn set_admin_address(ref self: ContractState, new_admin_address: ContractAddress) {
             let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
             Admin::assert_only_admin(@state);
@@ -1505,6 +1525,7 @@ mod Oracle {
             assert(new_admin_address != old_admin, 'Same admin address');
             assert(!new_admin_address.is_zero(), 'Admin address cannot be zero');
             Admin::set_admin_address(ref state, new_admin_address);
+            self.emit(Event::ChangedAdmin(ChangedAdmin { new_admin: new_admin_address }));
         }
 
         // @notice set the source threshold 
@@ -1579,14 +1600,15 @@ mod Oracle {
     ) -> Checkpoint {
         let checkpoint = match data_type {
             DataType::SpotEntry(pair_id) => {
-                self
+                let bitpack_checkpoint = self
                     .oracle_checkpoints
-                    .read((pair_id, SPOT, checkpoint_index, 0, aggregation_mode.into()))
+                    .read((pair_id, SPOT, checkpoint_index, 0, aggregation_mode.into()));
+                unpack_checkpoint(bitpack_checkpoint)
             },
             DataType::FutureEntry((
                 pair_id, expiration_timestamp
             )) => {
-                self
+                let bitpack_checkpoint = self
                     .oracle_checkpoints
                     .read(
                         (
@@ -1596,12 +1618,33 @@ mod Oracle {
                             expiration_timestamp,
                             aggregation_mode.into()
                         )
-                    )
+                    );
+                unpack_checkpoint(bitpack_checkpoint)
             },
             DataType::GenericEntry(key) => {
-                self
+                let bitpack_checkpoint = self
                     .oracle_checkpoints
-                    .read((key, GENERIC, checkpoint_index, 0, aggregation_mode.into()))
+                    .read((key, GENERIC, checkpoint_index, 0, aggregation_mode.into()));
+                let u128_timestamp: u128 = actual_get_element_at(bitpack_checkpoint, 0, 31);
+                let timestamp = u128_timestamp.try_into().unwrap();
+                let value = actual_get_element_at(bitpack_checkpoint, 32, 128);
+                let u128_aggregation_mode: u128 = actual_get_element_at(
+                    bitpack_checkpoint, 161, 10
+                );
+                let u8_aggregation_mode: u8 = u128_aggregation_mode.try_into().unwrap();
+                let aggregation_mode: AggregationMode = u8_into_AggregationMode(
+                    u8_aggregation_mode
+                );
+                let u128_num_sources_aggregated = actual_get_element_at(
+                    bitpack_checkpoint, 172, 83
+                );
+                let num_sources_aggregated: u32 = u128_num_sources_aggregated.try_into().unwrap();
+                Checkpoint {
+                    timestamp: timestamp,
+                    value: value,
+                    aggregation_mode: aggregation_mode,
+                    num_sources_aggregated: num_sources_aggregated,
+                }
             }
         };
         assert(!checkpoint.timestamp.is_zero(), 'Checkpoint does not exist');
@@ -1986,6 +2029,41 @@ mod Oracle {
         );
         return startpoint;
     }
+
+
+    fn pack_checkpoint(
+        checkpoint_timestamp: u64,
+        checkpoint_value: u128,
+        checkpoint_aggregation_mode: AggregationMode,
+        checkpoint_num_sources_aggregated: u32
+    ) -> u256 {
+        let element = actual_set_element_at(0, 0, 31, checkpoint_timestamp.into());
+        let element = actual_set_element_at(element, 32, 128, checkpoint_value.into());
+        let aggregation_mode: u8 = checkpoint_aggregation_mode.into();
+        let element = actual_set_element_at(element, 161, 10, aggregation_mode.into());
+        let element = actual_set_element_at(
+            element, 172, 83, checkpoint_num_sources_aggregated.into()
+        );
+        element
+    }
+
+    fn unpack_checkpoint(bitpack_checkpoint: u256) -> Checkpoint {
+        let u128_timestamp: u128 = actual_get_element_at(bitpack_checkpoint, 0, 31);
+        let timestamp = u128_timestamp.try_into().unwrap();
+        let value = actual_get_element_at(bitpack_checkpoint, 32, 128);
+        let u128_aggregation_mode: u128 = actual_get_element_at(bitpack_checkpoint, 161, 10);
+        let u8_aggregation_mode: u8 = u128_aggregation_mode.try_into().unwrap();
+        let aggregation_mode: AggregationMode = u8_into_AggregationMode(u8_aggregation_mode);
+        let u128_num_sources_aggregated = actual_get_element_at(bitpack_checkpoint, 172, 83);
+        let num_sources_aggregated: u32 = u128_num_sources_aggregated.try_into().unwrap();
+        Checkpoint {
+            timestamp: timestamp,
+            value: value,
+            aggregation_mode: aggregation_mode,
+            num_sources_aggregated: num_sources_aggregated,
+        }
+    }
+
 
     fn _binary_search(
         self: @ContractState,

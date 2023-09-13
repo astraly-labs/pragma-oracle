@@ -1,4 +1,4 @@
-use array::ArrayTrait;
+use array::{ArrayTrait, SpanTrait};
 use pragma::entry::structs::{SpotEntry, FutureEntry, BaseEntry};
 use pragma::entry::entry::HasPrice;
 use traits::TryInto;
@@ -19,22 +19,24 @@ fn merge<
     impl TDrop: Drop<T>, // impl TPartialOrd: PartialOrd<T>,
     impl THasPrice: HasPrice<T>,
 >(
-    arr: @Array<T>
-) -> Array<T> {
+    arr: Span<T>
+) -> Span<T> {
     if arr.len() > 1_u32 {
         // Create left and right arrays
         let middle = arr.len() / 2;
-        let (mut left_arr, mut right_arr) = split_array(arr, middle);
+        let (mut left_arr, mut right_arr) = (
+            arr.slice(0, middle), arr.slice(middle, arr.len() - middle)
+        );
         // Recursively sort the left and right arrays
-        let mut sorted_left = merge(@left_arr);
-        let mut sorted_right = merge(@right_arr);
+        let mut sorted_left = merge(left_arr);
+        let mut sorted_right = merge(right_arr);
         let mut result_arr = ArrayTrait::<T>::new();
         merge_recursive(ref sorted_left, ref sorted_right, ref result_arr, 0, 0);
-        result_arr
+        result_arr.span()
     } else {
         let mut result_arr = ArrayTrait::<T>::new();
         result_arr.append(*arr.at(0));
-        result_arr
+        result_arr.span()
     }
 }
 // Merge two sorted arrays
@@ -52,8 +54,8 @@ fn merge_recursive<
     impl TDrop: Drop<T>, // impl TPartialOrd: PartialOrd<T>,
     impl THasPrice: HasPrice<T>
 >(
-    ref left_arr: Array<T>,
-    ref right_arr: Array<T>,
+    ref left_arr: Span<T>,
+    ref right_arr: Span<T>,
     ref result_arr: Array<T>,
     left_arr_ix: usize,
     right_arr_ix: usize
@@ -83,42 +85,6 @@ fn merge_recursive<
         result_arr.append(*right_arr[right_arr_ix]);
         merge_recursive(ref left_arr, ref right_arr, ref result_arr, left_arr_ix, right_arr_ix + 1)
     }
-}
-
-// Split an array into two arrays.
-/// * `arr` - The array to split.
-/// * `index` - The index to split the array at.
-/// # Returns
-/// * `(Array<T>, Array<T>)` - The two arrays.
-fn split_array<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
-    arr: @Array<T>, index: usize
-) -> (Array<T>, Array<T>) {
-    let mut arr1 = ArrayTrait::new();
-    let mut arr2 = ArrayTrait::new();
-    let len = arr.len();
-
-    fill_array(ref arr1, arr, 0_u32, index);
-    fill_array(ref arr2, arr, index, len - index);
-
-    (arr1, arr2)
-}
-// Fill an array with a value.
-/// * `arr` - The array to fill.
-/// * `fill_arr` - The array to fill with.
-/// * `index` - The index to start filling at.
-/// * `count` - The number of elements to fill.
-/// # Returns
-/// * `Array<T>` - The filled array.
-fn fill_array<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>>(
-    ref arr: Array<T>, fill_arr: @Array<T>, index: usize, count: usize
-) {
-    if count == 0 {
-        return ();
-    }
-
-    arr.append(*fill_arr.at(index));
-
-    fill_array(ref arr, fill_arr, index + 1, count - 1)
 }
 
 
@@ -164,10 +130,27 @@ fn test_merge() {
     entries.append(entry_3);
     entries.append(entry_4);
     entries.append(entry_5);
-    let sorted_entries = merge::<SpotEntry>(@entries);
+    let sorted_entries = merge::<SpotEntry>(entries.span());
     assert(sorted_entries.len() == 5, 'not good length');
     assert((*sorted_entries.at(0)).get_price() == 50, 'sorting failed(merge)');
     assert((*sorted_entries.at(1)).get_price() == 50, 'sorting failed(merge)');
     assert((*sorted_entries.at(2)).get_price() == 80, 'sorting failed(merge)');
     assert((*sorted_entries.at(3)).get_price() == 100, 'sorting failed(merge)');
+}
+
+
+#[test]
+#[available_gas(10000000)]
+fn test_slice() {
+    let array = array![10, 20, 30, 40, 50].span();
+    let middle = array.len() / 2;
+
+    let (arr_1, arr_2) = (array.slice(0, middle), array.slice(middle, array.len() - middle));
+    assert(arr_1.len() == 2, 'wrong len');
+    assert(arr_2.len() == 3, 'wrong len');
+    assert(*arr_1.at(0) == 10, 'wrong value');
+    assert(*arr_1.at(1) == 20, 'wrong value');
+    assert(*arr_2.at(0) == 30, 'wrong value');
+    assert(*arr_2.at(1) == 40, 'wrong value');
+    assert(*arr_2.at(2) == 50, 'wrong value');
 }

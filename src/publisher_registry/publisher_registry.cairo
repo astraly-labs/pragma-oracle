@@ -84,8 +84,7 @@ mod PublisherRegistry {
         fn add_publisher(
             ref self: ContractState, publisher: felt252, publisher_address: ContractAddress
         ) {
-            let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
+            assert_only_admin(@self);
             let existing_publisher_address = PublisherRegistryImpl::get_publisher_address(
                 @self, publisher
             );
@@ -106,7 +105,6 @@ mod PublisherRegistry {
 
 
         // @notice update the publisher address
-        // @dev can be called only by the admin
         // @param publisher: the publisher whose address needs to be updated
         // @param  new_publisher_address the new publisher address
         fn update_publisher_address(
@@ -138,8 +136,7 @@ mod PublisherRegistry {
         // @notice remove a given publisher
         // @param publisher : the publisher that needs to be removed
         fn remove_publisher(ref self: ContractState, publisher: felt252) {
-            let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
+            assert_only_admin(@self);
             let not_exists: bool = self.publisher_address_storage.read(publisher).is_zero();
             assert(!not_exists, 'Publisher not found');
             self.publisher_address_storage.write(publisher, Zeroable::zero());
@@ -174,8 +171,7 @@ mod PublisherRegistry {
         // @param: the publisher for which we need to add a source
         // @param: the source that needs to be added for the given publisher
         fn add_source_for_publisher(ref self: ContractState, publisher: felt252, source: felt252) {
-            let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
+            assert_only_admin(@self);
             let existing_publisher_address = PublisherRegistryImpl::get_publisher_address(
                 @self, publisher
             );
@@ -203,8 +199,7 @@ mod PublisherRegistry {
         fn add_sources_for_publisher(
             ref self: ContractState, publisher: felt252, sources: Span<felt252>
         ) {
-            let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
+            assert_only_admin(@self);
             let mut idx: u32 = 0;
 
             loop {
@@ -223,8 +218,7 @@ mod PublisherRegistry {
         fn remove_source_for_publisher(
             ref self: ContractState, publisher: felt252, source: felt252
         ) {
-            let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
+            assert_only_admin(@self);
             let cur_idx = self.publishers_sources_idx.read(publisher);
 
             if (cur_idx == 0) {
@@ -255,7 +249,7 @@ mod PublisherRegistry {
         fn can_publish_source(self: @ContractState, publisher: felt252, source: felt252) -> bool {
             let cur_idx = self.publishers_sources_idx.read(publisher);
             if (cur_idx == 0) {
-                return true;
+                return false;
             }
 
             let mut sources_arr = ArrayTrait::new();
@@ -323,6 +317,15 @@ mod PublisherRegistry {
     //
     // Internals
     //
+
+    // @notice Check if the caller is the admin, use the contract Admin
+    // @dev internal function, fails if not called by the admin
+    fn assert_only_admin(self: @ContractState) {
+        let state: Admin::ContractState = Admin::unsafe_new_contract_state();
+        let admin = Admin::get_admin_address(@state);
+        let caller = get_caller_address();
+        assert(caller == admin, 'Admin: unauthorized');
+    }
 
     // @notice retrieve all the publishers 
     // @dev recursive function 

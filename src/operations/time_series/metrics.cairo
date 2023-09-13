@@ -19,69 +19,66 @@ enum Operations {
 }
 
 /// Returns an array of `u128` from `TickElem` array
-fn extract_value(tick_arr: Span<TickElem>) -> Array<Fixed> {
+fn extract_value(mut tick_arr: Span<TickElem>) -> Array<Fixed> {
     let mut output = ArrayTrait::<Fixed>::new();
     let mut cur_idx = 0;
     loop {
-        if (cur_idx >= tick_arr.len()) {
-            break ();
-        }
-        let cur_val = *tick_arr.get(cur_idx).unwrap().unbox();
-        output.append(cur_val.value);
-        cur_idx = cur_idx + 1;
+        match tick_arr.pop_front() {
+            Option::Some(cur_val) => {
+                output.append(*cur_val.value);
+            },
+            Option::None(_) => {
+                break ();
+            }
+        };
     };
     output
 }
 
 /// Sum the values of an array of `TickElem`
-fn sum_tick_array(tick_arr: Span<TickElem>) -> u128 {
+fn sum_tick_array(mut tick_arr: Span<TickElem>) -> u128 {
     let mut output = 0;
     let mut cur_idx = 0;
     loop {
-        if (cur_idx >= tick_arr.len()) {
-            break ();
-        }
-        let cur_val = *tick_arr.get(cur_idx).unwrap().unbox();
-        output += cur_val.value.mag;
-        cur_idx = cur_idx + 1;
+        match tick_arr.pop_front() {
+            Option::Some(cur_val) => {
+                output += *cur_val.value.mag;
+            },
+            Option::None(_) => {
+                break ();
+            }
+        };
     };
+
     output
 }
 
 /// Sum the elements of an array of `u128`
-fn sum_array(tick_arr: Span<Fixed>) -> u128 {
+fn sum_array(mut tick_arr: Span<Fixed>) -> u128 {
     let mut output: u128 = 0;
     let mut cur_idx = 0;
+
     loop {
-        if (cur_idx >= tick_arr.len()) {
-            break ();
-        }
-        let cur_val = *tick_arr.get(cur_idx).unwrap().unbox();
-        if (cur_val.sign == false) {
-            output = output + cur_val.mag;
-        } else {
-            panic_with_felt252('Square operation failed')
-        }
-        cur_idx = cur_idx + 1;
+        match tick_arr.pop_front() {
+            Option::Some(cur_val) => {
+                if (*cur_val.sign == false) {
+                    output = output + (*cur_val).mag;
+                } else {
+                    panic_with_felt252('Square operation failed')
+                }
+            },
+            Option::None(_) => {
+                break ();
+            }
+        };
     };
     output
 }
 
 /// Computes the mean of a `TickElem` array
 fn mean(tick_arr: Span<TickElem>) -> u128 {
-    // let mut cur_idx = 0;
-    // loop {
-    //     if (cur_idx >= tick_arr.len()) {
-    //         break ();
-    //     }
-    //     let test = *tick_arr.get(cur_idx).unwrap().unbox().value;
-    //     test.mag.print();
-    //     cur_idx = cur_idx + 1;
-    // };
     let sum_ = sum_tick_array(tick_arr);
-    let felt_count: felt252 = tick_arr.len().into();
-    let count: u128 = felt_count.try_into().unwrap();
-    sum_ / count
+    sum_ / tick_arr.len().into()
 }
 
 /// Computes the variance of a `TickElem` array
@@ -97,8 +94,8 @@ fn variance(tick_arr: Span<TickElem>) -> u128 {
     let diff_squared = pairwise_1D(Operations::MULTIPLICATION(()), arr_len, diff_arr, diff_arr);
 
     let sum_ = sum_array(diff_squared);
-    let felt_arr_len: felt252 = arr_len.into();
-    let variance_ = sum_ / (felt_arr_len.try_into().unwrap());
+
+    let variance_ = sum_ / arr_len.into();
 
     return variance_;
 }
@@ -115,6 +112,9 @@ fn standard_deviation(arr: Span<TickElem>) -> u128 {
 /// Compute the volatility of a `TickElem` array
 fn volatility(arr: Span<TickElem>) -> u128 {
     let _volatility_sum = _sum_volatility(arr);
+    if (arr.len() == 0) {
+        return 0;
+    }
     let arr_len: u128 = arr.len().into() * ONE_u128;
     let fixed_len = FixedTrait::new(arr_len, false);
     let _volatility = _volatility_sum / fixed_len;
@@ -125,7 +125,6 @@ fn volatility(arr: Span<TickElem>) -> u128 {
 fn _sum_volatility(arr: Span<TickElem>) -> Fixed {
     let mut cur_idx = 1;
     let mut sum = FixedTrait::new(0, false);
-
     loop {
         if (cur_idx == arr.len()) {
             break ();
@@ -136,6 +135,12 @@ fn _sum_volatility(arr: Span<TickElem>) -> Fixed {
         let prev_value = prev_val.value;
         let cur_timestamp = cur_val.tick;
         let prev_timestamp = prev_val.tick;
+        if (prev_timestamp > cur_timestamp) {
+            //edge case
+            assert(1 == 1, 'failed to compute vol');
+            break ();
+        }
+
         let numerator_value = FixedTrait::ln(cur_value / prev_value);
         let numerator = numerator_value.pow(FixedTrait::new(2 * ONE_u128, false));
         let denominator = FixedTrait::new((cur_timestamp - prev_timestamp).into(), false)
@@ -152,11 +157,30 @@ fn twap(arr: Span<TickElem>) -> u128 {
     let mut twap = 0;
     let mut sum_p = 0;
     let mut sum_t = 0;
+    if (arr.len() == 0) {
+        return 0;
+    }
+
+    if (arr.len() == 1) {
+        return *arr.at(0).value.mag;
+    }
+
+    if (*arr.at(0).tick == *arr.at(arr.len() - 1).tick) {
+        //we assume that all tick values are the same
+        assert(1 == 1, 'failed to compute twap');
+        return 0;
+    }
     loop {
         if (cur_idx == arr.len()) {
             break ();
         }
+        if *arr.at(cur_idx - 1).tick > *arr.at(cur_idx).tick {
+            //edge case
+            assert(1 == 1, 'failed to compute twap');
+            break ();
+        }
         let sub_timestamp = *arr.at(cur_idx).tick - *arr.at(cur_idx - 1).tick;
+
         let weighted_prices = *arr.at(cur_idx - 1).value.mag * sub_timestamp.into();
         sum_p = sum_p + weighted_prices;
         sum_t = sum_t + sub_timestamp;
@@ -196,7 +220,11 @@ fn pairwise_1D(operation: Operations, x_len: u32, x: Span<Fixed>, y: Span<Fixed>
                 }
                 let x1 = *x.get(cur_idx).unwrap().unbox();
                 let y1 = *y.get(cur_idx).unwrap().unbox();
-                output.append(FixedTrait::new(mag: x1.mag * y1.mag, sign: false));
+                if x1.mag == y1.mag {
+                    output.append(FixedTrait::new(mag: x1.mag * y1.mag, sign: false));
+                } else {
+                    output.append(FixedTrait::new(mag: x1.mag * y1.mag, sign: true));
+                }
                 cur_idx = cur_idx + 1;
             };
         },
