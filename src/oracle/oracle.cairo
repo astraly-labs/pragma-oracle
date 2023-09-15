@@ -435,7 +435,6 @@ mod Oracle {
         }
     }
 
-    
 
     // TODO: Update events to latest synthax
 
@@ -1464,8 +1463,7 @@ mod Oracle {
                                 )
                             );
                     },
-                    DataType::GenericEntry(key) => {
-                        //NEED TO BE DONE BASED ON USE CASE
+                    DataType::GenericEntry(key) => {//NEED TO BE DONE BASED ON USE CASE
                     },
                 }
             }
