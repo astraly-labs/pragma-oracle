@@ -173,9 +173,6 @@ mod Oracle {
     };
     use hash::LegacyHash;
     use pragma::entry::entry::Entry;
-    use pragma::operations::bits_manipulation::bits_manipulation::{
-        actual_set_element_at, actual_get_element_at
-    };
     use pragma::operations::time_series::convert::convert_via_usd;
     use pragma::publisher_registry::publisher_registry::{
         IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
