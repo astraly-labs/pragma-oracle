@@ -74,8 +74,8 @@ trait IOracleABI<TContractState> {
         checkpoint_index: u64,
         aggregation_mode: AggregationMode
     ) -> Checkpoint;
-    fn get_sources_threshold(self: @TContractState,) -> u32;
-    fn get_admin_address(self: @TContractState,) -> ContractAddress;
+    fn get_sources_threshold(self: @TContractState, ) -> u32;
+    fn get_admin_address(self: @TContractState, ) -> ContractAddress;
     fn get_implementation_hash(self: @TContractState) -> ClassHash;
     fn publish_data(ref self: TContractState, new_entry: PossibleEntries);
     fn publish_data_entries(ref self: TContractState, new_entries: Span<PossibleEntries>);
@@ -488,7 +488,7 @@ mod Oracle {
 
     #[derive(Drop, starknet::Event)]
     struct CheckpointSpotEntry {
-        pair_id: felt252,
+        pair_id: felt252, 
     }
 
     #[derive(Drop, starknet::Event)]
@@ -1077,10 +1077,7 @@ mod Oracle {
                         SpotEntry {
                             base: BaseEntry {
                                 timestamp: _entry.timestamp, source: source, publisher: 0
-                            },
-                            pair_id: pair_id,
-                            price: _entry.price,
-                            volume: _entry.volume
+                            }, pair_id: pair_id, price: _entry.price, volume: _entry.volume
                         }
                     )
                 },
@@ -1104,9 +1101,7 @@ mod Oracle {
                         GenericEntry {
                             base: BaseEntry {
                                 timestamp: _entry.timestamp, source: source, publisher: 0
-                            },
-                            key: key,
-                            value: _entry.price
+                            }, key: key, value: _entry.price
                         }
                     )
                 }
@@ -1847,12 +1842,12 @@ mod Oracle {
     // @param new_entry : an entry (spot entry, future entry, ... )
     // @param last_entry : an entry (with the same nature as new_entry)
     fn validate_data_timestamp<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
-        ref self: ContractState, new_entry: PossibleEntries, last_entry: T,
+        ref self: ContractState, new_entry: PossibleEntries, last_entry: T, 
     ) {
         match new_entry {
             PossibleEntries::Spot(spot_entry) => {
                 assert(
-                    spot_entry.get_base_timestamp() > last_entry.get_base_timestamp(),
+                    spot_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
                 );
                 if (last_entry.get_base_timestamp() == 0) {
@@ -1872,7 +1867,7 @@ mod Oracle {
             },
             PossibleEntries::Future(future_entry) => {
                 assert(
-                    future_entry.get_base_timestamp() > last_entry.get_base_timestamp(),
+                    future_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
                 );
                 if (last_entry.get_base_timestamp() == 0) {
@@ -1900,7 +1895,7 @@ mod Oracle {
             },
             PossibleEntries::Generic(generic_entry) => {
                 assert(
-                    generic_entry.get_base_timestamp() > last_entry.get_base_timestamp(),
+                    generic_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
                 );
                 if (last_entry.get_base_timestamp() == 0) {
