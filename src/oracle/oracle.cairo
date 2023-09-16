@@ -93,7 +93,7 @@ trait IOracleABI<TContractState> {
         ref self: TContractState, data_types: Span<DataType>, aggregation_mode: AggregationMode
     );
     fn set_sources_threshold(ref self: TContractState, threshold: u32);
-    fn upgrade(self: @TContractState, impl_hash: ClassHash);
+    fn upgrade(ref self: TContractState, impl_hash: ClassHash);
 }
 
 
@@ -173,9 +173,6 @@ mod Oracle {
     };
     use hash::LegacyHash;
     use pragma::entry::entry::Entry;
-    use pragma::operations::bits_manipulation::bits_manipulation::{
-        actual_set_element_at, actual_get_element_at
-    };
     use pragma::operations::time_series::convert::convert_via_usd;
     use pragma::publisher_registry::publisher_registry::{
         IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
@@ -1508,7 +1505,7 @@ mod Oracle {
         // @notice upgrade the contract implementation, call to the contract Upgradeable
         // @dev callable only by the admin
         // @param impl_hash: the current implementation hash
-        fn upgrade(self: @ContractState, impl_hash: ClassHash) {
+        fn upgrade(ref self: ContractState, impl_hash: ClassHash) {
             self.assert_only_admin();
             let mut upstate: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
             Upgradeable::InternalImpl::upgrade(ref upstate, impl_hash);
