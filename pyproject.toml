@@ -9,7 +9,7 @@ packages = [{ include = "scripts" }]
 [tool.poetry.dependencies]
 python = ">=3.9,<3.10"
 starknet-py = "0.18.1"
-pragma-sdk = "1.0.0b4"
+pragma-sdk = "1.0.0b6"
 python-dotenv = "^1.0.0"
 case-converter = "^1.1.0"
 

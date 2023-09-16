@@ -38,6 +38,7 @@ THIRD_PARTY_SOURCES = [
   "OKX",
   "BINANCE",
   "BYBIT",
+  "GECKOTERMINAL",
 ]
 
 network = "testnet"
