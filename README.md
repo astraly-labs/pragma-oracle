@@ -40,9 +40,9 @@ Deployment addresses
 This repo will gradually replace the previous Pragma implementation in Cairo 0 which you can find [here](https://github.com/Astraly-Labs/pragma-contracts).
 
 **Starknet Testnet**
-- Oracle : [0x1ab2b1d9d084ed2c9fe185ac32b3bc7fa42f85e129b97459b4fe315f4247978](https://goerli.voyager.online/contract/0x01ab2b1d9d084ed2c9fe185ac32b3bc7fa42f85e129b97459b4fe315f4247978)
-- Publisher Registry : [0x1d28af342cbb06eb1e5a80dae0034f6a0ca0fb0d580cc4e0799cc43c11f99e9](https://goerli.voyager.online/contract/0x1d28af342cbb06eb1e5a80dae0034f6a0ca0fb0d580cc4e0799cc43c11f99e9)
-- Summary Stats : [0x7692d324980c3c7ad72198ba7a42487fd057dd97b8c89a8d71e48c28e3b8657](https://goerli.voyager.online/contract/0x7692d324980c3c7ad72198ba7a42487fd057dd97b8c89a8d71e48c28e3b8657)
+- Oracle : [0x620a609f88f612eb5773a6f4084f7b33be06a6fed7943445aebce80d6a146ba](https://goerli.voyager.online/contract/0x620a609f88f612eb5773a6f4084f7b33be06a6fed7943445aebce80d6a146ba)
+- Publisher Registry : [0x427f6944917381070c8828c311978c391614be2939ca94f34fb91f294dd502b](https://goerli.voyager.online/contract/0x427f6944917381070c8828c311978c391614be2939ca94f34fb91f294dd502b)
+- Summary Stats : [0x6421fdd068d0dc56b7f5edc956833ca0ba66b2d5f9a8fea40932f226668b5c4](https://goerli.voyager.online/contract/0x6421fdd068d0dc56b7f5edc956833ca0ba66b2d5f9a8fea40932f226668b5c4)
 
 **Starknet Mainnet**
 
