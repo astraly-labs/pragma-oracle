@@ -1852,7 +1852,7 @@ mod Oracle {
         match new_entry {
             PossibleEntries::Spot(spot_entry) => {
                 assert(
-                    spot_entry.get_base_timestamp() > last_entry.get_base_timestamp(),
+                    spot_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
                 );
                 if (last_entry.get_base_timestamp() == 0) {
@@ -1872,7 +1872,7 @@ mod Oracle {
             },
             PossibleEntries::Future(future_entry) => {
                 assert(
-                    future_entry.get_base_timestamp() > last_entry.get_base_timestamp(),
+                    future_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
                 );
                 if (last_entry.get_base_timestamp() == 0) {
@@ -1900,7 +1900,7 @@ mod Oracle {
             },
             PossibleEntries::Generic(generic_entry) => {
                 assert(
-                    generic_entry.get_base_timestamp() > last_entry.get_base_timestamp(),
+                    generic_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
                 );
                 if (last_entry.get_base_timestamp() == 0) {
