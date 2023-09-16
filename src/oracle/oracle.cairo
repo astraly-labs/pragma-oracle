@@ -186,7 +186,6 @@ mod Oracle {
     use cmp::{max, min};
     use option::OptionTrait;
     use debug::PrintTrait;
-
     // const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 100;
 
@@ -196,7 +195,9 @@ mod Oracle {
     const TIMESTAMP_SHIFT_U32: felt252 = 0x100000000;
     const VOLUME_SHIFT_U132: felt252 = 0x1000000000000000000000000000000000;
 
-    // For the checkpoint storage
+
+    //For the checkpoint storage
+
     const CHECKPOINT_TIMESTAMP_SHIFT_U32: felt252 = 0x100000000;
     const CHECKPOINT_VALUE_SHIFT_U160: felt252 = 0x10000000000000000000000000000000000000000;
     const CHECKPOINT_AGGREGATION_MODE_SHIFT_U172: felt252 =
@@ -434,8 +435,6 @@ mod Oracle {
         }
     }
 
-
-    // TODO: Update events to latest synthax
 
     #[derive(Drop, starknet::Event)]
     struct UpdatedPublisherRegistryAddress {
@@ -1462,7 +1461,7 @@ mod Oracle {
                                 )
                             );
                     },
-                    DataType::GenericEntry(key) => { //NEED TO BE DONE BASED ON USE CASE
+                    DataType::GenericEntry(key) => { // TODO: Issue #28
                     },
                 }
             }
