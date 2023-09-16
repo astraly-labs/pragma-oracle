@@ -72,15 +72,14 @@ struct eSSVI {
     phi: u256
 }
 
-#[derive(Serde, Drop, Copy)]
-struct SpotEntryStorage {
-    timestamp__volume__price: u256,
-}
 
 #[derive(Serde, Drop, Copy)]
-struct FutureEntryStorage {
-    timestamp__volume__price: u256,
+struct EntryStorage {
+    timestamp: u64,
+    volume: u128,
+    price: u128,
 }
+
 
 /// Data Types
 /// The value is the `pair_id` of the data

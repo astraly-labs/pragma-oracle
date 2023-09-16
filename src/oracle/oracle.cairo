@@ -1,8 +1,8 @@
 use pragma::entry::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
     USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, PossibleEntryStorage, FutureEntry, OptionEntry,
-    GenericEntry, SimpleDataType, SpotEntryStorage, FutureEntryStorage, AggregationMode,
-    GenericEntryStorage, PossibleEntries, ArrayEntry
+    GenericEntry, SimpleDataType, AggregationMode, GenericEntryStorage, PossibleEntries, ArrayEntry,
+    EntryStorage
 };
 
 use pragma::admin::admin::Admin;
@@ -164,12 +164,12 @@ mod Oracle {
     use super::{
         BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
         USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, PossibleEntryStorage, FutureEntry,
-        OptionEntry, GenericEntry, SimpleDataType, SpotEntryStorage, FutureEntryStorage,
-        AggregationMode, PossibleEntries, ArrayEntry, Admin, Upgradeable, Serde,
-        storage_read_syscall, storage_write_syscall, storage_address_from_base_and_offset,
-        storage_base_address_from_felt252, Store, StorageBaseAddress, SyscallResult,
-        ContractAddress, get_caller_address, ClassHash, Into, TryInto, ResultTrait, ResultTraitImpl,
-        BoxTrait, ArrayTrait, SpanTrait, Zeroable, IOracleABI, GenericEntryStorage
+        OptionEntry, GenericEntry, SimpleDataType, AggregationMode, PossibleEntries, ArrayEntry,
+        Admin, Upgradeable, Serde, storage_read_syscall, storage_write_syscall,
+        storage_address_from_base_and_offset, storage_base_address_from_felt252, Store,
+        StorageBaseAddress, SyscallResult, ContractAddress, get_caller_address, ClassHash, Into,
+        TryInto, ResultTrait, ResultTraitImpl, BoxTrait, ArrayTrait, SpanTrait, Zeroable,
+        IOracleABI, GenericEntryStorage, EntryStorage
     };
     use hash::LegacyHash;
     use pragma::entry::entry::Entry;
@@ -181,13 +181,29 @@ mod Oracle {
         IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
     };
 
-    use starknet::{get_block_timestamp, Felt252TryIntoContractAddress};
+    use starknet::{get_block_timestamp, Felt252TryIntoContractAddress, StorePacking};
 
     use cmp::{max, min};
     use option::OptionTrait;
     use debug::PrintTrait;
     // const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 100;
+
+    // Store Packing constants
+
+    // For the entry storage
+    const TIMESTAMP_SHIFT_U32: felt252 = 0x100000000;
+    const VOLUME_SHIFT_U132: felt252 = 0x1000000000000000000000000000000000;
+
+
+    //For the checkpoint storage
+
+    const CHECKPOINT_TIMESTAMP_SHIFT_U32: felt252 = 0x100000000;
+    const CHECKPOINT_VALUE_SHIFT_U160: felt252 = 0x10000000000000000000000000000000000000000;
+    const CHECKPOINT_AGGREGATION_MODE_SHIFT_U172: felt252 =
+        0x10000000000000000000000000000000000000000000;
+
+
     #[storage]
     struct Storage {
         //oracle controller address storage, contractAddress
@@ -205,11 +221,11 @@ mod Oracle {
         //oracle_sources_len_storage, legacyMap between (pair_id ,(SPOT/FUTURES/OPTIONS/GENERIC), expiration_timestamp) and the len of the sources array
         oracle_sources_len_storage: LegacyMap::<(felt252, felt252, u64), u64>,
         //oracle_data_entry_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS/GENERIC), source, expiration_timestamp (0 for SPOT))
-        oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u64), u256>,
+        oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u64), EntryStorage>,
         //oracle_data_entry_storage len , legacyMap between pair_id, (SPOT/FUTURES/OPTIONS/GENERIC), expiration_timestamp and the length
         oracle_data_len_all_sources: LegacyMap::<(felt252, felt252, u64), u64>,
         //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT), aggregation_mode) associated to a checkpoint
-        oracle_checkpoints: LegacyMap::<(felt252, felt252, u64, u64, u8), u256>,
+        oracle_checkpoints: LegacyMap::<(felt252, felt252, u64, u64, u8), Checkpoint>,
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
         oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u64, u8), u64>,
         oracle_sources_threshold_storage: u32,
@@ -354,83 +370,71 @@ mod Oracle {
         }
     }
 
-
-    impl CheckpointStoreImpl of Store<Checkpoint> {
-        fn read(address_domain: u32, base: StorageBaseAddress) -> SyscallResult<Checkpoint> {
-            let timestamp_base = storage_base_address_from_felt252(
-                storage_address_from_base_and_offset(base, 0_u8).into()
-            );
-            let timestamp: u64 = Store::<u128>::read(address_domain, timestamp_base)?
-                .try_into()
+    impl EntryStorePacking of StorePacking<EntryStorage, felt252> {
+        fn pack(value: EntryStorage) -> felt252 {
+            value.timestamp.into()
+                + value.volume.into() * TIMESTAMP_SHIFT_U32
+                + value.price.into() * VOLUME_SHIFT_U132
+        }
+        fn unpack(value: felt252) -> EntryStorage {
+            let value: u256 = value.into();
+            let volume_shift: NonZero<u256> = integer::u256_try_as_non_zero(
+                VOLUME_SHIFT_U132.into()
+            )
+                .unwrap();
+            let (price, rest) = integer::u256_safe_div_rem(value, volume_shift);
+            let timestamp_shift: NonZero<u256> = integer::u256_try_as_non_zero(
+                TIMESTAMP_SHIFT_U32.into()
+            )
                 .unwrap();
 
-            let value_base = storage_base_address_from_felt252(
-                storage_address_from_base_and_offset(base, 1_u8).into()
-            );
-            let value: u128 = Store::<u128>::read(address_domain, value_base)?;
-            let u8_aggregation_mode: u8 = Store::<felt252>::read(
-                address_domain,
-                storage_base_address_from_felt252(
-                    storage_address_from_base_and_offset(base, 3_u8).into()
-                )
-            )?
-                .try_into()
-                .unwrap();
-
-            let aggregation_mode: AggregationMode = u8_into_AggregationMode(u8_aggregation_mode);
-            Result::Ok(
-                Checkpoint {
-                    timestamp: timestamp,
-                    value: value,
-                    aggregation_mode: aggregation_mode,
-                    num_sources_aggregated: storage_read_syscall(
-                        address_domain, storage_address_from_base_and_offset(base, 4_u8)
-                    )?
-                        .try_into()
-                        .unwrap(),
-                }
-            )
-        }
-        #[inline(always)]
-        fn write(
-            address_domain: u32, base: StorageBaseAddress, value: Checkpoint
-        ) -> SyscallResult<()> {
-            let timestamp_base = storage_base_address_from_felt252(
-                storage_address_from_base_and_offset(base, 0_u8).into()
-            );
-            Store::write(address_domain, timestamp_base, value.timestamp)?;
-            let value_base = storage_base_address_from_felt252(
-                storage_address_from_base_and_offset(base, 1_u8).into()
-            );
-            Store::write(address_domain, value_base, value.value)?;
-            let aggregation_mode_u8: u8 = value.aggregation_mode.into();
-            storage_write_syscall(
-                address_domain,
-                storage_address_from_base_and_offset(base, 3_u8),
-                aggregation_mode_u8.into(),
-            )?;
-            storage_write_syscall(
-                address_domain,
-                storage_address_from_base_and_offset(base, 4_u8),
-                value.num_sources_aggregated.into(),
-            )
-        }
-        fn read_at_offset(
-            address_domain: u32, base: starknet::StorageBaseAddress, offset: u8
-        ) -> starknet::SyscallResult<Checkpoint> {
-            CheckpointStoreImpl::read_at_offset(address_domain, base, offset)
-        }
-        fn write_at_offset(
-            address_domain: u32, base: starknet::StorageBaseAddress, offset: u8, value: Checkpoint
-        ) -> starknet::SyscallResult<()> {
-            CheckpointStoreImpl::write_at_offset(address_domain, base, offset, value)
-        }
-        fn size() -> u8 {
-            4_u8
+            let (vol, time) = integer::u256_safe_div_rem(rest, timestamp_shift);
+            EntryStorage {
+                timestamp: time.try_into().unwrap(),
+                volume: vol.try_into().unwrap(),
+                price: price.try_into().unwrap()
+            }
         }
     }
 
-    // TODO: Update events to latest synthax
+    impl CheckpointStorePacking of StorePacking<Checkpoint, felt252> {
+        fn pack(value: Checkpoint) -> felt252 {
+            let converted_agg_mode: u8 = value.aggregation_mode.into();
+            value.timestamp.into()
+                + value.value.into() * CHECKPOINT_TIMESTAMP_SHIFT_U32
+                + converted_agg_mode.into() * CHECKPOINT_VALUE_SHIFT_U160
+                + value.num_sources_aggregated.into() * CHECKPOINT_AGGREGATION_MODE_SHIFT_U172
+        }
+        fn unpack(value: felt252) -> Checkpoint {
+            let value: u256 = value.into();
+            let agg_shift: NonZero<u256> = integer::u256_try_as_non_zero(
+                CHECKPOINT_AGGREGATION_MODE_SHIFT_U172.into()
+            )
+                .unwrap();
+            let (num_sources, rest) = integer::u256_safe_div_rem(value, agg_shift);
+            let val_shift: NonZero<u256> = integer::u256_try_as_non_zero(
+                CHECKPOINT_VALUE_SHIFT_U160.into()
+            )
+                .unwrap();
+
+            let (agg_mode, rest_2) = integer::u256_safe_div_rem(rest, val_shift);
+            let u8_agg_mode = agg_mode.try_into().unwrap();
+            let aggregation_mode: AggregationMode = u8_into_AggregationMode(u8_agg_mode);
+            let time_shift: NonZero<u256> = integer::u256_try_as_non_zero(
+                CHECKPOINT_TIMESTAMP_SHIFT_U32.into()
+            )
+                .unwrap();
+
+            let (val, time) = integer::u256_safe_div_rem(rest_2, time_shift);
+            Checkpoint {
+                timestamp: time.try_into().unwrap(),
+                value: val.try_into().unwrap(),
+                aggregation_mode: aggregation_mode,
+                num_sources_aggregated: num_sources.try_into().unwrap()
+            }
+        }
+    }
+
 
     #[derive(Drop, starknet::Event)]
     struct UpdatedPublisherRegistryAddress {
@@ -1055,62 +1059,54 @@ mod Oracle {
         ) -> PossibleEntries {
             let _entry = match data_type {
                 DataType::SpotEntry(pair_id) => {
-                    self.oracle_data_entry_storage.read((pair_id, SPOT, source, 0))
+                    get_entry_storage(self, pair_id, SPOT, source, 0)
                 },
                 DataType::FutureEntry((
                     pair_id, expiration_timestamp
                 )) => {
-                    self
-                        .oracle_data_entry_storage
-                        .read((pair_id, FUTURE, source, expiration_timestamp))
+                    get_entry_storage(self, pair_id, FUTURE, source, expiration_timestamp)
                 },
                 DataType::GenericEntry(key) => {
-                    self.oracle_data_entry_storage.read((key, GENERIC, source, 0))
+                    get_entry_storage(self, key, GENERIC, source, 0)
                 }
             };
-
-            assert(!_entry.is_zero(), 'No data entry found');
+            assert(!_entry.timestamp.is_zero(), 'No data entry found');
             match data_type {
                 DataType::SpotEntry(pair_id) => {
-                    let u128_timestamp: u128 = actual_get_element_at(_entry, 0, 31);
-                    let timestamp: u64 = u128_timestamp.try_into().unwrap();
-                    let volume = actual_get_element_at(_entry, 32, 100);
-                    let price = actual_get_element_at(_entry, 133, 65);
                     PossibleEntries::Spot(
                         SpotEntry {
-                            base: BaseEntry { timestamp: timestamp, source: source, publisher: 0 },
+                            base: BaseEntry {
+                                timestamp: _entry.timestamp, source: source, publisher: 0
+                            },
                             pair_id: pair_id,
-                            price: price,
-                            volume: volume
+                            price: _entry.price,
+                            volume: _entry.volume
                         }
                     )
                 },
                 DataType::FutureEntry((
                     pair_id, expiration_timestamp
                 )) => {
-                    let timestamp: u64 = actual_get_element_at(_entry, 0, 31).try_into().unwrap();
-                    let volume = actual_get_element_at(_entry, 32, 100);
-                    let price = actual_get_element_at(_entry, 133, 65);
                     PossibleEntries::Future(
                         FutureEntry {
-                            base: BaseEntry { timestamp: timestamp, source: source, publisher: 0 },
+                            base: BaseEntry {
+                                timestamp: _entry.timestamp, source: source, publisher: 0
+                            },
                             pair_id: pair_id,
-                            price: price,
-                            volume: volume,
+                            price: _entry.price,
+                            volume: _entry.volume,
                             expiration_timestamp: expiration_timestamp
                         }
                     )
                 },
                 DataType::GenericEntry(key) => {
-                    let u128_timestamp: u128 = actual_get_element_at(_entry, 0, 31);
-
-                    let timestamp: u64 = u128_timestamp.try_into().unwrap();
-                    let value = actual_get_element_at(_entry, 133, 65);
                     PossibleEntries::Generic(
                         GenericEntry {
-                            base: BaseEntry { timestamp: timestamp, source: source, publisher: 0 },
+                            base: BaseEntry {
+                                timestamp: _entry.timestamp, source: source, publisher: 0
+                            },
                             key: key,
-                            value: value
+                            value: _entry.price
                         }
                     )
                 }
@@ -1128,11 +1124,11 @@ mod Oracle {
             match new_entry {
                 PossibleEntries::Spot(spot_entry) => {
                     validate_sender_for_source(@self, spot_entry);
-                    let res = self
-                        .oracle_data_entry_storage
-                        .read((spot_entry.pair_id, SPOT, spot_entry.base.source, 0));
+                    let res = get_entry_storage(
+                        @self, spot_entry.pair_id, SPOT, spot_entry.base.source, 0
+                    );
 
-                    if (res != 0) {
+                    if (res.timestamp != 0) {
                         let entry: PossibleEntries = IOracleABI::get_data_entry(
                             @self, DataType::SpotEntry(spot_entry.pair_id), spot_entry.base.source
                         );
@@ -1158,15 +1154,14 @@ mod Oracle {
                             .write((spot_entry.pair_id, SPOT, 0), sources_len + 1);
                     }
                     self.emit(Event::SubmittedSpotEntry(SubmittedSpotEntry { spot_entry }));
-
-                    let element = actual_set_element_at(0, 0, 31, spot_entry.base.timestamp.into());
-                    let element = actual_set_element_at(element, 32, 100, spot_entry.volume.into());
-                    let element = actual_set_element_at(element, 133, 65, spot_entry.price.into());
-
-                    let spot_entry_storage = SpotEntryStorage { timestamp__volume__price: element };
-                    self
-                        .oracle_data_entry_storage
-                        .write((spot_entry.pair_id, SPOT, spot_entry.base.source, 0), element);
+                    let element = EntryStorage {
+                        timestamp: spot_entry.base.timestamp.into(),
+                        volume: spot_entry.volume.into(),
+                        price: spot_entry.price.into()
+                    };
+                    set_entry_storage(
+                        ref self, spot_entry.pair_id, SPOT, spot_entry.base.source, 0, element
+                    );
 
                     let storage_len = self
                         .oracle_data_len_all_sources
@@ -1177,18 +1172,14 @@ mod Oracle {
                 },
                 PossibleEntries::Future(future_entry) => {
                     validate_sender_for_source(@self, future_entry);
-                    let res = self
-                        .oracle_data_entry_storage
-                        .read(
-                            (
-                                future_entry.pair_id,
-                                FUTURE,
-                                future_entry.base.source,
-                                future_entry.expiration_timestamp
-                            )
-                        );
-
-                    if (res != 0) {
+                    let res = get_entry_storage(
+                        @self,
+                        future_entry.pair_id,
+                        FUTURE,
+                        future_entry.base.source,
+                        future_entry.expiration_timestamp
+                    );
+                    if (res.timestamp != 0) {
                         let entry: PossibleEntries = IOracleABI::get_data_entry(
                             @self,
                             DataType::FutureEntry(
@@ -1230,29 +1221,19 @@ mod Oracle {
 
                     self.emit(Event::SubmittedFutureEntry(SubmittedFutureEntry { future_entry }));
 
-                    let element = actual_set_element_at(
-                        0, 0, 31, future_entry.base.timestamp.into()
-                    );
-                    let element = actual_set_element_at(
-                        element, 32, 100, future_entry.volume.into()
-                    );
-                    let element = actual_set_element_at(
-                        element, 133, 65, future_entry.price.into()
-                    );
-                    let future_entry_storage = FutureEntryStorage {
-                        timestamp__volume__price: element
+                    let element: EntryStorage = EntryStorage {
+                        timestamp: future_entry.base.timestamp.into(),
+                        volume: future_entry.volume.into(),
+                        price: future_entry.price.into()
                     };
-                    self
-                        .oracle_data_entry_storage
-                        .write(
-                            (
-                                future_entry.pair_id,
-                                FUTURE,
-                                future_entry.base.source,
-                                future_entry.expiration_timestamp
-                            ),
-                            element
-                        );
+                    set_entry_storage(
+                        ref self,
+                        future_entry.pair_id,
+                        FUTURE,
+                        future_entry.base.source,
+                        future_entry.expiration_timestamp,
+                        element
+                    );
                     let storage_len = self
                         .oracle_data_len_all_sources
                         .read((future_entry.pair_id, FUTURE, future_entry.expiration_timestamp));
@@ -1265,11 +1246,11 @@ mod Oracle {
                 },
                 PossibleEntries::Generic(generic_entry) => {
                     validate_sender_for_source(@self, generic_entry);
-                    let res = self
-                        .oracle_data_entry_storage
-                        .read((generic_entry.key, GENERIC, generic_entry.base.source, 0));
+                    let res = get_entry_storage(
+                        @self, generic_entry.key, GENERIC, generic_entry.base.source, 0
+                    );
 
-                    if (res != 0) {
+                    if (res.timestamp != 0) {
                         let entry: PossibleEntries = IOracleABI::get_data_entry(
                             @self,
                             DataType::GenericEntry(generic_entry.key),
@@ -1305,17 +1286,14 @@ mod Oracle {
                         .oracle_sources_len_storage
                         .read((generic_entry.key, GENERIC, 0));
 
-                    let element = actual_set_element_at(
-                        0, 0, 31, generic_entry.base.timestamp.into()
+                    let element = EntryStorage {
+                        timestamp: generic_entry.base.timestamp.into(),
+                        volume: 0,
+                        price: generic_entry.value.into(),
+                    };
+                    set_entry_storage(
+                        ref self, generic_entry.key, GENERIC, generic_entry.base.source, 0, element
                     );
-                    let element = actual_set_element_at(element, 32, 100, 0);
-                    let element = actual_set_element_at(
-                        element, 133, 65, generic_entry.value.into()
-                    );
-                    let generic_entry_storage = GenericEntryStorage { timestamp__value: element };
-                    self
-                        .oracle_data_entry_storage
-                        .write((generic_entry.key, GENERIC, generic_entry.base.source, 0), element);
                     let storage_len = self
                         .oracle_data_len_all_sources
                         .read((generic_entry.key, GENERIC, 0));
@@ -1440,16 +1418,15 @@ mod Oracle {
                             .oracle_checkpoint_index
                             .read((pair_id, SPOT, 0, aggregation_mode.into()));
 
-                        let element = pack_checkpoint(
-                            new_checkpoint.timestamp,
-                            new_checkpoint.value,
-                            new_checkpoint.aggregation_mode,
-                            new_checkpoint.num_sources_aggregated
+                        set_checkpoint_storage(
+                            ref self,
+                            pair_id,
+                            SPOT,
+                            cur_idx,
+                            0,
+                            aggregation_mode.into(),
+                            new_checkpoint
                         );
-
-                        self
-                            .oracle_checkpoints
-                            .write((pair_id, SPOT, cur_idx, 0, aggregation_mode.into()), element);
                         self
                             .oracle_checkpoint_index
                             .write((pair_id, SPOT, 0, aggregation_mode.into()), cur_idx + 1);
@@ -1461,24 +1438,16 @@ mod Oracle {
                         let cur_idx = self
                             .oracle_checkpoint_index
                             .read((pair_id, FUTURE, expiration_timestamp, aggregation_mode.into()));
-                        let element = pack_checkpoint(
-                            new_checkpoint.timestamp,
-                            new_checkpoint.value,
-                            new_checkpoint.aggregation_mode,
-                            new_checkpoint.num_sources_aggregated
+
+                        set_checkpoint_storage(
+                            ref self,
+                            pair_id,
+                            FUTURE,
+                            cur_idx,
+                            expiration_timestamp,
+                            aggregation_mode.into(),
+                            new_checkpoint
                         );
-                        self
-                            .oracle_checkpoints
-                            .write(
-                                (
-                                    pair_id,
-                                    FUTURE,
-                                    cur_idx,
-                                    expiration_timestamp,
-                                    aggregation_mode.into()
-                                ),
-                                element
-                            );
                         self
                             .oracle_checkpoint_index
                             .write(
@@ -1492,7 +1461,8 @@ mod Oracle {
                                 )
                             );
                     },
-                    DataType::GenericEntry(_) => {},
+                    DataType::GenericEntry(key) => { // TODO: Issue #28
+                    },
                 }
             }
             return ();
@@ -1600,51 +1570,26 @@ mod Oracle {
     ) -> Checkpoint {
         let checkpoint = match data_type {
             DataType::SpotEntry(pair_id) => {
-                let bitpack_checkpoint = self
-                    .oracle_checkpoints
-                    .read((pair_id, SPOT, checkpoint_index, 0, aggregation_mode.into()));
-                unpack_checkpoint(bitpack_checkpoint)
+                get_checkpoint_storage(
+                    self, pair_id, SPOT, checkpoint_index, 0, aggregation_mode.into()
+                )
             },
             DataType::FutureEntry((
                 pair_id, expiration_timestamp
             )) => {
-                let bitpack_checkpoint = self
-                    .oracle_checkpoints
-                    .read(
-                        (
-                            pair_id,
-                            FUTURE,
-                            checkpoint_index,
-                            expiration_timestamp,
-                            aggregation_mode.into()
-                        )
-                    );
-                unpack_checkpoint(bitpack_checkpoint)
+                get_checkpoint_storage(
+                    self,
+                    pair_id,
+                    FUTURE,
+                    checkpoint_index,
+                    expiration_timestamp,
+                    aggregation_mode.into()
+                )
             },
             DataType::GenericEntry(key) => {
-                let bitpack_checkpoint = self
-                    .oracle_checkpoints
-                    .read((key, GENERIC, checkpoint_index, 0, aggregation_mode.into()));
-                let u128_timestamp: u128 = actual_get_element_at(bitpack_checkpoint, 0, 31);
-                let timestamp = u128_timestamp.try_into().unwrap();
-                let value = actual_get_element_at(bitpack_checkpoint, 32, 128);
-                let u128_aggregation_mode: u128 = actual_get_element_at(
-                    bitpack_checkpoint, 161, 10
-                );
-                let u8_aggregation_mode: u8 = u128_aggregation_mode.try_into().unwrap();
-                let aggregation_mode: AggregationMode = u8_into_AggregationMode(
-                    u8_aggregation_mode
-                );
-                let u128_num_sources_aggregated = actual_get_element_at(
-                    bitpack_checkpoint, 172, 83
-                );
-                let num_sources_aggregated: u32 = u128_num_sources_aggregated.try_into().unwrap();
-                Checkpoint {
-                    timestamp: timestamp,
-                    value: value,
-                    aggregation_mode: aggregation_mode,
-                    num_sources_aggregated: num_sources_aggregated,
-                }
+                get_checkpoint_storage(
+                    self, key, GENERIC, checkpoint_index, 0, aggregation_mode.into()
+                )
             }
         };
         assert(!checkpoint.timestamp.is_zero(), 'Checkpoint does not exist');
@@ -2031,37 +1976,50 @@ mod Oracle {
     }
 
 
-    fn pack_checkpoint(
-        checkpoint_timestamp: u64,
-        checkpoint_value: u128,
-        checkpoint_aggregation_mode: AggregationMode,
-        checkpoint_num_sources_aggregated: u32
-    ) -> u256 {
-        let element = actual_set_element_at(0, 0, 31, checkpoint_timestamp.into());
-        let element = actual_set_element_at(element, 32, 128, checkpoint_value.into());
-        let aggregation_mode: u8 = checkpoint_aggregation_mode.into();
-        let element = actual_set_element_at(element, 161, 10, aggregation_mode.into());
-        let element = actual_set_element_at(
-            element, 172, 83, checkpoint_num_sources_aggregated.into()
-        );
-        element
+    fn get_entry_storage(
+        self: @ContractState,
+        key: felt252,
+        type_of: felt252,
+        source: felt252,
+        expiration_timestamp: u64
+    ) -> EntryStorage {
+        self.oracle_data_entry_storage.read((key, type_of, source, expiration_timestamp))
     }
 
-    fn unpack_checkpoint(bitpack_checkpoint: u256) -> Checkpoint {
-        let u128_timestamp: u128 = actual_get_element_at(bitpack_checkpoint, 0, 31);
-        let timestamp = u128_timestamp.try_into().unwrap();
-        let value = actual_get_element_at(bitpack_checkpoint, 32, 128);
-        let u128_aggregation_mode: u128 = actual_get_element_at(bitpack_checkpoint, 161, 10);
-        let u8_aggregation_mode: u8 = u128_aggregation_mode.try_into().unwrap();
-        let aggregation_mode: AggregationMode = u8_into_AggregationMode(u8_aggregation_mode);
-        let u128_num_sources_aggregated = actual_get_element_at(bitpack_checkpoint, 172, 83);
-        let num_sources_aggregated: u32 = u128_num_sources_aggregated.try_into().unwrap();
-        Checkpoint {
-            timestamp: timestamp,
-            value: value,
-            aggregation_mode: aggregation_mode,
-            num_sources_aggregated: num_sources_aggregated,
-        }
+    fn set_entry_storage(
+        ref self: ContractState,
+        key: felt252,
+        type_of: felt252,
+        source: felt252,
+        expiration_timestamp: u64,
+        entry: EntryStorage
+    ) {
+        self.oracle_data_entry_storage.write((key, type_of, source, expiration_timestamp), entry);
+    }
+
+    fn set_checkpoint_storage(
+        ref self: ContractState,
+        key: felt252,
+        type_of: felt252,
+        index: u64,
+        expiration_timestamp: u64,
+        aggregation_mode: u8,
+        checkpoint: Checkpoint
+    ) {
+        self
+            .oracle_checkpoints
+            .write((key, type_of, index, expiration_timestamp, aggregation_mode), checkpoint);
+    }
+
+    fn get_checkpoint_storage(
+        self: @ContractState,
+        key: felt252,
+        type_of: felt252,
+        index: u64,
+        expiration_timestamp: u64,
+        aggregation_mode: u8
+    ) -> Checkpoint {
+        self.oracle_checkpoints.read((key, type_of, index, expiration_timestamp, aggregation_mode))
     }
 
 

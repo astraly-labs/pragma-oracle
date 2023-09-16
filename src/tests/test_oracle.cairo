@@ -165,7 +165,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                     base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
                     pair_id: 2,
                     price: 2 * 1000000,
-                    volume: 0
+                    volume: 100
                 }
             )
         );
@@ -177,7 +177,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                     base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
                     pair_id: 2,
                     price: 3 * 1000000,
-                    volume: 0
+                    volume: 50
                 }
             )
         );
@@ -188,7 +188,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                     base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
                     pair_id: 3,
                     price: 8 * 1000000,
-                    volume: 0
+                    volume: 100
                 }
             )
         );
@@ -199,7 +199,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                     base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
                     pair_id: 4,
                     price: 8 * 1000000,
-                    volume: 0
+                    volume: 20
                 }
             )
         );
@@ -210,7 +210,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                     base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
                     pair_id: 4,
                     price: 3 * 1000000,
-                    volume: 0
+                    volume: 10
                 }
             )
         );
@@ -221,7 +221,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                     base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
                     pair_id: 5,
                     price: 5 * 1000000,
-                    volume: 0
+                    volume: 20
                 }
             )
         );
@@ -232,7 +232,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                     base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
                     pair_id: 2,
                     price: 2 * 1000000,
-                    volume: 0,
+                    volume: 40,
                     expiration_timestamp: 11111110
                 }
             )
@@ -244,7 +244,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                     base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
                     pair_id: 2,
                     price: 2 * 1000000,
-                    volume: 0,
+                    volume: 30,
                     expiration_timestamp: 11111110
                 }
             )
@@ -256,7 +256,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                     base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
                     pair_id: 3,
                     price: 3 * 1000000,
-                    volume: 0,
+                    volume: 1000,
                     expiration_timestamp: 11111110
                 }
             )
@@ -268,7 +268,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                     base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
                     pair_id: 4,
                     price: 4 * 1000000,
-                    volume: 0,
+                    volume: 2321,
                     expiration_timestamp: 11111110
                 }
             )
@@ -280,7 +280,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                     base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
                     pair_id: 5,
                     price: 5 * 1000000,
-                    volume: 0,
+                    volume: 231,
                     expiration_timestamp: 11111110
                 }
             )
@@ -292,7 +292,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                     base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
                     pair_id: 5,
                     price: 5 * 1000000,
-                    volume: 0,
+                    volume: 232,
                     expiration_timestamp: 11111110
                 }
             )
@@ -440,8 +440,6 @@ fn data_treatment(entry: PossibleEntries) -> (u128, u64, u128) {
         }
     }
 }
-
-
 #[test]
 #[available_gas(10000000000)]
 fn test_get_admin_address() {
@@ -508,7 +506,6 @@ fn get_data_for_sources() {
         );
     assert(entry.price == (2000000), 'wrong price');
 }
-
 
 #[test]
 #[available_gas(100000000000)]
@@ -592,7 +589,6 @@ fn test_publish_multiple_entries() {
     assert(volume_4 == 30, 'wrong volume(4)');
 }
 
-
 #[test]
 #[available_gas(100000000000)]
 fn test_max_publish_multiple_entries() {
@@ -650,7 +646,6 @@ fn test_max_publish_multiple_entries() {
     oracle.publish_data_entries(entries.span());
     return ();
 }
-
 
 #[test]
 #[available_gas(2000000000)]
