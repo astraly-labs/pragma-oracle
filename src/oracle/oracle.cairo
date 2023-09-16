@@ -93,7 +93,7 @@ trait IOracleABI<TContractState> {
         ref self: TContractState, data_types: Span<DataType>, aggregation_mode: AggregationMode
     );
     fn set_sources_threshold(ref self: TContractState, threshold: u32);
-    fn upgrade(self: @TContractState, impl_hash: ClassHash);
+    fn upgrade(ref self: TContractState, impl_hash: ClassHash);
 }
 
 
@@ -1505,7 +1505,7 @@ mod Oracle {
         // @notice upgrade the contract implementation, call to the contract Upgradeable
         // @dev callable only by the admin
         // @param impl_hash: the current implementation hash
-        fn upgrade(self: @ContractState, impl_hash: ClassHash) {
+        fn upgrade(ref self: ContractState, impl_hash: ClassHash) {
             self.assert_only_admin();
             let mut upstate: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
             Upgradeable::InternalImpl::upgrade(ref upstate, impl_hash);

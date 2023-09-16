@@ -1,5 +1,5 @@
 import os
-import re
+import logging
 from enum import Enum
 from pathlib import Path
 
@@ -7,9 +7,14 @@ from dotenv import load_dotenv
 from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.net.gateway_client import GatewayClient
 from starknet_py.net.models.chains import StarknetChainId
+from pragma.core.types import Currency, Pair
 from typing import List
 
 load_dotenv()
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 ETH_TOKEN_ADDRESS = 0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7
 
@@ -74,10 +79,9 @@ GATEWAY_CLIENT = GatewayClient(
 )
 
 
-
-
 BUILD_DIR = Path("target/dev")
 BUILD_DIR.mkdir(exist_ok=True, parents=True)
+
 SOURCE_DIR = Path("src")
 CONTRACTS = {p.stem: p for p in list(SOURCE_DIR.glob("**/*.cairo"))}
 
@@ -91,96 +95,10 @@ COMPILED_CONTRACTS = [
     {"contract_name": "pragma_SummaryStats", "is_account_contract": False},
 ]
 
-def str_to_felt(text):
-    if text.upper() != text:
-        logger.warning(f"Converting lower to uppercase for str_to_felt: {text}")
-        text = text.upper()
-    b_text = bytes(text, "utf-8")
-    return int.from_bytes(b_text, "big")
-
-class Currency:
-    id: int
-    decimals: int
-    is_abstract_currency: bool
-    starknet_address: int
-    ethereum_address: int
-
-    def __init__(
-        self,
-        id,
-        decimals,
-        is_abstract_currency,
-        starknet_address=None,
-        ethereum_address=None,
-    ):
-        if type(id) == str:
-            id = str_to_felt(id)
-        self.id = id
-
-        self.decimals = decimals
-
-        if type(is_abstract_currency) == int:
-            is_abstract_currency = bool(is_abstract_currency)
-        self.is_abstract_currency = is_abstract_currency
-
-        if starknet_address is None:
-            starknet_address = 0
-        self.starknet_address = starknet_address
-
-        if ethereum_address is None:
-            ethereum_address = 0
-        self.ethereum_address = ethereum_address
-
-    def serialize(self) -> List[str]:
-        return [
-            self.id,
-            self.decimals,
-            self.is_abstract_currency,
-            self.starknet_address,
-            self.ethereum_address,
-        ]
-
-    def to_dict(self) -> dict:
-        return {
-            "id": self.id,
-            "decimals": self.decimals,
-            "is_abstract_currency": self.is_abstract_currency,
-            "starknet_address": self.starknet_address,
-            "ethereum_address": self.ethereum_address,
-        }
-
-
-class Pair:
-    id: int
-    quote_currency_id: int
-    base_currency_id: int
-
-    def __init__(self, id, quote_currency_id, base_currency_id):
-        if type(id) == str:
-            id = str_to_felt(id)
-        self.id = id
-
-        if type(quote_currency_id) == str:
-            quote_currency_id = str_to_felt(quote_currency_id)
-        self.quote_currency_id = quote_currency_id
-
-        if type(base_currency_id) == str:
-            base_currency_id = str_to_felt(base_currency_id)
-        self.base_currency_id = base_currency_id
-
-    def serialize(self) -> List[str]:
-        return [self.id, self.quote_currency_id, self.base_currency_id]
-
-    def to_dict(self) -> dict:
-        return {
-            "id": self.id,
-            "quote_currency_id": self.quote_currency_id,
-            "base_currency_id": self.base_currency_id,
-        }
-
 
 currencies = [
     Currency("USD", 8, 1, 0, 0),
+    Currency("EUR", 8, 1, 0, 0),
     Currency(
         "BTC",
         8,
@@ -223,12 +141,40 @@ currencies = [
         0x001108CDBE5D82737B9057590ADAF97D34E74B5452F0628161D237746B6FE69E,
         0x6B175474E89094C44DA98B954EEDEAC495271D0F,
     ),
+    Currency(
+        "LORDS",
+        18,
+        0,
+        0x0124AEB495B947201F5FAC96FD1138E326AD86195B98DF6DEC9009158A533B49,
+        0x686F2404E77AB0D9070A46CDFB0B7FECDD2318B0,
+    ),
+    Currency(
+        "R",
+        18,
+        0,
+        0x01FA2FB85F624600112040E1F3A848F53A37ED5A7385810063D5FE6887280333,
+        0x183015A9BA6FF60230FDEADC3F43B3D788B13E21,
+    ),
+    Currency(
+        "WSTETH",
+        18,
+        0,
+        0x042B8F0484674CA266AC5D08E4AC6A3FE65BD3129795DEF2DCA5C34ECC5F96D2,
+        0x7F39C581F595B53C5CB19BD0B3F8DA6C935E2CA0,
+    ),
 ]
 pairs = [
     Pair("ETH/USD", "ETH", "USD"),
+    Pair("ETH/USDT", "ETH", "USDT"),
     Pair("BTC/USD", "BTC", "USD"),
+    Pair("BTC/USDT", "BTC", "USDT"),
+    Pair("BTC/EUR", "BTC", "EUR"),
     Pair("WBTC/USD", "WBTC", "USD"),
+    Pair("WBTC/BTC", "WBTC", "BTC"),
     Pair("USDC/USD", "USDC", "USD"),
     Pair("USDT/USD", "USDT", "USD"),
     Pair("DAI/USD", "DAI", "USD"),
+    Pair("LORDS/USD", "LORDS", "USD"),
+    Pair("R/USD", "R", "USD"),
+    Pair("WSTETH/USD", "WSTETH", "USD"),
 ]
