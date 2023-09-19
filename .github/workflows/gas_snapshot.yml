@@ -14,7 +14,11 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.x
-      
+      - name: Set up Scarb
+        uses: software-mansion/setup-scarb@v1
+        with:
+          scarb-version: "0.7.0"
+
       - name: Generate gas snapshot
         run: python scripts/gas_usage/gen_snapshot.py
 
