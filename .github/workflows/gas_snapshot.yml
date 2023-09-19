@@ -1,6 +1,9 @@
 name: Generate and Upload Gas Snapshot
 
-on: pull_request
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   build:
@@ -16,8 +19,6 @@ jobs:
           python-version: 3.x
       - name: Set up Scarb
         uses: software-mansion/setup-scarb@v1
-        with:
-          scarb-version: "0.7.0"
 
       - name: Generate gas snapshot
         run: python scripts/gas_usage/gen_snapshot.py
