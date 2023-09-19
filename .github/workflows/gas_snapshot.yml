@@ -1,6 +1,9 @@
 name: Generate and Upload Gas Snapshot
 
-on: pull_request
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   build:
