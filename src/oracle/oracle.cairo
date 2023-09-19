@@ -850,13 +850,12 @@ mod Oracle {
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @returns the precision for the given data type
         fn get_decimals(self: @ContractState, data_type: DataType) -> u32 {
-            let (base_currency, quote_currency) = match data_type {
+            let base_currency = match data_type {
                 DataType::SpotEntry(pair_id) => {
                     let pair = self.oracle_pairs_storage.read(pair_id);
                     assert(!pair.id.is_zero(), 'No pair found');
                     let base_cur = self.oracle_currencies_storage.read(pair.base_currency_id);
-                    let quote_cur = self.oracle_currencies_storage.read(pair.quote_currency_id);
-                    (base_cur, quote_cur)
+                    base_cur
                 },
                 DataType::FutureEntry((
                     pair_id, expiration_timestamp
@@ -864,19 +863,17 @@ mod Oracle {
                     let pair = self.oracle_pairs_storage.read(pair_id);
                     assert(!pair.id.is_zero(), 'No pair found');
                     let base_cur = self.oracle_currencies_storage.read(pair.base_currency_id);
-                    let quote_cur = self.oracle_currencies_storage.read(pair.quote_currency_id);
-                    (base_cur, quote_cur)
+                    base_cur
                 },
                 DataType::GenericEntry(key) => {
                     let pair = self.oracle_pairs_storage.read(key);
                     assert(!pair.id.is_zero(), 'No pair found');
                     let base_cur = self.oracle_currencies_storage.read(pair.base_currency_id);
-                    let quote_cur = self.oracle_currencies_storage.read(pair.quote_currency_id);
-                    (base_cur, quote_cur)
+                    base_cur
                 }
             // DataType::OptionEntry((pair_id, expiration_timestamp)) => {}
             };
-            min(base_currency.decimals, quote_currency.decimals)
+            base_currency.decimals
         }
 
         // @notice aggregate entries information using an USD hop (BTC/ETH => BTC/USD + ETH/USD)
