@@ -18,6 +18,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: "3.x" # Specify the Python version required
+      - name: Set up Scarb
+        uses: software-mansion/setup-scarb@v1
 
       - name: Run compare_snapshot script
         id: run-script
