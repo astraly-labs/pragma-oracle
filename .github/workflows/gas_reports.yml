@@ -1,0 +1,32 @@
+name: Compare Snapshot
+
+on: pull_request
+
+permissions:
+  pull-requests: write
+
+jobs:
+  compare-snapshot:
+    permissions: write-all
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.x" # Specify the Python version required
+
+      - name: Run compare_snapshot script
+        id: run-script
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        run: |
+          result=$(python scripts/gas_usage/compare_snapshot.py)
+          result=$(echo "$result" | tail -n +3) # Strip the first two lines
+          result="${result//'%'/'%25'}"
+          result="${result//$'\n'/'%0A'}"
+          result="${result//$'\r'/'%0D'}"
+          echo "::set-output name=result::${result}"
