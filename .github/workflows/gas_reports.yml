@@ -31,4 +31,4 @@ jobs:
           result="${result//'%'/'%25'}"
           result="${result//$'\n'/'%0A'}"
           result="${result//$'\r'/'%0D'}"
-          echo "{name}::${result}" >> $GITHUB_OUTPUT
+          echo "{name}::{result}" >> $GITHUB_OUTPUT
