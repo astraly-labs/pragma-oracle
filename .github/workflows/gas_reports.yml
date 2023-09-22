@@ -29,6 +29,6 @@ jobs:
           result=$(python scripts/gas_usage/compare_snapshot.py)
           result=$(echo "$result" | tail -n +3) # Strip the first two lines
           result="${result//'%'/'%25'}"
-          result="${result//$'\n'/'%0A'}"
+          result="${result//$'\n'/''}"
           result="${result//$'\r'/'%0D'}"
           echo "name::$result" >> $GITHUB_OUTPUT
