@@ -34,3 +34,4 @@ jobs:
           result="${result//$'\n'/''}"
           result="${result//$'\r'/'%0D'}"
           echo "$result" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
