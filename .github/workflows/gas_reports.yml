@@ -35,6 +35,7 @@ jobs:
           result=$(echo "$result" | sed 's/****WORSENED****/### Worsened/g')
           result=$(echo "$result" | sed 's/%25/\%/g')
           result=$(echo "$result" | tr '%' '\n')
+          echo "output=$result" >> $GITHUB_OUTPUT
     outputs: 
       output: ${{ steps.run_script.outputs.output }}
   display_result: 
