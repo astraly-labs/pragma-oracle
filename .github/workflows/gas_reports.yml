@@ -30,7 +30,7 @@ jobs:
           
           result=$(python scripts/gas_usage/compare_snapshot.py)
           echo 'output<<EOF' >> $GITHUB_OUTPUT
-          echo '$result' >> $GITHUB_OUTPUT
+          echo $result >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
           #echo "output=$result" >> $GITHUB_OUTPUT
     outputs: 
