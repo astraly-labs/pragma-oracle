@@ -6,7 +6,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  compare-snapshot:
+  compare_snapshot:
     permissions: write-all
     runs-on: ubuntu-latest
 
@@ -22,7 +22,7 @@ jobs:
         uses: software-mansion/setup-scarb@v1
 
       - name: Run compare_snapshot script
-        id: run-script
+        id: run_script
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         run: |
@@ -34,3 +34,10 @@ jobs:
           result="${result//$'\n'/''}"
           result="${result//$'\r'/'%0D'}"
           echo -e "text<<EOF\n$result\nEOF" >> $GITHUB_OUTPUT
+    outputs: 
+      output: ${{ steps.run_script.outputs.output }}
+  display_result: 
+    needs: compare_snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ${{needs.compare_snapshot.outputs.output}}
