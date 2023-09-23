@@ -29,10 +29,7 @@ jobs:
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           
           result=$(python scripts/gas_usage/compare_snapshot.py)
-          echo 'output<<EOF' >> $GITHUB_OUTPUT
-          echo 'output<<$result' >> $GITHUB_OUTPUT
-          echo 'EOF' >> $GITHUB_OUTPUT
-          #echo "output=$result" >> $GITHUB_OUTPUT
+          echo "output=$(echo "$result" | base64)" >> $GITHUB_OUTPUT
     outputs: 
       output: ${{ steps.run_script.outputs.output }}
   display_result: 
