@@ -7,6 +7,7 @@ permissions:
 
 jobs:
   compare_snapshot:
+    permissions: write-all
     runs-on: ubuntu-latest
 
     steps:
@@ -16,36 +17,36 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: "3.x"
+          python-version: "3.x" # Specify the Python version required
+      - name: Set up Scarb
+        uses: software-mansion/setup-scarb@v1
 
       - name: Run compare_snapshot script
         id: run_script
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         run: |
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          
           result=$(python scripts/gas_usage/compare_snapshot.py)
-          # Use base64 to safely encode multi-line string
-          echo "output=$(echo -n "$result" | base64)" >> $GITHUB_ENV
+          result=$(echo "$result" | tail -n +3) # Strip the first two lines
+          result="${result//'%'/'%25'}"
+          result="${result//$'\n'/''}"
+          result="${result//$'\r'/'%0D'}"
+          echo "output=$result" >> $GITHUB_OUTPUT
     outputs: 
       output: ${{ steps.run_script.outputs.output }}
-
-  display_result:
+  display_result: 
     needs: compare_snapshot
     runs-on: ubuntu-latest
     steps:
-      - name: Decode and display output
-        run: |
-          # Decode the base64 encoded result
-          result=$(echo -n "${{ needs.compare_snapshot.outputs.output }}" | base64 --decode)
-          # Replace encoded characters with their original forms
-          result=$(echo -n "$result" | sed 's/%0A/\n/g; s/%25/%/g')
-          echo "$result"
-
+      - run: echo ${{needs.compare_snapshot.outputs.output}}
       - name: Comment on PR
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         run: |
-          result=$(echo -n "${{ needs.compare_snapshot.outputs.output }}" | base64 --decode)
-          result=$(echo -n "$result" | sed 's/%0A/\n/g; s/%25/%/g')
-          comment="Output from Compare Snapshot:\n\`\`\`\n$result\n\`\`\`"
+          output="${{needs.compare_snapshot.outputs.output}}"
+          comment="Output from Compare Snapshot:\n\`\`\`\n$output\n\`\`\`"
           pr_number=$(jq -r ".number" "$GITHUB_EVENT_PATH")
           repo_full_name=$(jq -r ".repository.full_name" "$GITHUB_EVENT_PATH")
           
@@ -55,3 +56,4 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/$repo_full_name/issues/$pr_number/comments \
             -d "{\"body\":\"$comment\"}"
+      
