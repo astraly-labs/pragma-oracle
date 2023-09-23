@@ -302,7 +302,17 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
 }
 #[test]
 #[available_gas(200000000000000)]
-fn test_get_decimals() {}
+fn test_get_decimals() {
+    let (publisher_registry, oracle) = setup();
+    let decimals_1 = oracle.get_decimals(DataType::SpotEntry(1));
+    assert(decimals_1 == 18_u32, 'wrong decimals value');
+    let decimals_2 = oracle.get_decimals(DataType::SpotEntry(2));
+    assert(decimals_2 == 6_u32, 'wrong decimals value');
+    let decimals_4 = oracle.get_decimals(DataType::FutureEntry((1, 11111110)));
+    assert(decimals_4 == 18_u32, 'wrong decimals value');
+    let decimals_5 = oracle.get_decimals(DataType::FutureEntry((2, 11111110)));
+    assert(decimals_5 == 6_u32, 'wrong decimals value');
+}
 #[test]
 #[should_panic]
 #[available_gas(200000000000)]
@@ -323,7 +333,42 @@ fn test_get_decimals_should_fail_if_not_found_2() {
 
 #[test]
 #[available_gas(200000000000)]
-fn test_data_entry() {}
+fn test_data_entry() {
+    let (publisher_registry, oracle) = setup();
+    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 1);
+    let (price, timestamp, volume) = data_treatment(entry);
+    assert(price == (2000000), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 2);
+    let (price, timestamp, volume) = data_treatment(entry);
+    assert(price == (3000000), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::SpotEntry(3), 1);
+    let (price, timestamp, volume) = data_treatment(entry);
+    assert(price == (8000000), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::SpotEntry(4), 1);
+    let (price, timestamp, volume) = data_treatment(entry);
+    assert(price == (8000000), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::SpotEntry(4), 2);
+    let (price, timestamp, volume) = data_treatment(entry);
+    assert(price == (3000000), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::SpotEntry(5), 1);
+    let (price, timestamp, volume) = data_treatment(entry);
+    assert(price == (5000000), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 11111110)), 1);
+    let (price, timestamp, volume) = data_treatment(entry);
+    assert(price == (2000000), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 11111110)), 2);
+    let (price, timestamp, volume) = data_treatment(entry);
+    assert(price == (2000000), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::FutureEntry((3, 11111110)), 1);
+    let (price, timestamp, volume) = data_treatment(entry);
+    assert(price == (3000000), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::FutureEntry((4, 11111110)), 1);
+    let (price, timestamp, volume) = data_treatment(entry);
+    assert(price == (4000000), 'wrong price');
+    let entry = oracle.get_data_entry(DataType::FutureEntry((5, 11111110)), 1);
+    let (price, timestamp, volume) = data_treatment(entry);
+    assert(price == (5000000), 'wrong price');
+}
 
 #[test]
 #[should_panic]
