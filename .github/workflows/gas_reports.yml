@@ -29,12 +29,7 @@ jobs:
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           
           result=$(python scripts/gas_usage/compare_snapshot.py)
-          result=$(echo "$result" | tail -n +3)  # Strip the first two lines
-          # Format the output to be more Markdown-friendly
-          result=$(echo "$result" | sed 's/****IMPROVEMENTS****/### Improvements/g')
-          result=$(echo "$result" | sed 's/****WORSENED****/### Worsened/g')
-          result=$(echo "$result" | sed 's/%25/\%/g')
-          result=$(echo "$result" | tr '%' '\n')
+        
           echo "output=$result" >> $GITHUB_OUTPUT
     outputs: 
       output: ${{ steps.run_script.outputs.output }}
