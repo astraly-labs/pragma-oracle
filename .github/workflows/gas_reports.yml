@@ -33,7 +33,8 @@ jobs:
           result="${result//'%'/'%25'}"
           result="${result//$'\n'/''}"
           result="${result//$'\r'/'%0D'}"
-          echo -e "hello" >> $GITHUB_OUTPUT
+          #echo -e "hello" >> $GITHUB_OUTPUT
+          echo "output=hello" >> $GITHUB_OUTPUT
     outputs: 
       output: ${{ steps.run_script.outputs.output }}
   display_result: 
