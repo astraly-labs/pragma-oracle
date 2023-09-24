@@ -54,8 +54,8 @@ jobs:
             output="${{needs.compare_snapshot.outputs.output}}"
             echo "Debug: output for PR comment = $output"
             
-            pr_number=$(jq -r ".number" "$GITHUB_EVENT_PATH")
-            repo_full_name=$(jq -r ".repository.full_name" "$GITHUB_EVENT_PATH")
+            # pr_number=$(jq -r ".number" "$GITHUB_EVENT_PATH")
+            # repo_full_name=$(jq -r ".repository.full_name" "$GITHUB_EVENT_PATH")
 
             # comment=$(jq -n --arg body "Output from Compare Snapshot:\n\`\`\`\n$output\n\`\`\`" '{body: $body}')
             
