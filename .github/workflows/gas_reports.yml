@@ -52,7 +52,7 @@ jobs:
             pr_number=$(jq -r ".number" "$GITHUB_EVENT_PATH")
             repo_full_name=$(jq -r ".repository.full_name" "$GITHUB_EVENT_PATH")
 
-            comment=$(echo -e "Output from Compare Snapshot:\\n\`\`\`\\n$output\\n\`\`\`")
+            comment=$(jq -n --arg body "Output from Compare Snapshot:\n\`\`\`\n$output\n\`\`\`" '{body: $body}')
             
             echo "Debug: JSON Comment = $comment"
 
