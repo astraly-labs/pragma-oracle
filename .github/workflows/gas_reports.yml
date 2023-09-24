@@ -35,7 +35,7 @@ jobs:
           # result="${result//$'\r'/'%0D'}"
           # echo "output=$result" >> $GITHUB_OUTPUT
           echo "output<<$EOF" >> $GITHUB_OUTPUT
-          echo "hello \n world" >> $GITHUB_OUTPUT
+          echo "$result" >> $GITHUB_OUTPUT
           echo "$EOF" >> $GITHUB_OUTPUT
     outputs: 
       output: ${{ steps.run_script.outputs.output }}
