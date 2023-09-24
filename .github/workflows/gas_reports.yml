@@ -42,16 +42,16 @@ jobs:
           
     outputs: 
       output: ${{ steps.run_script.outputs.output }}
-  # display_result: 
-  #   needs: compare_snapshot
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - run: echo ${{needs.compare_snapshot.outputs.output}}
-  #     - name: Comment on PR
-  #       env:
-  #         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-  #       run: |
-            # output="${{needs.compare_snapshot.outputs.output}}"
+  display_result: 
+    needs: compare_snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ${{needs.compare_snapshot.outputs.output}}
+      - name: Comment on PR
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        run: |
+            output="${{needs.compare_snapshot.outputs.output}}"
             # echo "Debug: output for PR comment = $output"
             
             # pr_number=$(jq -r ".number" "$GITHUB_EVENT_PATH")
