@@ -46,7 +46,6 @@ jobs:
     needs: compare_snapshot
     runs-on: ubuntu-latest
     steps:
-      - run: echo ${{needs.compare_snapshot.outputs.output}}
       - name: Comment on PR
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
