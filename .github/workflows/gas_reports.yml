@@ -28,12 +28,15 @@ jobs:
         run: |
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           
-          result=$(python scripts/gas_usage/compare_snapshot.py)
-          result=$(echo "$result" | tail -n +3) # Strip the first two lines
-          result="${result//'%'/'%25'}"
-          result="${result//$'\n'/''}"
-          result="${result//$'\r'/'%0D'}"
-          echo "output=$result" >> $GITHUB_OUTPUT
+          # result=$(python scripts/gas_usage/compare_snapshot.py)
+          # result=$(echo "$result" | tail -n +3) # Strip the first two lines
+          # result="${result//'%'/'%25'}"
+          # result="${result//$'\n'/''}"
+          # result="${result//$'\r'/'%0D'}"
+          # echo "output=$result" >> $GITHUB_OUTPUT
+          echo "text<<$EOF" >> $GITHUB_OUTPUT
+          echo "hello \n world" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
     outputs: 
       output: ${{ steps.run_script.outputs.output }}
   display_result: 
