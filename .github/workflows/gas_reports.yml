@@ -17,7 +17,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: "3.x" # Specify the Python version required
+          python-version: "3.x"
+
       - name: Set up Scarb
         uses: software-mansion/setup-scarb@v1
 
@@ -26,37 +27,35 @@ jobs:
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         run: |
-          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          
           result=$(python scripts/gas_usage/compare_snapshot.py)
-          # result=$(echo "$result" | tail -n +3) # Strip the first two lines
-          # result="${result//'%'/'%25'}"
-          # result="${result//$'\n'/''}"
-          # result="${result//$'\r'/'%0D'}"
-          # echo "output=$result" >> $GITHUB_OUTPUT
-          echo "output<<$EOF" >> $GITHUB_OUTPUT
-          echo "$result" >> $GITHUB_OUTPUT
-          echo "$EOF" >> $GITHUB_OUTPUT
-    outputs: 
+          encoded_result=$(echo -n "$result" | base64)
+          echo "output=$encoded_result" >> $GITHUB_OUTPUT
+    outputs:
       output: ${{ steps.run_script.outputs.output }}
-  display_result: 
+
+  display_result:
     needs: compare_snapshot
     runs-on: ubuntu-latest
     steps:
-      - run: echo ${{needs.compare_snapshot.outputs.output}}
+      - name: Decode and Display Output
+        run: |
+          encoded_output="${{ needs.compare_snapshot.outputs.output }}"
+          decoded_output=$(echo -n "$encoded_output" | base64 --decode)
+          echo "$decoded_output"
+
       - name: Comment on PR
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         run: |
-          output="${{needs.compare_snapshot.outputs.output}}"
-          comment="Output from Compare Snapshot:\n\`\`\`\n$output\n\`\`\`"
+          encoded_output="${{ needs.compare_snapshot.outputs.output }}"
+          decoded_output=$(echo -n "$encoded_output" | base64 --decode)
+          comment="Output from Compare Snapshot:\n\`\`\`\n$decoded_output\n\`\`\`"
           pr_number=$(jq -r ".number" "$GITHUB_EVENT_PATH")
           repo_full_name=$(jq -r ".repository.full_name" "$GITHUB_EVENT_PATH")
-          
+
           curl \
             -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/$repo_full_name/issues/$pr_number/comments \
             -d "{\"body\":\"$comment\"}"
-      
