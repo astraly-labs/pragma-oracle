@@ -35,8 +35,9 @@ jobs:
           # result="${result//$'\n'/''}"
           # result="${result//$'\r'/'%0D'}"
           # echo "output=$result" >> $GITHUB_OUTPUT
+          echo "$result" > temp_result.txt
           echo "output<<$EOF" >> $GITHUB_OUTPUT
-          echo "hello \nworld\nhi" >> $GITHUB_OUTPUT
+          cat temp_result.txt >> $GITHUB_OUTPUT
           echo "$EOF" >> $GITHUB_OUTPUT
           
     outputs: 
