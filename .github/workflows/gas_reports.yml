@@ -28,13 +28,11 @@ jobs:
         run: |
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           
-          result=$(python scripts/gas_usage/compare_snapshot.py)
-          echo "Debug: result = $result"
-          # result=$(echo "$result" | tail -n +3) # Strip the first two lines
-          # result="${result//'%'/'%25'}"
-          # result="${result//$'\n'/''}"
-          # result="${result//$'\r'/'%0D'}"
-          # echo "output=$result" >> $GITHUB_OUTPUT
+          result=$(python scripts/gas_usage/compare_snapshot.py| sed 's/\x1b\[[0-9;]*m//g')
+          result=$(echo "$result" | tail -n +3) # Strip the first two lines
+          result="${result//'%'/'%25'}"
+          result="${result//$'\n'/''}"
+          result="${result//$'\r'/'%0D'}"
           echo "$result" > temp_result.txt
           echo "output<<$EOF" >> $GITHUB_OUTPUT
           cat temp_result.txt >> $GITHUB_OUTPUT
