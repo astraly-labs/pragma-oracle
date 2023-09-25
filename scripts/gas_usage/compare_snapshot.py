@@ -129,14 +129,19 @@ def print_colored_output(improvements, worsened, gas_changes):
     """Print results in a colored format."""
     if improvements or worsened:
         print(GREEN + "****IMPROVEMENTS****" + ENDC)
+        if len(improvements) == 0:
+            print(GREEN + "None" + ENDC)
         for elem in improvements:
             print(GREEN + elem + ENDC)
 
         print("\n")
         print(RED + "****WORSENED****" + ENDC)
+        if len(worsened) == 0:
+            print(RED + "None" + ENDC)
         for elem in worsened:
             print(RED + elem + ENDC)
-
+            
+        print("\n")
         color = RED if gas_changes > 0 else GREEN
         gas_statement = (
             "performance degradation, gas consumption +"
