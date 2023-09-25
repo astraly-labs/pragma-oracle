@@ -1,6 +1,6 @@
 use starknet::ContractAddress;
 use array::ArrayTrait;
-use alexandria_math::math::fpow;
+use alexandria_math::pow;
 use traits::Into;
 use traits::TryInto;
 use zeroable::Zeroable;
@@ -90,7 +90,7 @@ trait IYieldCurveABI<TContractState> {
 #[starknet::contract]
 mod YieldCurve {
     use super::{
-        ContractAddress, ArrayTrait, IYieldCurveABI, YieldPoint, FutureKeyStatus, fpow, Into,
+        ContractAddress, ArrayTrait, IYieldCurveABI, YieldPoint, FutureKeyStatus, pow, Into,
         TryInto, Zeroable, SpanTrait, BaseEntry
     };
     use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
@@ -757,7 +757,7 @@ mod YieldCurve {
             let current_timestamp = starknet::get_block_timestamp();
             assert(future_expiry_timestamp > current_timestamp, 'YieldCurve: future expired');
             let seconds_to_expiry = future_expiry_timestamp - current_timestamp;
-            let decimals_multiplier = fpow(10, output_decimals.into());
+            let decimals_multiplier = pow(10, output_decimals.into());
             let time_multiplier: u128 = (SECONDS_IN_YEAR.into() * decimals_multiplier)
                 / seconds_to_expiry.into();
             // log of big prime is 75.5. making sure ratio multiplier is within bounds.
@@ -767,14 +767,14 @@ mod YieldCurve {
                 + spot_decimals) { // Shift future/spot to the left by output_decimals + spot_decimals - future_decimals
                 let exponent = output_decimals + spot_decimals - future_decimals;
                 assert(exponent <= exponent_limit, 'YieldCurve: Decimals OO range');
-                let ratio_multiplier = fpow(10, exponent.into());
+                let ratio_multiplier = pow(10, exponent.into());
                 //TURNED THE U256 PRICE INTO U128: MAYBE CONSIDER USING ONLY U128 PRICES FOR NOW, FOR COMPUTATIONAL PURPOSES
                 shifted_ratio = (future_entry.price * ratio_multiplier) / spot_entry.price;
             } else {
                 // Shift future/spot to the right by -1 * (output_decimals + spot_decimals - future_decimals)
                 let exponent = future_decimals - output_decimals - spot_decimals;
                 assert(exponent <= exponent_limit, 'YieldCurve: Decimals OO range');
-                let ratio_multiplier = fpow(10, exponent.into());
+                let ratio_multiplier = pow(10, exponent.into());
                 shifted_ratio = (future_entry.price) / (spot_entry.price * ratio_multiplier);
             }
             let interest_ratio = shifted_ratio - decimals_multiplier;
@@ -796,14 +796,14 @@ mod YieldCurve {
         if (old_decimals <= new_decimals) {
             // Multiply on_entry by 10 ^ (new_decimals - old_decimals)
             // which is guaranteed to be an integer > 0 by the if statement
-            let shift_by = fpow(10, (new_decimals - old_decimals).into());
+            let shift_by = pow(10, (new_decimals - old_decimals).into());
             let shifted_value = value * shift_by;
             return shifted_value;
         } else {
             // Divide on_entry by 10 ^ (old_decimals - new_decimals)
             // Doing the same operation as in the last branch, so
             // changed both multiplication/division and sign of the exponent
-            let shift_by = fpow(10, (old_decimals - new_decimals).into());
+            let shift_by = pow(10, (old_decimals - new_decimals).into());
             let shifted_value = value / shift_by;
             return shifted_value;
         }
