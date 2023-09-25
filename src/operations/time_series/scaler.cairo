@@ -1,7 +1,6 @@
 use core::traits::TryInto;
 use pragma::operations::time_series::structs::TickElem;
 use array::{ArrayTrait, SpanTrait};
-use alexandria_math::signed_integers::i129;
 use zeroable::Zeroable;
 use traits::Into;
 use option::OptionTrait;
