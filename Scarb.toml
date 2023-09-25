@@ -4,9 +4,9 @@ version = "0.2.0"
 
 
 [dependencies]
-alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria.git", rev = "9909280" }
-cubit = { git = "https://github.com/influenceth/cubit" }
-starknet = "2.1.0"
+alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria.git", rev = "46c8d8ab9e3bfb68b70a29b3246f809cd8bf70e4" }
+cubit = { git = "https://github.com/Bal7hazar/cubit" }
+starknet = "2.2.0"
 
 [[target.starknet-contract]]
 # Enable Sierra codegen.
