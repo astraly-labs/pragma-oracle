@@ -331,7 +331,7 @@ mod PublisherRegistry {
     // @dev recursive function 
     // @param index : current input index, should be set to 0 
     // @param len : the total number of publishers
-    // @param publishers : a referennce to an array of publishers, to be filled
+    // @param publishers : a reference to an array of publishers, to be filled
     fn _build_array(
         self: @ContractState, index: usize, len: usize, ref publishers: Array<felt252>
     ) {
