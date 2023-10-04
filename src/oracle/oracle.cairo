@@ -183,8 +183,7 @@ mod Oracle {
     use cmp::{max, min};
     use option::OptionTrait;
     use debug::PrintTrait;
-    // const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
-    const BACKWARD_TIMESTAMP_BUFFER: u64 = 100;
+    const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
 
     // Store Packing constants
 
