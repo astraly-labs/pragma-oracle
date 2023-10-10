@@ -314,7 +314,7 @@ fn test_get_decimals() {
     assert(decimals_5 == 6_u32, 'wrong decimals value');
 }
 #[test]
-#[should_panic]
+#[should_panic(expected: ('No pair found', 'ENTRYPOINT_FAILED'))]
 #[available_gas(200000000000)]
 fn test_get_decimals_should_fail_if_not_found() {
     //Test should fail if the pair_id is not found 
@@ -323,7 +323,7 @@ fn test_get_decimals_should_fail_if_not_found() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('No pair found', 'ENTRYPOINT_FAILED'))]
 #[available_gas(200000000000)]
 fn test_get_decimals_should_fail_if_not_found_2() {
     //Test should fail if the pair_id or the expiration timestamp is not related to a FutureEntry
@@ -371,7 +371,7 @@ fn test_data_entry() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('No data entry found', 'ENTRYPOINT_FAILED'))]
 #[available_gas(200000000000)]
 fn test_data_entry_should_fail_if_not_found() {
     //no panic because we want get_data_entry is called the first time data is published
@@ -380,7 +380,7 @@ fn test_data_entry_should_fail_if_not_found() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('No data entry found', 'ENTRYPOINT_FAILED'))]
 #[available_gas(200000000000)]
 fn test_data_entry_should_fail_if_not_found_2() {
     //Test should return if the pair_id or the expiration timestamp is not related to a FutureEntry
@@ -389,7 +389,7 @@ fn test_data_entry_should_fail_if_not_found_2() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('No data entry found', 'ENTRYPOINT_FAILED'))]
 #[available_gas(200000000000)]
 fn test_data_entry_should_fail_if_not_found_3() {
     //Test should fail if the pair_id or the expiration timestamp is not related to a FutureEntry
@@ -483,7 +483,7 @@ fn get_data_median_for_sources() {
     assert(entry.price == (2500000), 'wrong price');
 }
 #[test]
-#[should_panic]
+#[should_panic(expected: ('No data entry found', 'ENTRYPOINT_FAILED'))]
 #[available_gas(2000000000)]
 fn get_data_median_for_sources_should_fail_if_wrong_sources() {
     let (publisher_registry, oracle) = setup();
@@ -670,8 +670,8 @@ fn test_get_data_median_multi() {
     assert(*res_2.at(1).price == (5000000), 'wrong price');
 }
 #[test]
+#[should_panic(expected: ('No data entry found', 'ENTRYPOINT_FAILED'))]
 #[available_gas(2000000000)]
-#[should_panic]
 fn test_data_median_multi_should_fail_if_wrong_sources() {
     let (publisher_registry, oracle) = setup();
     let mut sources = ArrayTrait::<felt252>::new();
@@ -684,7 +684,7 @@ fn test_data_median_multi_should_fail_if_wrong_sources() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('No data entry found', 'ENTRYPOINT_FAILED'))]
 #[available_gas(2000000000)]
 fn test_data_median_multi_should_fail_if_no_expiration_time_associated() {
     let (publisher_registry, oracle) = setup();
@@ -697,7 +697,7 @@ fn test_data_median_multi_should_fail_if_no_expiration_time_associated() {
     let res = oracle.get_data_median_multi(data_types.span(), sources.span());
 }
 #[test]
-#[should_panic]
+#[should_panic(expected: ('No data entry found', 'ENTRYPOINT_FAILED'))]
 #[available_gas(2000000000)]
 fn test_data_median_multi_should_fail_if_wrong_data_types() {
     let (publisher_registry, oracle) = setup();
@@ -734,8 +734,9 @@ fn test_get_data_with_usd_hop() {
     assert(entry_2.decimals == 6, 'wrong decimals-usdfhop');
 }
 
+
 #[test]
-#[should_panic]
+#[should_panic(expected: ('No pair found', 'ENTRYPOINT_FAILED'))]
 #[available_gas(2000000000)]
 fn test_get_data_with_USD_hop_should_fail_if_wrong_id() {
     let (publisher_registry, oracle) = setup();
@@ -767,7 +768,7 @@ fn test_set_checkpoint() {
     assert(checkpoint.num_sources_aggregated == 2, 'wrong num sources');
 }
 #[test]
-#[should_panic]
+#[should_panic(expected: ('No checkpoint available', 'ENTRYPOINT_FAILED'))]
 #[available_gas(2000000000)]
 fn test_set_checkpoint_should_fail_if_wrong_data_type() {
     let (publisher_registry, oracle) = setup();
@@ -796,7 +797,7 @@ fn test_get_last_checkpoint_before() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Checkpoint does not exist', 'ENTRYPOINT_FAILED'))]
 #[available_gas(2000000000)]
 fn test_get_last_checkpoint_before_should_fail_if_wrong_data_type() {
     let (publisher_registry, oracle) = setup();
@@ -808,7 +809,7 @@ fn test_get_last_checkpoint_before_should_fail_if_wrong_data_type() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Checkpoint does not exist', 'ENTRYPOINT_FAILED'))]
 #[available_gas(2000000000)]
 fn test_get_last_checkpoint_before_should_fail_if_timestamp_too_old() {
     //if timestamp is before the first checkpoint

@@ -42,7 +42,7 @@ fn deploy_publisher_registry() -> IPublisherRegistryABIDispatcher {
     publisher_registry
 }
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Admin: unauthorized', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000)]
 fn test_register_non_admin_fail() {
     set_contract_address(contract_address_const::<0x12345>());
@@ -83,7 +83,7 @@ fn test_update_publisher_address() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Caller is not the publisher', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000)]
 fn test_update_publisher_should_fail_if_not_publisher() {
     set_contract_address(contract_address_const::<0x12345>());
@@ -97,7 +97,7 @@ fn test_update_publisher_should_fail_if_not_publisher() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Already registered', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000)]
 fn test_add_source_should_fail_if_source_already_exists() {
     set_contract_address(contract_address_const::<0x12345>());
@@ -109,7 +109,7 @@ fn test_add_source_should_fail_if_source_already_exists() {
 
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Admin: unauthorized', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000)]
 fn test_add_source_should_fail_if_not_admin() {
     set_contract_address(contract_address_const::<0x12345>());
@@ -131,7 +131,7 @@ fn test_add_source() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Admin: unauthorized', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000)]
 fn test_remove_source_should_fail_if_not_admin() {
     set_contract_address(contract_address_const::<0x12345>());
@@ -142,7 +142,7 @@ fn test_remove_source_should_fail_if_not_admin() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Source not found', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000)]
 fn test_remove_source_should_fail_if_source_does_not_exist() {
     set_contract_address(contract_address_const::<0x12345>());
@@ -165,7 +165,7 @@ fn test_remove_source() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Admin: unauthorized', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000)]
 fn test_remove_publisher_should_fail_if_not_admin() {
     set_contract_address(contract_address_const::<0x12345>());
@@ -190,7 +190,7 @@ fn test_remove_publisher() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Publisher not found', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000)]
 fn test_remove_publisher_should_fail_if_publisher_does_not_exist() {
     set_contract_address(contract_address_const::<0x12345>());
@@ -202,7 +202,7 @@ fn test_remove_publisher_should_fail_if_publisher_does_not_exist() {
 
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Admin: unauthorized', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000)]
 fn test_add_publisher_should_fail_if_not_admin() {
     set_contract_address(contract_address_const::<0x12345>());
@@ -214,7 +214,7 @@ fn test_add_publisher_should_fail_if_not_admin() {
 
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Name already registered', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000)]
 fn test_add_publisher_should_fail_if_publisher_already_exists() {
     set_contract_address(contract_address_const::<0x12345>());
@@ -238,7 +238,7 @@ fn test_change_admin() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Admin: unauthorized', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000)]
 fn test_change_admin_should_fail_if_not_admin() {
     set_contract_address(contract_address_const::<0x12345>());
@@ -249,7 +249,7 @@ fn test_change_admin_should_fail_if_not_admin() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Admin address cannot be zero', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000)]
 fn test_change_admin_should_fail_if_admin_is_zero() {
     set_contract_address(contract_address_const::<0x12345>());
@@ -260,7 +260,7 @@ fn test_change_admin_should_fail_if_admin_is_zero() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Same admin address', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000)]
 fn test_change_admin_should_fail_if_admin_is_same_as_current_admin() {
     set_contract_address(contract_address_const::<0x12345>());
@@ -271,7 +271,7 @@ fn test_change_admin_should_fail_if_admin_is_same_as_current_admin() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: ('Admin: unauthorized', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000)]
 fn test_change_admin_should_fail_if_admin_is_same_as_current_admin_2() {
     set_contract_address(contract_address_const::<0x12345>());
