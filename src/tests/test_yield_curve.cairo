@@ -141,7 +141,7 @@ fn test_yield_curve_deploy() {
 }
 
 #[test]
-#[should_panic(expected: ('No data entry found', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('No data entry found', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
 #[available_gas(10000000000)]
 fn test_yield_curve_empty() {
     let (oracle, yield_curve) = setup();
