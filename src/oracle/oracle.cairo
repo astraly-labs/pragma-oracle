@@ -188,6 +188,7 @@ mod Oracle {
     // Store Packing constants
 
     // For the entry storage
+    const MAX_FELT : u256 = 3618502788666131213697322783095070105623107215331596699973092056135872020480;  //max felt value
     const TIMESTAMP_SHIFT_U32: felt252 = 0x100000000;
     const VOLUME_SHIFT_U132: felt252 = 0x1000000000000000000000000000000000;
 
@@ -368,9 +369,11 @@ mod Oracle {
 
     impl EntryStorePacking of StorePacking<EntryStorage, felt252> {
         fn pack(value: EntryStorage) -> felt252 {
-            value.timestamp.into()
+            let pack_value: felt252 = value.timestamp.into()
                 + value.volume.into() * TIMESTAMP_SHIFT_U32
-                + value.price.into() * VOLUME_SHIFT_U132
+                + value.price.into() * VOLUME_SHIFT_U132;
+            assert(pack_value.into() <= MAX_FELT, 'EntryStorePacking:value too big');
+            pack_value
         }
         fn unpack(value: felt252) -> EntryStorage {
             let value: u256 = value.into();
