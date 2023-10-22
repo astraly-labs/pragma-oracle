@@ -1340,6 +1340,7 @@ mod Oracle {
         // @param new_currency: the new currency to be added 
         fn add_currency(ref self: ContractState, new_currency: Currency) {
             self.assert_only_admin();
+            assert(new_currency.id != 0, 'Currency id cannot be 0');
             let existing_currency = self.oracle_currencies_storage.read(new_currency.id);
             assert(existing_currency.id == 0, 'Currency already exists for key');
             self.emit(Event::SubmittedCurrency(SubmittedCurrency { currency: new_currency }));
