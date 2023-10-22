@@ -400,10 +400,12 @@ mod Oracle {
     impl CheckpointStorePacking of StorePacking<Checkpoint, felt252> {
         fn pack(value: Checkpoint) -> felt252 {
             let converted_agg_mode: u8 = value.aggregation_mode.into();
-            value.timestamp.into()
+            let pack_value: felt252 = value.timestamp.into()
                 + value.value.into() * CHECKPOINT_TIMESTAMP_SHIFT_U32
                 + converted_agg_mode.into() * CHECKPOINT_VALUE_SHIFT_U160
-                + value.num_sources_aggregated.into() * CHECKPOINT_AGGREGATION_MODE_SHIFT_U172
+                + value.num_sources_aggregated.into() * CHECKPOINT_AGGREGATION_MODE_SHIFT_U172;
+            assert(pack_value.into() <= MAX_FELT, 'CheckpointPacking:value too big');
+            pack_value
         }
         fn unpack(value: felt252) -> Checkpoint {
             let value: u256 = value.into();
