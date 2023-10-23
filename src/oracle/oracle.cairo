@@ -1369,6 +1369,10 @@ mod Oracle {
             self.assert_only_admin();
             let check_pair = self.oracle_pairs_storage.read(new_pair.id);
             assert(check_pair.id == 0, 'Pair with this key registered');
+            let base_currency = self.oracle_currencies_storage.read(new_pair.base_currency_id);
+            assert(base_currency.id != 0, 'No base currency registered');
+            let quote_currency = self.oracle_currencies_storage.read(new_pair.quote_currency_id);
+            assert(quote_currency.id != 0, 'No quote currency registered');
             self.emit(Event::SubmittedPair(SubmittedPair { pair: new_pair }));
             self.oracle_pairs_storage.write(new_pair.id, new_pair);
             self
