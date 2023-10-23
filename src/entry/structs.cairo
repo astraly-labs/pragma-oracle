@@ -6,7 +6,6 @@ const SPOT: felt252 = 'SPOT';
 const FUTURE: felt252 = 'FUTURE';
 const GENERIC: felt252 = 'GENERIC';
 const OPTION: felt252 = 'OPTION';
-const BOTH_TRUE: felt252 = 2;
 const USD_CURRENCY_ID: felt252 = 'USD';
 
 
