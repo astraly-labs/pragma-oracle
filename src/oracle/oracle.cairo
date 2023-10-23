@@ -191,7 +191,7 @@ mod Oracle {
     const MAX_FELT: u256 =
         3618502788666131213697322783095070105623107215331596699973092056135872020480; //max felt value
     const TIMESTAMP_SHIFT_U32: felt252 = 0x100000000;
-    const TIMESTAMP_SHIFT_MASK_U32 : u128 = 0xffffffff;
+    const TIMESTAMP_SHIFT_MASK_U32: u128 = 0xffffffff;
     const VOLUME_SHIFT_U132: felt252 = 0x1000000000000000000000000000000000;
     const VOLUME_SHIFT_MASK_U100: u128 = 0xfffffffffffffffffffffffff;
 
@@ -373,8 +373,14 @@ mod Oracle {
     impl EntryStorePacking of StorePacking<EntryStorage, felt252> {
         fn pack(value: EntryStorage) -> felt252 {
             // entries verifications (no overflow)
-            assert(value.timestamp.into() == value.timestamp.into() & TIMESTAMP_SHIFT_MASK_U32, 'EntryStorePack:tmp too big');
-            assert(value.volume.into() == value.volume.into() & VOLUME_SHIFT_MASK_U100, 'EntryStorePack:volume too big');
+            assert(
+                value.timestamp.into() == value.timestamp.into() & TIMESTAMP_SHIFT_MASK_U32,
+                'EntryStorePack:tmp too big'
+            );
+            assert(
+                value.volume.into() == value.volume.into() & VOLUME_SHIFT_MASK_U100,
+                'EntryStorePack:volume too big'
+            );
             let pack_value: felt252 = value.timestamp.into()
                 + value.volume.into() * TIMESTAMP_SHIFT_U32
                 + value.price.into() * VOLUME_SHIFT_U132;
