@@ -1853,6 +1853,7 @@ mod Oracle {
                     spot_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
                 );
+                assert(spot_entry.get_base_timestamp() != 0, 'Timestamp cannot be 0');
                 if (last_entry.get_base_timestamp() == 0) {
                     let sources_len = self
                         .oracle_sources_len_storage
@@ -1873,6 +1874,7 @@ mod Oracle {
                     future_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
                 );
+                assert(future_entry.get_base_timestamp() != 0, 'Timestamp cannot be 0');
                 if (last_entry.get_base_timestamp() == 0) {
                     let sources_len = self
                         .oracle_sources_len_storage
@@ -1901,6 +1903,7 @@ mod Oracle {
                     generic_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
                 );
+                assert(generic_entry.get_base_timestamp() != 0, 'Timestamp cannot be 0');
                 if (last_entry.get_base_timestamp() == 0) {
                     let sources_len = self
                         .oracle_sources_len_storage
