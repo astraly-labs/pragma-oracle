@@ -373,7 +373,7 @@ mod Oracle {
             let pack_value: felt252 = value.timestamp.into()
                 + value.volume.into() * TIMESTAMP_SHIFT_U32
                 + value.price.into() * VOLUME_SHIFT_U132;
-            assert(pack_value.into() <= MAX_FELT, 'EntryStorePacking:value too big');
+            assert(pack_value.into() < MAX_FELT, 'EntryStorePacking:value too big');
             pack_value
         }
         fn unpack(value: felt252) -> EntryStorage {
@@ -404,7 +404,7 @@ mod Oracle {
                 + value.value.into() * CHECKPOINT_TIMESTAMP_SHIFT_U32
                 + converted_agg_mode.into() * CHECKPOINT_VALUE_SHIFT_U160
                 + value.num_sources_aggregated.into() * CHECKPOINT_AGGREGATION_MODE_SHIFT_U172;
-            assert(pack_value.into() <= MAX_FELT, 'CheckpointPacking:value too big');
+            assert(pack_value.into() < MAX_FELT, 'CheckpointPacking:value too big');
             pack_value
         }
         fn unpack(value: felt252) -> Checkpoint {
