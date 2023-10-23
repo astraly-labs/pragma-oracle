@@ -822,6 +822,23 @@ fn test_get_last_checkpoint_before_should_fail_if_timestamp_too_old() {
 
 
 #[test]
+#[should_panic(expected: ('Currency id cannot be 0', 'ENTRYPOINT_FAILED'))]
+#[available_gas(2000000000)]
+fn test_add_currency_should_fail_if_currency_id_null() {
+    let (publisher_registry, oracle) = setup();
+    oracle
+        .add_currency(
+            Currency {
+                id: 0,
+                decimals: 18_u32,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+}
+
+#[test]
 #[should_panic(expected: ('No base currency registered', 'ENTRYPOINT_FAILED'))]
 #[available_gas(2000000000)]
 fn test_add_pair_should_panic_if_base_currency_do_not_corresponds() {
