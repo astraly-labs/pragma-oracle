@@ -329,7 +329,7 @@ mod Oracle {
             }
         }
     }
-    impl TupleSize4LegacyHash<
+    impl TupleSize5LegacyHash<
         E0,
         E1,
         E2,
