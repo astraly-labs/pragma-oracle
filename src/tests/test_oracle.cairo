@@ -838,3 +838,27 @@ fn test_add_currency_should_fail_if_currency_id_null() {
         );
 }
 
+
+#[should_panic(expected: ('No base currency registered', 'ENTRYPOINT_FAILED'))]
+#[available_gas(2000000000)]
+fn test_add_pair_should_panic_if_base_currency_do_not_corresponds() {
+    let (publisher_registry, oracle) = setup();
+    oracle
+        .add_pair(
+            Pair {
+                id: 10,
+                quote_currency_id: 111,
+                base_currency_id: 1931029312, //wrong base currency id 
+            }
+        )
+}
+
+
+#[test]
+#[should_panic(expected: ('No quote currency registered', 'ENTRYPOINT_FAILED'))]
+#[available_gas(2000000000)]
+fn test_add_pair_should_panic_if_quote_currency_do_not_corresponds() {
+    let (publisher_registry, oracle) = setup();
+    oracle
+        .add_pair(Pair { id: 10, quote_currency_id: 123123132, base_currency_id: USD_CURRENCY_ID, })
+}
