@@ -838,7 +838,7 @@ fn test_add_currency_should_fail_if_currency_id_null() {
         );
 }
 
-
+#[test]
 #[should_panic(expected: ('No base currency registered', 'ENTRYPOINT_FAILED'))]
 #[available_gas(2000000000)]
 fn test_add_pair_should_panic_if_base_currency_do_not_corresponds() {
