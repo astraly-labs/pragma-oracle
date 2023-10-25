@@ -184,6 +184,7 @@ mod Oracle {
     use option::OptionTrait;
     use debug::PrintTrait;
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
+    const FORWARD_TIMESTAMP_BUFFER: u64 = 10; // 10 seconds
 
     // Store Packing constants
 
@@ -329,7 +330,7 @@ mod Oracle {
             }
         }
     }
-    impl TupleSize4LegacyHash<
+    impl TupleSize5LegacyHash<
         E0,
         E1,
         E2,
@@ -1847,11 +1848,16 @@ mod Oracle {
     fn validate_data_timestamp<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
         ref self: ContractState, new_entry: PossibleEntries, last_entry: T,
     ) {
+        let current_timestamp = get_block_timestamp();
         match new_entry {
             PossibleEntries::Spot(spot_entry) => {
                 assert(
                     spot_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
+                );
+                assert(
+                    spot_entry.get_base_timestamp() <= current_timestamp + FORWARD_TIMESTAMP_BUFFER,
+                    'Timestamp is in the future'
                 );
                 assert(spot_entry.get_base_timestamp() != 0, 'Timestamp cannot be 0');
                 if (last_entry.get_base_timestamp() == 0) {
@@ -1875,6 +1881,11 @@ mod Oracle {
                     'Existing entry is more recent'
                 );
                 assert(future_entry.get_base_timestamp() != 0, 'Timestamp cannot be 0');
+                assert(
+                    future_entry.get_base_timestamp() <= current_timestamp
+                        + FORWARD_TIMESTAMP_BUFFER,
+                    'Timestamp is in the future'
+                );
                 if (last_entry.get_base_timestamp() == 0) {
                     let sources_len = self
                         .oracle_sources_len_storage
@@ -1902,6 +1913,11 @@ mod Oracle {
                 assert(
                     generic_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
+                );
+                assert(
+                    generic_entry.get_base_timestamp() <= current_timestamp
+                        + FORWARD_TIMESTAMP_BUFFER,
+                    'Timestamp is in the future'
                 );
                 assert(generic_entry.get_base_timestamp() != 0, 'Timestamp cannot be 0');
                 if (last_entry.get_base_timestamp() == 0) {
