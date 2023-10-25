@@ -184,6 +184,7 @@ mod Oracle {
     use option::OptionTrait;
     use debug::PrintTrait;
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
+    const FORWARD_TIMESTAMP_BUFFER: u64 = 10; // 10 seconds
 
     // Store Packing constants
 
@@ -334,7 +335,7 @@ mod Oracle {
             }
         }
     }
-    impl TupleSize4LegacyHash<
+    impl TupleSize5LegacyHash<
         E0,
         E1,
         E2,
@@ -1360,6 +1361,7 @@ mod Oracle {
         // @param new_currency: the new currency to be added 
         fn add_currency(ref self: ContractState, new_currency: Currency) {
             self.assert_only_admin();
+            assert(new_currency.id != 0, 'Currency id cannot be 0');
             let existing_currency = self.oracle_currencies_storage.read(new_currency.id);
             assert(existing_currency.id == 0, 'Currency already exists for key');
             self.emit(Event::SubmittedCurrency(SubmittedCurrency { currency: new_currency }));
@@ -1389,6 +1391,10 @@ mod Oracle {
             self.assert_only_admin();
             let check_pair = self.oracle_pairs_storage.read(new_pair.id);
             assert(check_pair.id == 0, 'Pair with this key registered');
+            let base_currency = self.oracle_currencies_storage.read(new_pair.base_currency_id);
+            assert(base_currency.id != 0, 'No base currency registered');
+            let quote_currency = self.oracle_currencies_storage.read(new_pair.quote_currency_id);
+            assert(quote_currency.id != 0, 'No quote currency registered');
             self.emit(Event::SubmittedPair(SubmittedPair { pair: new_pair }));
             self.oracle_pairs_storage.write(new_pair.id, new_pair);
             self
@@ -1862,11 +1868,16 @@ mod Oracle {
     fn validate_data_timestamp<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
         ref self: ContractState, new_entry: PossibleEntries, last_entry: T,
     ) {
+        let current_timestamp = get_block_timestamp();
         match new_entry {
             PossibleEntries::Spot(spot_entry) => {
                 assert(
                     spot_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
+                );
+                assert(
+                    spot_entry.get_base_timestamp() <= current_timestamp + FORWARD_TIMESTAMP_BUFFER,
+                    'Timestamp is in the future'
                 );
                 if (last_entry.get_base_timestamp() == 0) {
                     let sources_len = self
@@ -1887,6 +1898,11 @@ mod Oracle {
                 assert(
                     future_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
+                );
+                assert(
+                    future_entry.get_base_timestamp() <= current_timestamp
+                        + FORWARD_TIMESTAMP_BUFFER,
+                    'Timestamp is in the future'
                 );
                 if (last_entry.get_base_timestamp() == 0) {
                     let sources_len = self
@@ -1915,6 +1931,11 @@ mod Oracle {
                 assert(
                     generic_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
                     'Existing entry is more recent'
+                );
+                assert(
+                    generic_entry.get_base_timestamp() <= current_timestamp
+                        + FORWARD_TIMESTAMP_BUFFER,
+                    'Timestamp is in the future'
                 );
                 if (last_entry.get_base_timestamp() == 0) {
                     let sources_len = self
