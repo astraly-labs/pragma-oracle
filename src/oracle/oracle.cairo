@@ -709,8 +709,6 @@ mod Oracle {
             aggregation_mode: AggregationMode,
             sources: Span<felt252>
         ) -> PragmaPricesResponse {
-            let mut entries = ArrayTrait::<PossibleEntries>::new();
-
             let (entries, last_updated_timestamp) = IOracleABI::get_data_entries_for_sources(
                 self, data_type, sources
             );
@@ -2121,9 +2119,7 @@ mod Oracle {
             }
             match data_type {
                 DataType::SpotEntry(pair_id) => {
-                    let new_source = self
-                        .oracle_sources_storage
-                        .read((pair_id, SPOT, idx.into(), 0));
+                    let new_source = self.oracle_sources_storage.read((pair_id, SPOT, idx, 0));
 
                     sources.append(new_source);
                 },
@@ -2132,13 +2128,11 @@ mod Oracle {
                 )) => {
                     let new_source = self
                         .oracle_sources_storage
-                        .read((pair_id, FUTURE, idx.into(), expiration_timestamp));
+                        .read((pair_id, FUTURE, idx, expiration_timestamp));
                     sources.append(new_source);
                 },
                 DataType::GenericEntry(key) => {
-                    let new_source = self
-                        .oracle_sources_storage
-                        .read((key, GENERIC, idx.into(), 0));
+                    let new_source = self.oracle_sources_storage.read((key, GENERIC, idx, 0));
                     sources.append(new_source);
                 }
             }
