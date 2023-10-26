@@ -72,7 +72,7 @@ struct eSSVI {
 }
 
 
-#[derive(Serde, Drop, Copy)]
+#[derive(Serde, Drop, Copy, starknet::Store)]
 struct EntryStorage {
     timestamp: u64,
     volume: u128,
@@ -142,7 +142,7 @@ struct Currency {
     ethereum_address: ContractAddress, // optional
 }
 
-#[derive(Serde, Drop)]
+#[derive(Serde, Drop, starknet::Store)]
 struct Checkpoint {
     timestamp: u64,
     value: u128,
@@ -168,9 +168,123 @@ struct PragmaPricesResponse {
     expiration_timestamp: Option<u64>,
 }
 
-#[derive(Serde, Drop, Copy)]
+#[derive(Serde, Drop, Copy, starknet::Store)]
 enum AggregationMode {
     Median: (),
     Mean: (),
     Error: (),
 }
+
+ /// DataType should implement this trait
+    /// If it has a `base_entry` field defined by `BaseEntry` struct
+    trait hasBaseEntry<T> {
+        fn get_base_entry(self: @T) -> BaseEntry;
+        fn get_base_timestamp(self: @T) -> u64;
+    }
+
+    impl SpothasBaseEntry of hasBaseEntry<SpotEntry> {
+        fn get_base_entry(self: @SpotEntry) -> BaseEntry {
+            (*self).base
+        }
+        fn get_base_timestamp(self: @SpotEntry) -> u64 {
+            (*self).base.timestamp
+        }
+    }
+
+    impl FuturehasBaseEntry of hasBaseEntry<FutureEntry> {
+        fn get_base_entry(self: @FutureEntry) -> BaseEntry {
+            (*self).base
+        }
+        fn get_base_timestamp(self: @FutureEntry) -> u64 {
+            (*self).base.timestamp
+        }
+    }
+
+    impl GenericBaseEntry of hasBaseEntry<GenericEntry> {
+        fn get_base_entry(self: @GenericEntry) -> BaseEntry {
+            (*self).base
+        }
+        fn get_base_timestamp(self: @GenericEntry) -> u64 {
+            (*self).base.timestamp
+        }
+    }
+
+
+    impl OptionhasBaseEntry of hasBaseEntry<OptionEntry> {
+        fn get_base_entry(self: @OptionEntry) -> BaseEntry {
+            (*self).base
+        }
+        fn get_base_timestamp(self: @OptionEntry) -> u64 {
+            (*self).base.timestamp
+        }
+    }
+
+    /// DataType should implement this trait
+    /// If it has a `price` field defined in `self`
+    trait HasPrice<T> {
+        fn get_price(self: @T) -> u128;
+    }
+
+    impl SHasPriceImpl of HasPrice<SpotEntry> {
+        fn get_price(self: @SpotEntry) -> u128 {
+            (*self).price
+        }
+    }
+    impl FHasPriceImpl of HasPrice<FutureEntry> {
+        fn get_price(self: @FutureEntry) -> u128 {
+            (*self).price
+        }
+    }
+
+    impl SpotPartialOrd of PartialOrd<SpotEntry> {
+        #[inline(always)]
+        fn le(lhs: SpotEntry, rhs: SpotEntry) -> bool {
+            lhs.price <= rhs.price
+        }
+        fn ge(lhs: SpotEntry, rhs: SpotEntry) -> bool {
+            lhs.price >= rhs.price
+        }
+        fn lt(lhs: SpotEntry, rhs: SpotEntry) -> bool {
+            lhs.price < rhs.price
+        }
+        fn gt(lhs: SpotEntry, rhs: SpotEntry) -> bool {
+            lhs.price > rhs.price
+        }
+    }
+
+    impl FuturePartialOrd of PartialOrd<FutureEntry> {
+        #[inline(always)]
+        fn le(lhs: FutureEntry, rhs: FutureEntry) -> bool {
+            lhs.price <= rhs.price
+        }
+        fn ge(lhs: FutureEntry, rhs: FutureEntry) -> bool {
+            lhs.price >= rhs.price
+        }
+        fn lt(lhs: FutureEntry, rhs: FutureEntry) -> bool {
+            lhs.price < rhs.price
+        }
+        fn gt(lhs: FutureEntry, rhs: FutureEntry) -> bool {
+            lhs.price > rhs.price
+        }
+    }
+
+    impl AggregationModeIntoU8 of TryInto<AggregationMode, u8> {
+        fn try_into(self: AggregationMode) -> Option<u8> {
+            match self {
+                AggregationMode::Median(()) => Option::Some(0_u8),
+                AggregationMode::Mean(()) => Option::Some(1_u8),
+                AggregationMode::Error(()) => Option::None(()),
+            }
+        }
+    }
+    impl u8IntoAggregationMode of Into<u8, AggregationMode> {
+        fn into(self: u8) -> AggregationMode {
+            if self == 0_u8 {
+                AggregationMode::Median(())
+            } else if self == 1_u8 {
+                AggregationMode::Mean(())
+            } else {
+                AggregationMode::Error(())
+            }
+        }
+    }
