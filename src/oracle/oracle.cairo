@@ -1958,16 +1958,8 @@ mod Oracle {
         return ();
     }
 
-    // @notice add pair to the oracle, admin checkup done in the implementation
-    // @param pair: new pair to be added
-    fn add_pair(ref self: ContractState, pair: Pair) {
-        let check_pair = self.oracle_pairs_storage.read(pair.id);
-        assert(check_pair.id == 0, 'Pair with this key registered');
-        self.emit(Event::SubmittedPair(SubmittedPair { pair }));
-        self.oracle_pairs_storage.write(pair.id, pair);
-        self.oracle_pair_id_storage.write((pair.quote_currency_id, pair.base_currency_id), pair.id);
-        return ();
-    }
+   
+
 
     // @notice set source threshold
     // @param the threshold to be set 
