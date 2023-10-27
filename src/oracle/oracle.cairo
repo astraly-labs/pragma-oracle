@@ -1958,8 +1958,6 @@ mod Oracle {
         return ();
     }
 
-   
-
 
     // @notice set source threshold
     // @param the threshold to be set 
