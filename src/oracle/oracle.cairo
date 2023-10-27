@@ -262,9 +262,6 @@ mod Oracle {
     }
 
 
-
-
-
     #[derive(Drop, starknet::Event)]
     struct UpdatedPublisherRegistryAddress {
         old_publisher_registry_address: ContractAddress,
