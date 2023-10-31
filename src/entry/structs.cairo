@@ -118,6 +118,7 @@ enum PossibleEntries {
 }
 
 
+#[derive(Drop, Serde)]
 enum ArrayEntry {
     SpotEntry: Array<SpotEntry>,
     FutureEntry: Array<FutureEntry>,
@@ -173,4 +174,117 @@ enum AggregationMode {
     Median: (),
     Mean: (),
     Error: (),
+}
+
+
+/// DataType should implement this trait
+/// If it has a `base_entry` field defined by `BaseEntry` struct
+trait HasBaseEntry<T> {
+    fn get_base_entry(self: @T) -> BaseEntry;
+    fn get_base_timestamp(self: @T) -> u64;
+}
+
+impl SpothasBaseEntry of HasBaseEntry<SpotEntry> {
+    fn get_base_entry(self: @SpotEntry) -> BaseEntry {
+        (*self).base
+    }
+    fn get_base_timestamp(self: @SpotEntry) -> u64 {
+        (*self).base.timestamp
+    }
+}
+
+impl FuturehasBaseEntry of HasBaseEntry<FutureEntry> {
+    fn get_base_entry(self: @FutureEntry) -> BaseEntry {
+        (*self).base
+    }
+    fn get_base_timestamp(self: @FutureEntry) -> u64 {
+        (*self).base.timestamp
+    }
+}
+
+impl GenericBaseEntry of HasBaseEntry<GenericEntry> {
+    fn get_base_entry(self: @GenericEntry) -> BaseEntry {
+        (*self).base
+    }
+    fn get_base_timestamp(self: @GenericEntry) -> u64 {
+        (*self).base.timestamp
+    }
+}
+
+impl ResponseHasBaseEntryImpl of HasBaseEntry<PragmaPricesResponse> {
+    fn get_base_entry(self: @PragmaPricesResponse) -> BaseEntry {
+        BaseEntry { timestamp: 0, source: 0, publisher: 0 }
+    }
+    fn get_base_timestamp(self: @PragmaPricesResponse) -> u64 {
+        (*self).last_updated_timestamp
+    }
+}
+
+impl OptionhasBaseEntry of HasBaseEntry<OptionEntry> {
+    fn get_base_entry(self: @OptionEntry) -> BaseEntry {
+        (*self).base
+    }
+    fn get_base_timestamp(self: @OptionEntry) -> u64 {
+        (*self).base.timestamp
+    }
+}
+
+/// DataType should implement this trait
+/// If it has a `price` field defined in `self`
+trait HasPrice<T> {
+    fn get_price(self: @T) -> u128;
+}
+
+impl SHasPriceImpl of HasPrice<SpotEntry> {
+    fn get_price(self: @SpotEntry) -> u128 {
+        (*self).price
+    }
+}
+impl FHasPriceImpl of HasPrice<FutureEntry> {
+    fn get_price(self: @FutureEntry) -> u128 {
+        (*self).price
+    }
+}
+
+impl GHasPriceImpl of HasPrice<GenericEntry> {
+    fn get_price(self: @GenericEntry) -> u128 {
+        (*self).value
+    }
+}
+impl ResponseHasPriceImpl of HasPrice<PragmaPricesResponse> {
+    fn get_price(self: @PragmaPricesResponse) -> u128 {
+        (*self).price
+    }
+}
+
+impl SpotPartialOrd of PartialOrd<SpotEntry> {
+    #[inline(always)]
+    fn le(lhs: SpotEntry, rhs: SpotEntry) -> bool {
+        lhs.price <= rhs.price
+    }
+    fn ge(lhs: SpotEntry, rhs: SpotEntry) -> bool {
+        lhs.price >= rhs.price
+    }
+    fn lt(lhs: SpotEntry, rhs: SpotEntry) -> bool {
+        lhs.price < rhs.price
+    }
+    fn gt(lhs: SpotEntry, rhs: SpotEntry) -> bool {
+        lhs.price > rhs.price
+    }
+}
+
+impl FuturePartialOrd of PartialOrd<FutureEntry> {
+    #[inline(always)]
+    fn le(lhs: FutureEntry, rhs: FutureEntry) -> bool {
+        lhs.price <= rhs.price
+    }
+    fn ge(lhs: FutureEntry, rhs: FutureEntry) -> bool {
+        lhs.price >= rhs.price
+    }
+    fn lt(lhs: FutureEntry, rhs: FutureEntry) -> bool {
+        lhs.price < rhs.price
+    }
+    fn gt(lhs: FutureEntry, rhs: FutureEntry) -> bool {
+        lhs.price > rhs.price
+    }
 }

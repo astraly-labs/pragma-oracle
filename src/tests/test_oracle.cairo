@@ -335,37 +335,37 @@ fn test_get_decimals_should_fail_if_not_found_2() {
 #[available_gas(200000000000)]
 fn test_data_entry() {
     let (publisher_registry, oracle) = setup();
-    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 1);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (2000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 2);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 2, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (3000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::SpotEntry(3), 1);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(3), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (8000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::SpotEntry(4), 1);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(4), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (8000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::SpotEntry(4), 2);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(4), 2, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (3000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::SpotEntry(5), 1);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(5), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (5000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 11111110)), 1);
+    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 11111110)), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (2000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 11111110)), 2);
+    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 11111110)), 2, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (2000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::FutureEntry((3, 11111110)), 1);
+    let entry = oracle.get_data_entry(DataType::FutureEntry((3, 11111110)), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (3000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::FutureEntry((4, 11111110)), 1);
+    let entry = oracle.get_data_entry(DataType::FutureEntry((4, 11111110)), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (4000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::FutureEntry((5, 11111110)), 1);
+    let entry = oracle.get_data_entry(DataType::FutureEntry((5, 11111110)), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (5000000), 'wrong price');
 }
@@ -376,7 +376,7 @@ fn test_data_entry() {
 fn test_data_entry_should_fail_if_not_found() {
     //no panic because we want get_data_entry is called the first time data is published
     let (publisher_registry, oracle) = setup();
-    let entry = oracle.get_data_entry(DataType::SpotEntry(100), 1);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(100), 1, 1);
 }
 
 #[test]
@@ -385,7 +385,7 @@ fn test_data_entry_should_fail_if_not_found() {
 fn test_data_entry_should_fail_if_not_found_2() {
     //Test should return if the pair_id or the expiration timestamp is not related to a FutureEntry
     let (publisher_registry, oracle) = setup();
-    let entry = oracle.get_data_entry(DataType::FutureEntry((100, 110100)), 1);
+    let entry = oracle.get_data_entry(DataType::FutureEntry((100, 110100)), 1, 1);
 }
 
 #[test]
@@ -394,7 +394,7 @@ fn test_data_entry_should_fail_if_not_found_2() {
 fn test_data_entry_should_fail_if_not_found_3() {
     //Test should fail if the pair_id or the expiration timestamp is not related to a FutureEntry
     let (publisher_registry, oracle) = setup();
-    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 110100)), 1);
+    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 110100)), 1, 1);
 }
 
 #[test]

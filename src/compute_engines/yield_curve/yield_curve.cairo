@@ -602,7 +602,9 @@ mod YieldCurve {
             let spot_decimals = oracle_dispatcher.get_decimals(DataType::SpotEntry(pair_id));
             let spot_entry =
                 match oracle_dispatcher
-                    .get_data_entry(DataType::SpotEntry(pair_id), future_spot_pragma_source_key) {
+                    .get_data_entry_for_publishers(
+                        DataType::SpotEntry(pair_id), future_spot_pragma_source_key
+                    ) {
                 PossibleEntries::Spot(spot_entry) => spot_entry,
                 PossibleEntries::Future(_) => {
                     assert(false, 'fetching failed');
@@ -686,7 +688,7 @@ mod YieldCurve {
             }
             let future_entry =
                 match oracle_dispatcher
-                    .get_data_entry(
+                    .get_data_entry_for_publishers(
                         DataType::FutureEntry((spot_entry.pair_id, future_expiry_timestamp)),
                         future_spot_pragma_source_key
                     ) {
