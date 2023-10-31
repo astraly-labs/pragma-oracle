@@ -398,7 +398,7 @@ fn test_data_entry_should_fail_if_not_found_3() {
 }
 
 #[test]
-#[available_gas(2000000000)]
+#[available_gas(20000000000)]
 fn test_get_data() {
     let (publisher_registry, oracle) = setup();
     let entry = oracle.get_data(DataType::SpotEntry(2), AggregationMode::Median(()));
