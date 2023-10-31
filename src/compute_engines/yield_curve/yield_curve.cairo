@@ -549,7 +549,6 @@ mod YieldCurve {
             }
             let output: PragmaPricesResponse = oracle_dispatcher
                 .get_data(DataType::GenericEntry(on_key), AggregationMode::Median(()));
-
             if (output.last_updated_timestamp == 0) {
                 //No data, skip to the next one 
                 cur_idx = cur_idx + 1;

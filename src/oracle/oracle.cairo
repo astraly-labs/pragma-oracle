@@ -183,7 +183,7 @@ mod Oracle {
     use cmp::{max, min};
     use option::OptionTrait;
     use debug::PrintTrait;
-    const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
+    const BACKWARD_TIMESTAMP_BUFFER: u64 = 600; // 10 minutes
     const FORWARD_TIMESTAMP_BUFFER: u64 = 10; // 10 seconds
 
     // Store Packing constants
@@ -1746,29 +1746,30 @@ mod Oracle {
             let g_entry: PossibleEntries = IOracleABI::get_data_entry(self, data_type, source);
             match g_entry {
                 PossibleEntries::Spot(spot_entry) => {
-                    let is_entry_not_initialized: bool = spot_entry.get_base_timestamp() == 0;
-                    let condition: bool = is_entry_not_initialized
-                        && (spot_entry
-                            .get_base_timestamp() < (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
-                    if !condition {
+                    let is_entry_initialized: bool = spot_entry.get_base_timestamp() != 0;
+                    let condition: bool = is_entry_initialized
+                        & (spot_entry
+                            .get_base_timestamp() > (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
+                    if condition {
                         entries.append(PossibleEntries::Spot(spot_entry));
                     }
                 },
                 PossibleEntries::Future(future_entry) => {
-                    let is_entry_not_initialized: bool = future_entry.get_base_timestamp() == 0;
-                    let condition: bool = is_entry_not_initialized
+                    let is_entry_initialized: bool = future_entry.get_base_timestamp() != 0;
+                    let condition: bool = is_entry_initialized
                         & (future_entry
-                            .get_base_timestamp() < (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
-                    if !condition {
+                            .get_base_timestamp() > (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
+                    if condition {
                         entries.append(PossibleEntries::Future(future_entry));
                     }
                 },
                 PossibleEntries::Generic(generic_entry) => {
-                    let is_entry_not_initialized: bool = generic_entry.get_base_timestamp() == 0;
-                    let condition: bool = is_entry_not_initialized
+                    let is_entry_initialized: bool = generic_entry.get_base_timestamp() != 0;
+
+                    let condition: bool = is_entry_initialized
                         & (generic_entry
-                            .get_base_timestamp() < (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
-                    if !condition {
+                            .get_base_timestamp() > (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
+                    if condition {
                         entries.append(PossibleEntries::Generic(generic_entry));
                     }
                 }
