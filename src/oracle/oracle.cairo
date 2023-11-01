@@ -173,7 +173,7 @@ mod Oracle {
     };
     use hash::LegacyHash;
     use pragma::entry::entry::Entry;
-    use pragma::operations::time_series::convert::convert_via_usd;
+    use pragma::operations::time_series::convert::{convert_via_usd, normalize_to_decimals};
     use pragma::publisher_registry::publisher_registry::{
         IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
     };
@@ -961,7 +961,10 @@ mod Oracle {
                 IOracleABI::get_decimals(self, base_data_type),
                 IOracleABI::get_decimals(self, quote_data_type)
             );
-            let rebased_value = convert_via_usd(basePPR.price, quotePPR.price, decimals);
+
+            let normalised_basePPR_price = normalize_to_decimals(basePPR.price, IOracleABI::get_decimals(self, base_data_type),decimals);
+            let normalised_quotePPR_price = normalize_to_decimals(quotePPR.price, IOracleABI::get_decimals(self, quote_data_type),decimals);
+            let rebased_value = convert_via_usd(normalised_basePPR_price,normalised_quotePPR_price , decimals);
             let last_updated_timestamp = max(
                 quotePPR.last_updated_timestamp, basePPR.last_updated_timestamp
             );
