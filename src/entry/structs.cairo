@@ -259,7 +259,6 @@ impl ResponseHasPriceImpl of HasPrice<PragmaPricesResponse> {
     }
 }
 
-
 impl SpotPartialOrd of PartialOrd<SpotEntry> {
     #[inline(always)]
     fn le(lhs: SpotEntry, rhs: SpotEntry) -> bool {
