@@ -2031,37 +2031,40 @@ mod Oracle {
                 let g_entry: PossibleEntries = IOracleABI::get_data_entry(
                     self, data_type, source, publisher
                 );
-                
-                match g_entry {
-                PossibleEntries::Spot(spot_entry) => {
-                    let is_entry_initialized: bool = spot_entry.get_base_timestamp() != 0;
-                    let condition: bool = is_entry_initialized
-                        & (spot_entry
-                            .get_base_timestamp() > (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
-                    if condition {
-                        entries.append(PossibleEntries::Spot(spot_entry));
-                    }
-                },
-                PossibleEntries::Future(future_entry) => {
-                    let is_entry_initialized: bool = future_entry.get_base_timestamp() != 0;
-                    let condition: bool = is_entry_initialized
-                        & (future_entry
-                            .get_base_timestamp() > (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
-                    if condition {
-                        entries.append(PossibleEntries::Future(future_entry));
-                    }
-                },
-                PossibleEntries::Generic(generic_entry) => {
-                    let is_entry_initialized: bool = generic_entry.get_base_timestamp() != 0;
 
-                    let condition: bool = is_entry_initialized
-                        & (generic_entry
-                            .get_base_timestamp() > (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
-                    if condition {
-                        entries.append(PossibleEntries::Generic(generic_entry));
+                match g_entry {
+                    PossibleEntries::Spot(spot_entry) => {
+                        let is_entry_initialized: bool = spot_entry.get_base_timestamp() != 0;
+                        let condition: bool = is_entry_initialized
+                            & (spot_entry
+                                .get_base_timestamp() > (latest_timestamp
+                                    - BACKWARD_TIMESTAMP_BUFFER));
+                        if condition {
+                            entries.append(PossibleEntries::Spot(spot_entry));
+                        }
+                    },
+                    PossibleEntries::Future(future_entry) => {
+                        let is_entry_initialized: bool = future_entry.get_base_timestamp() != 0;
+                        let condition: bool = is_entry_initialized
+                            & (future_entry
+                                .get_base_timestamp() > (latest_timestamp
+                                    - BACKWARD_TIMESTAMP_BUFFER));
+                        if condition {
+                            entries.append(PossibleEntries::Future(future_entry));
+                        }
+                    },
+                    PossibleEntries::Generic(generic_entry) => {
+                        let is_entry_initialized: bool = generic_entry.get_base_timestamp() != 0;
+
+                        let condition: bool = is_entry_initialized
+                            & (generic_entry
+                                .get_base_timestamp() > (latest_timestamp
+                                    - BACKWARD_TIMESTAMP_BUFFER));
+                        if condition {
+                            entries.append(PossibleEntries::Generic(generic_entry));
+                        }
                     }
-                }
-            };
+                };
                 publisher_cur_idx += 1;
             };
             cur_idx += 1;
