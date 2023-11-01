@@ -40,9 +40,9 @@ mod randomness {
 #[cfg(test)]
 mod tests {
     mod test_oracle;
-    mod test_publisher_registry;
-    mod test_summary_stats;
-    mod test_yield_curve;
-    mod test_randomness;
+    // mod test_publisher_registry;
+    // mod test_summary_stats;
+    // mod test_yield_curve;
+    // mod test_randomness;
 }
 

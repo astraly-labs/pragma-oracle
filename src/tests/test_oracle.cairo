@@ -862,3 +862,189 @@ fn test_add_pair_should_panic_if_quote_currency_do_not_corresponds() {
     oracle
         .add_pair(Pair { id: 10, quote_currency_id: 123123132, base_currency_id: USD_CURRENCY_ID, })
 }
+
+
+
+#[test]
+#[available_gas(2000000000)]
+fn test_multiple_publishers_price() {
+    let admin = contract_address_const::<0x123456789>();    
+    let test_address = contract_address_const::<0x1234567>();
+    let test_address_2 = contract_address_const::<0x1234568>();
+    set_contract_address(admin);
+    let (publisher_registry, oracle) = setup();
+    publisher_registry.add_publisher(2, test_address);
+    // Add source 1 for publisher 1
+    publisher_registry.add_source_for_publisher(2, 1);
+    // Add source 2 for publisher 1
+    publisher_registry.add_source_for_publisher(2, 2);
+    let now = 100000;
+    set_contract_address(test_address);
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 2,
+                    price: 4 * 1000000,
+                    volume: 100
+                }
+            )
+        );
+    
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    pair_id: 2,
+                    price: 5 * 1000000,
+                    volume: 50
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 3,
+                    price: 8 * 1000000,
+                    volume: 100
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 4,
+                    price: 8 * 1000000,
+                    volume: 20
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    pair_id: 4,
+                    price: 3 * 1000000,
+                    volume: 10
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 5,
+                    price: 5 * 1000000,
+                    volume: 20
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 2,
+                    price: 2 * 1000000,
+                    volume: 40,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    pair_id: 2,
+                    price: 2 * 1000000,
+                    volume: 30,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 3,
+                    price: 3 * 1000000,
+                    volume: 1000,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 4,
+                    price: 4 * 1000000,
+                    volume: 2321,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 5,
+                    price: 5 * 1000000,
+                    volume: 231,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    pair_id: 5,
+                    price: 5 * 1000000,
+                    volume: 232,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+    let entry = oracle.get_data(DataType::SpotEntry(2), AggregationMode::Median(()));
+    assert(entry.price == (3500000), 'wrong price');
+    assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::SpotEntry(3), AggregationMode::Median(()));
+    assert(entry.price == (8000000), 'wrong price');
+    assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::SpotEntry(4), AggregationMode::Median(()));
+    assert(entry.price == (5500000), 'wrong price');
+    assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::SpotEntry(5), AggregationMode::Median(()));
+    assert(entry.price == (5000000), 'wrong price');
+    assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
+    assert(entry.price == (2 * 1000000), 'wrong price');
+    assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
+    assert(entry.price == (2 * 1000000), 'wrong price');
+    assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::FutureEntry((3, 11111110)), AggregationMode::Median(()));
+    assert(entry.price == (3 * 1000000), 'wrong price');
+    assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::FutureEntry((4, 11111110)), AggregationMode::Median(()));
+    assert(entry.price == (4 * 1000000), 'wrong price');
+    assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::FutureEntry((5, 11111110)), AggregationMode::Median(()));
+    assert(entry.price == (5 * 1000000), 'wrong price');
+        
+    
+}
