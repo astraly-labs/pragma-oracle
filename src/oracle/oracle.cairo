@@ -239,7 +239,8 @@ mod Oracle {
         oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, felt252, u64),
         EntryStorage>,
         //oracle_list_of_publishers_for_sources_storage, legacyMap between (source,(SPOT/FUTURES/OPTIONS/GENERIC), and the pair_id) and the list of publishers
-        oracle_list_of_publishers_for_sources_storage: LegacyMap::<(felt252,felt252, felt252), List<felt252>>,
+        oracle_list_of_publishers_for_sources_storage: LegacyMap::<(felt252, felt252, felt252),
+        List<felt252>>,
         //oracle_data_entry_storage len , legacyMap between pair_id, (SPOT/FUTURES/OPTIONS/GENERIC), expiration_timestamp and the length
         oracle_data_len_all_sources: LegacyMap::<(felt252, felt252, u64), u64>,
         //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT), aggregation_mode) associated to a checkpoint
@@ -645,12 +646,12 @@ mod Oracle {
                     expiration_timestamp: Option::Some(0),
                 };
             }
-            let mut data_sources = if (sources.len()==0) {
+            let mut data_sources = if (sources.len() == 0) {
                 get_all_sources(self, data_type).span()
             } else {
                 sources
             };
-            
+
             // TODO: Return only array instead of `ArrayEntry`
             let filtered_entries: ArrayEntry = filter_data_array(data_type, entries);
 
@@ -1264,22 +1265,22 @@ mod Oracle {
                     } else {
                         let mut publishers_list = self
                             .oracle_list_of_publishers_for_sources_storage
-                            .read((spot_entry.base.source,SPOT, spot_entry.pair_id));
-                        if (publishers_list.len()==0) {
+                            .read((spot_entry.base.source, SPOT, spot_entry.pair_id));
+                        if (publishers_list.len() == 0) {
                             let sources_len = self
-                            .oracle_sources_len_storage
-                            .read((spot_entry.pair_id, SPOT, 0));
-                        self
-                            .oracle_sources_storage
-                            .write(
-                                (spot_entry.pair_id, SPOT, sources_len, 0),
-                                spot_entry.get_base_entry().source
-                            );
-                        self
-                            .oracle_sources_len_storage
-                            .write((spot_entry.pair_id, SPOT, 0), sources_len + 1);
+                                .oracle_sources_len_storage
+                                .read((spot_entry.pair_id, SPOT, 0));
+                            self
+                                .oracle_sources_storage
+                                .write(
+                                    (spot_entry.pair_id, SPOT, sources_len, 0),
+                                    spot_entry.get_base_entry().source
+                                );
+                            self
+                                .oracle_sources_len_storage
+                                .write((spot_entry.pair_id, SPOT, 0), sources_len + 1);
                         }
-                        
+
                         let publisher_len = self
                             .oracle_publishers_len_storage
                             .read((spot_entry.pair_id, SPOT, 0));
@@ -1292,11 +1293,14 @@ mod Oracle {
                         self
                             .oracle_publishers_len_storage
                             .write((spot_entry.pair_id, SPOT, 0), publisher_len + 1);
-                        if (!publishers_list.array().span().contains(spot_entry.base.publisher)){
+                        if (!publishers_list.array().span().contains(spot_entry.base.publisher)) {
                             publishers_list.append(spot_entry.base.publisher);
-                        self
-                            .oracle_list_of_publishers_for_sources_storage
-                            .write((spot_entry.base.source,SPOT, spot_entry.pair_id), publishers_list);
+                            self
+                                .oracle_list_of_publishers_for_sources_storage
+                                .write(
+                                    (spot_entry.base.source, SPOT, spot_entry.pair_id),
+                                    publishers_list
+                                );
                         }
                     }
                     self.emit(Event::SubmittedSpotEntry(SubmittedSpotEntry { spot_entry }));
@@ -1352,29 +1356,37 @@ mod Oracle {
                         let mut publishers_list = self
                             .oracle_list_of_publishers_for_sources_storage
                             .read((future_entry.base.source, FUTURE, future_entry.pair_id));
-                        if (publishers_list.len()==0) {
-                        let sources_len = self
-                            .oracle_sources_len_storage
-                            .read(
-                                (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp)
-                            );
-                        self
-                            .oracle_sources_storage
-                            .write(
-                                (
-                                    future_entry.pair_id,
-                                    FUTURE,
-                                    sources_len,
-                                    future_entry.expiration_timestamp
-                                ),
-                                future_entry.get_base_entry().source
-                            );
-                        self
-                            .oracle_sources_len_storage
-                            .write(
-                                (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp),
-                                sources_len + 1
-                            );
+                        if (publishers_list.len() == 0) {
+                            let sources_len = self
+                                .oracle_sources_len_storage
+                                .read(
+                                    (
+                                        future_entry.pair_id,
+                                        FUTURE,
+                                        future_entry.expiration_timestamp
+                                    )
+                                );
+                            self
+                                .oracle_sources_storage
+                                .write(
+                                    (
+                                        future_entry.pair_id,
+                                        FUTURE,
+                                        sources_len,
+                                        future_entry.expiration_timestamp
+                                    ),
+                                    future_entry.get_base_entry().source
+                                );
+                            self
+                                .oracle_sources_len_storage
+                                .write(
+                                    (
+                                        future_entry.pair_id,
+                                        FUTURE,
+                                        future_entry.expiration_timestamp
+                                    ),
+                                    sources_len + 1
+                                );
                         }
                         let publisher_len = self
                             .oracle_publishers_len_storage
@@ -1401,11 +1413,14 @@ mod Oracle {
                         let mut publishers_list = self
                             .oracle_list_of_publishers_for_sources_storage
                             .read((future_entry.base.source, FUTURE, future_entry.pair_id));
-                        if (!publishers_list.array().span().contains(future_entry.base.publisher)){
+                        if (!publishers_list.array().span().contains(future_entry.base.publisher)) {
                             publishers_list.append(future_entry.base.publisher);
-                        self
-                            .oracle_list_of_publishers_for_sources_storage
-                            .write((future_entry.base.source,FUTURE, future_entry.pair_id), publishers_list);
+                            self
+                                .oracle_list_of_publishers_for_sources_storage
+                                .write(
+                                    (future_entry.base.source, FUTURE, future_entry.pair_id),
+                                    publishers_list
+                                );
                         }
                     }
 
@@ -1464,20 +1479,20 @@ mod Oracle {
                     } else {
                         let mut publishers_list = self
                             .oracle_list_of_publishers_for_sources_storage
-                            .read((generic_entry.base.source,GENERIC, generic_entry.key));
-                        if (publishers_list.len()==0) {
-                        let sources_len = self
-                            .oracle_sources_len_storage
-                            .read((generic_entry.key, GENERIC, 0));
-                        self
-                            .oracle_sources_storage
-                            .write(
-                                (generic_entry.key, GENERIC, sources_len, 0),
-                                generic_entry.get_base_entry().source
-                            );
-                        self
-                            .oracle_sources_len_storage
-                            .write((generic_entry.key, GENERIC, 0), sources_len + 1);
+                            .read((generic_entry.base.source, GENERIC, generic_entry.key));
+                        if (publishers_list.len() == 0) {
+                            let sources_len = self
+                                .oracle_sources_len_storage
+                                .read((generic_entry.key, GENERIC, 0));
+                            self
+                                .oracle_sources_storage
+                                .write(
+                                    (generic_entry.key, GENERIC, sources_len, 0),
+                                    generic_entry.get_base_entry().source
+                                );
+                            self
+                                .oracle_sources_len_storage
+                                .write((generic_entry.key, GENERIC, 0), sources_len + 1);
                         }
                         let publisher_len = self
                             .oracle_publishers_len_storage
@@ -1491,11 +1506,17 @@ mod Oracle {
                         self
                             .oracle_publishers_len_storage
                             .write((generic_entry.key, GENERIC, 0), publisher_len + 1);
-                        if (!publishers_list.array().span().contains(generic_entry.base.publisher)){
+                        if (!publishers_list
+                            .array()
+                            .span()
+                            .contains(generic_entry.base.publisher)) {
                             publishers_list.append(generic_entry.base.publisher);
-                        self
-                            .oracle_list_of_publishers_for_sources_storage
-                            .write((generic_entry.base.source,GENERIC, generic_entry.key), publishers_list);
+                            self
+                                .oracle_list_of_publishers_for_sources_storage
+                                .write(
+                                    (generic_entry.base.source, GENERIC, generic_entry.key),
+                                    publishers_list
+                                );
                         }
                     }
                     self
@@ -1889,8 +1910,14 @@ mod Oracle {
     // @param source: the source to consider
     // @param type_of_data: the type of data to consider (e.g SPOT, FUTURE, GENERIC)
     // @returns a span of publishers
-    fn get_publishers_for_source(self: @ContractState, source: felt252,type_of_data: felt252, pair_id: felt252) -> Span<felt252> {
-        self.oracle_list_of_publishers_for_sources_storage.read((source,type_of_data,pair_id)).array().span()
+    fn get_publishers_for_source(
+        self: @ContractState, source: felt252, type_of_data: felt252, pair_id: felt252
+    ) -> Span<felt252> {
+        self
+            .oracle_list_of_publishers_for_sources_storage
+            .read((source, type_of_data, pair_id))
+            .array()
+            .span()
     }
     // @notice check if the publisher is registered, and allowed to publish the entry, calling the publisher registry contract
     // @param entry: the entry to be published 
@@ -1930,7 +1957,11 @@ mod Oracle {
             DataType::FutureEntry((
                 pair_id, expiration_timestamp
             )) => {
-                (self.oracle_data_len_all_sources.read((pair_id, FUTURE, expiration_timestamp)), FUTURE, pair_id)
+                (
+                    self.oracle_data_len_all_sources.read((pair_id, FUTURE, expiration_timestamp)),
+                    FUTURE,
+                    pair_id
+                )
             },
             DataType::GenericEntry(key) => {
                 (self.oracle_data_len_all_sources.read((key, GENERIC, 0)), GENERIC, key)
@@ -2007,8 +2038,8 @@ mod Oracle {
                 break ();
             }
             let source: felt252 = *sources.get(cur_idx).unwrap().unbox();
-            let publishers = get_publishers_for_source(self, source, type_of_data,pair_id);
-            assert(publishers.len()!=0, 'No publisher for source');
+            let publishers = get_publishers_for_source(self, source, type_of_data, pair_id);
+            assert(publishers.len() != 0, 'No publisher for source');
             let mut publisher_cur_idx = 0;
             loop {
                 if (publisher_cur_idx >= publishers.len()) {
@@ -2148,7 +2179,11 @@ mod Oracle {
         impl TDestruct: Destruct<T>,
         impl TCopy: Copy<T>
     >(
-        self: @ContractState, array: Span<T>, source: felt252, type_of_data: felt252, pair_id : felt252
+        self: @ContractState,
+        array: Span<T>,
+        source: felt252,
+        type_of_data: felt252,
+        pair_id: felt252
     ) -> Span<T> {
         let mut cur_idx = 0;
         let mut publisher_filtered_array = ArrayTrait::<T>::new();
@@ -2158,7 +2193,8 @@ mod Oracle {
                 break ();
             }
             let entry = *array.at(cur_idx);
-            if (publishers.contains(entry.get_base_entry().publisher) && entry.get_base_entry().source==source) {
+            if (publishers.contains(entry.get_base_entry().publisher)
+                && entry.get_base_entry().source == source) {
                 publisher_filtered_array.append(entry);
             }
             cur_idx = cur_idx + 1;

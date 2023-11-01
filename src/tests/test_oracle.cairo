@@ -864,11 +864,10 @@ fn test_add_pair_should_panic_if_quote_currency_do_not_corresponds() {
 }
 
 
-
 #[test]
 #[available_gas(2000000000)]
 fn test_multiple_publishers_price() {
-    let admin = contract_address_const::<0x123456789>();    
+    let admin = contract_address_const::<0x123456789>();
     let test_address = contract_address_const::<0x1234567>();
     let test_address_2 = contract_address_const::<0x1234568>();
     set_contract_address(admin);
@@ -891,7 +890,7 @@ fn test_multiple_publishers_price() {
                 }
             )
         );
-    
+
     oracle
         .publish_data(
             PossibleEntries::Spot(
@@ -1045,6 +1044,4 @@ fn test_multiple_publishers_price() {
     assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
     let entry = oracle.get_data(DataType::FutureEntry((5, 11111110)), AggregationMode::Median(()));
     assert(entry.price == (5 * 1000000), 'wrong price');
-        
-    
 }
