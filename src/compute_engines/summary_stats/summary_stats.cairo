@@ -78,6 +78,7 @@ mod SummaryStats {
             stop: u64,
             aggregation_mode: AggregationMode
         ) -> (u128, u32) {
+            assert(start < stop, 'start must be < stop');
             let oracle_address = self.oracle_address.read();
             let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
 
@@ -130,6 +131,7 @@ mod SummaryStats {
             num_samples: u64,
             aggregation_mode: AggregationMode,
         ) -> (u128, u32) {
+            assert(start_tick < end_tick, 'start_tick must be < end_tick');
             let oracle_address = self.oracle_address.read();
 
             assert(num_samples > 0, 'num_samples must be > 0');
