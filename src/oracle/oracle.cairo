@@ -2020,8 +2020,19 @@ mod Oracle {
                 break ();
             }
             let source: felt252 = *sources.get(cur_idx).unwrap().unbox();
-            let g_entry: PossibleEntries = IOracleABI::get_data_entry(self, data_type, source);
-            match g_entry {
+            let publishers = get_publishers_for_source(self, source, type_of_data, pair_id);
+            assert(publishers.len() != 0, 'No publisher for source');
+            let mut publisher_cur_idx = 0;
+            loop {
+                if (publisher_cur_idx >= publishers.len()) {
+                    break ();
+                }
+                let publisher: felt252 = *publishers.get(publisher_cur_idx).unwrap().unbox();
+                let g_entry: PossibleEntries = IOracleABI::get_data_entry(
+                    self, data_type, source, publisher
+                );
+                
+                match g_entry {
                 PossibleEntries::Spot(spot_entry) => {
                     let is_entry_initialized: bool = spot_entry.get_base_timestamp() != 0;
                     let condition: bool = is_entry_initialized
@@ -2051,7 +2062,8 @@ mod Oracle {
                     }
                 }
             };
-
+                publisher_cur_idx += 1;
+            };
             cur_idx += 1;
         };
 
