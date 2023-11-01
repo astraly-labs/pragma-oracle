@@ -41,7 +41,6 @@ trait IOracleABI<TContractState> {
     fn get_data_entry_for_publishers(
         self: @TContractState, data_type: DataType, source: felt252
     ) -> PossibleEntries;
-
     fn get_data_for_sources(
         self: @TContractState,
         data_type: DataType,
@@ -1112,6 +1111,7 @@ mod Oracle {
             self: @ContractState, data_type: DataType, source: felt252
         ) -> PossibleEntries {
             let mut cur_idx = 0;
+            let mut volumes = ArrayTrait::<u128>::new();
             match data_type {
                 DataType::SpotEntry(pair_id) => {
                     let publishers = get_publishers_for_source(self, source, SPOT, pair_id);
@@ -1125,6 +1125,7 @@ mod Oracle {
                         match entry {
                             PossibleEntries::Spot(spot_entry) => {
                                 spot_entries.append(spot_entry);
+                                volumes.append(spot_entry.volume);
                             },
                             PossibleEntries::Future(_) => {},
                             PossibleEntries::Generic(_) => {},
@@ -1134,6 +1135,7 @@ mod Oracle {
                     let median = Entry::aggregate_entries::<SpotEntry>(
                         spot_entries.span(), AggregationMode::Median(())
                     );
+                    let median_volume = Entry::compute_median(volumes);
                     let last_updated_timestamp = Entry::aggregate_timestamps_max::<SpotEntry>(
                         spot_entries.span()
                     );
@@ -1145,9 +1147,7 @@ mod Oracle {
                             },
                             pair_id: pair_id,
                             price: median,
-                            volume: *spot_entries
-                                .at(0)
-                                .volume //URGENT: CHECK IF IT'S THE GOOD VALUE
+                            volume: median_volume
                         }
                     );
                 },
@@ -1295,12 +1295,6 @@ mod Oracle {
                             .write((spot_entry.pair_id, SPOT, 0), publisher_len + 1);
                         if (!publishers_list.array().span().contains(spot_entry.base.publisher)) {
                             publishers_list.append(spot_entry.base.publisher);
-                            self
-                                .oracle_list_of_publishers_for_sources_storage
-                                .write(
-                                    (spot_entry.base.source, SPOT, spot_entry.pair_id),
-                                    publishers_list
-                                );
                         }
                     }
                     self.emit(Event::SubmittedSpotEntry(SubmittedSpotEntry { spot_entry }));
@@ -1415,12 +1409,6 @@ mod Oracle {
                             .read((future_entry.base.source, FUTURE, future_entry.pair_id));
                         if (!publishers_list.array().span().contains(future_entry.base.publisher)) {
                             publishers_list.append(future_entry.base.publisher);
-                            self
-                                .oracle_list_of_publishers_for_sources_storage
-                                .write(
-                                    (future_entry.base.source, FUTURE, future_entry.pair_id),
-                                    publishers_list
-                                );
                         }
                     }
 
@@ -1511,12 +1499,6 @@ mod Oracle {
                             .span()
                             .contains(generic_entry.base.publisher)) {
                             publishers_list.append(generic_entry.base.publisher);
-                            self
-                                .oracle_list_of_publishers_for_sources_storage
-                                .write(
-                                    (generic_entry.base.source, GENERIC, generic_entry.key),
-                                    publishers_list
-                                );
                         }
                     }
                     self

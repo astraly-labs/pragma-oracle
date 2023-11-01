@@ -1045,3 +1045,4 @@ fn test_multiple_publishers_price() {
     let entry = oracle.get_data(DataType::FutureEntry((5, 11111110)), AggregationMode::Median(()));
     assert(entry.price == (5 * 1000000), 'wrong price');
 }
+

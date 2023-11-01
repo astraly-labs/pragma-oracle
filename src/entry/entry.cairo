@@ -2,7 +2,7 @@ use array::{ArrayTrait, SpanTrait};
 use pragma::entry::structs::{BaseEntry, AggregationMode};
 use pragma::operations::sorting::merge_sort::merge;
 use pragma::entry::structs::{
-    SpotEntry, FutureEntry, GenericEntry, PragmaPricesResponse, HasPrice, HasBaseEntry
+    SpotEntry, FutureEntry, GenericEntry, PragmaPricesResponse, HasPrice, HasBaseEntry,
 };
 use traits::TryInto;
 use traits::Into;
@@ -82,6 +82,8 @@ mod Entry {
         }
     }
 
+    //
+
     // @notice returns the median value from an entries array
     // @param entries: array of entries to aggregate
     // @return value: the median value from the array of entries
@@ -129,6 +131,24 @@ mod Entry {
                     break sum / entries_len.into();
                 }
             };
+        }
+    }
+
+    fn compute_median(entry_array: Array<u128>) -> u128 {
+        let sorted_array = alexandria_sorting::merge_sort::merge(entry_array);
+        let entries_len = sorted_array.len();
+        assert(entries_len > 0_usize, 'entries must not be empty');
+        let is_even = 1 - entries_len % 2_usize;
+        if (is_even == 0) {
+            let median_idx = (entries_len) / 2;
+            let median_entry = *sorted_array.at(median_idx);
+            median_entry
+        } else {
+            let median_idx_1 = entries_len / 2;
+            let median_idx_2 = median_idx_1 - 1;
+            let median_entry_1 = (*sorted_array.at(median_idx_1));
+            let median_entry_2 = (*sorted_array.at(median_idx_2));
+            (median_entry_1 + median_entry_2) / 2
         }
     }
 }
