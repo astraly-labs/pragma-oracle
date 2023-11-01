@@ -82,7 +82,16 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                 ethereum_address: 0.try_into().unwrap(), // optional
             }
         );
-
+    currencies
+        .append(
+            Currency {
+                id: 'hop',
+                decimals: 10_u32,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
     let mut pairs = ArrayTrait::<Pair>::new();
     pairs
         .append(
@@ -124,7 +133,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                 base_currency_id: USD_CURRENCY_ID, // currency id - str_to_felt encode the ticker
             }
         );
-
+    pairs.append(Pair { id: 6, quote_currency_id: 'hop', base_currency_id: USD_CURRENCY_ID, });
     let admin = contract_address_const::<0x123456789>();
 
     set_block_timestamp(BLOCK_TIMESTAMP);
@@ -294,6 +303,18 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
                     price: 5 * 1000000,
                     volume: 232,
                     expiration_timestamp: 11111110
+                }
+            )
+        );
+
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    pair_id: 6,
+                    price: 2 * 1000000,
+                    volume: 440
                 }
             )
         );
@@ -734,6 +755,20 @@ fn test_get_data_with_usd_hop() {
     assert(entry_2.decimals == 6, 'wrong decimals-usdfhop');
 }
 
+
+#[test]
+#[available_gas(2000000000)]
+fn test_get_data_with_usd_hop_diff() {
+    let (publisher_registry, oracle) = setup();
+    let entry = oracle
+        .get_data_with_USD_hop(
+            'hop', 333, AggregationMode::Median(()), SimpleDataType::SpotEntry(()), Option::Some(0)
+        );
+    assert(entry.price == 400000, 'wrong price for hop');
+    assert(entry.decimals == 6, 'wrong decimals for hop');
+}
+
+
 #[test]
 #[should_panic]
 #[available_gas(2000000000)]
@@ -766,12 +801,13 @@ fn test_set_checkpoint() {
     assert(checkpoint.value == (2000000), 'wrong checkpoint');
     assert(checkpoint.num_sources_aggregated == 2, 'wrong num sources');
 }
+
 #[test]
 #[should_panic]
 #[available_gas(2000000000)]
 fn test_set_checkpoint_should_fail_if_wrong_data_type() {
     let (publisher_registry, oracle) = setup();
-    oracle.set_checkpoint(DataType::SpotEntry(6), AggregationMode::Median(()));
+    oracle.set_checkpoint(DataType::SpotEntry(8), AggregationMode::Median(()));
 }
 #[test]
 #[available_gas(2000000000)]
