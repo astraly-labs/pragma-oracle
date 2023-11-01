@@ -191,7 +191,7 @@ mod Oracle {
     use cmp::{max, min};
     use option::OptionTrait;
     use debug::PrintTrait;
-    const BACKWARD_TIMESTAMP_BUFFER: u64 = 7800; // 2 hours and 10 minutes
+    const BACKWARD_TIMESTAMP_BUFFER: u64 = 600; // 10 minutes
     const FORWARD_TIMESTAMP_BUFFER: u64 = 10; // 10 seconds
 
     // Store Packing constants
@@ -2020,52 +2020,38 @@ mod Oracle {
                 break ();
             }
             let source: felt252 = *sources.get(cur_idx).unwrap().unbox();
-            let publishers = get_publishers_for_source(self, source, type_of_data, pair_id);
-            assert(publishers.len() != 0, 'No publisher for source');
-            let mut publisher_cur_idx = 0;
-            loop {
-                if (publisher_cur_idx >= publishers.len()) {
-                    break ();
-                }
-                let publisher: felt252 = *publishers.get(publisher_cur_idx).unwrap().unbox();
-                let g_entry: PossibleEntries = IOracleABI::get_data_entry(
-                    self, data_type, source, publisher
-                );
-                match g_entry {
-                    PossibleEntries::Spot(spot_entry) => {
-                        let is_entry_not_initialized: bool = spot_entry.get_base_timestamp() == 0;
-                        let condition: bool = is_entry_not_initialized
-                            && (spot_entry
-                                .get_base_timestamp() < (latest_timestamp
-                                    - BACKWARD_TIMESTAMP_BUFFER));
-                        if !condition {
-                            entries.append(PossibleEntries::Spot(spot_entry));
-                        }
-                    },
-                    PossibleEntries::Future(future_entry) => {
-                        let is_entry_not_initialized: bool = future_entry.get_base_timestamp() == 0;
-                        let condition: bool = is_entry_not_initialized
-                            & (future_entry
-                                .get_base_timestamp() < (latest_timestamp
-                                    - BACKWARD_TIMESTAMP_BUFFER));
-                        if !condition {
-                            entries.append(PossibleEntries::Future(future_entry));
-                        }
-                    },
-                    PossibleEntries::Generic(generic_entry) => {
-                        let is_entry_not_initialized: bool = generic_entry
-                            .get_base_timestamp() == 0;
-                        let condition: bool = is_entry_not_initialized
-                            & (generic_entry
-                                .get_base_timestamp() < (latest_timestamp
-                                    - BACKWARD_TIMESTAMP_BUFFER));
-                        if !condition {
-                            entries.append(PossibleEntries::Generic(generic_entry));
-                        }
+            let g_entry: PossibleEntries = IOracleABI::get_data_entry(self, data_type, source);
+            match g_entry {
+                PossibleEntries::Spot(spot_entry) => {
+                    let is_entry_initialized: bool = spot_entry.get_base_timestamp() != 0;
+                    let condition: bool = is_entry_initialized
+                        & (spot_entry
+                            .get_base_timestamp() > (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
+                    if condition {
+                        entries.append(PossibleEntries::Spot(spot_entry));
                     }
-                };
-                publisher_cur_idx += 1;
+                },
+                PossibleEntries::Future(future_entry) => {
+                    let is_entry_initialized: bool = future_entry.get_base_timestamp() != 0;
+                    let condition: bool = is_entry_initialized
+                        & (future_entry
+                            .get_base_timestamp() > (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
+                    if condition {
+                        entries.append(PossibleEntries::Future(future_entry));
+                    }
+                },
+                PossibleEntries::Generic(generic_entry) => {
+                    let is_entry_initialized: bool = generic_entry.get_base_timestamp() != 0;
+
+                    let condition: bool = is_entry_initialized
+                        & (generic_entry
+                            .get_base_timestamp() > (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
+                    if condition {
+                        entries.append(PossibleEntries::Generic(generic_entry));
+                    }
+                }
             };
+
             cur_idx += 1;
         };
 
@@ -2342,16 +2328,6 @@ mod Oracle {
         return ();
     }
 
-    // @notice add pair to the oracle, admin checkup done in the implementation
-    // @param pair: new pair to be added
-    fn add_pair(ref self: ContractState, pair: Pair) {
-        let check_pair = self.oracle_pairs_storage.read(pair.id);
-        assert(check_pair.id == 0, 'Pair with this key registered');
-        self.emit(Event::SubmittedPair(SubmittedPair { pair }));
-        self.oracle_pairs_storage.write(pair.id, pair);
-        self.oracle_pair_id_storage.write((pair.quote_currency_id, pair.base_currency_id), pair.id);
-        return ();
-    }
 
     // @notice set source threshold
     // @param the threshold to be set 
@@ -2507,9 +2483,7 @@ mod Oracle {
             }
             match data_type {
                 DataType::SpotEntry(pair_id) => {
-                    let new_source = self
-                        .oracle_sources_storage
-                        .read((pair_id, SPOT, idx.into(), 0));
+                    let new_source = self.oracle_sources_storage.read((pair_id, SPOT, idx, 0));
 
                     sources.append(new_source);
                 },
@@ -2518,13 +2492,11 @@ mod Oracle {
                 )) => {
                     let new_source = self
                         .oracle_sources_storage
-                        .read((pair_id, FUTURE, idx.into(), expiration_timestamp));
+                        .read((pair_id, FUTURE, idx, expiration_timestamp));
                     sources.append(new_source);
                 },
                 DataType::GenericEntry(key) => {
-                    let new_source = self
-                        .oracle_sources_storage
-                        .read((key, GENERIC, idx.into(), 0));
+                    let new_source = self.oracle_sources_storage.read((key, GENERIC, idx, 0));
                     sources.append(new_source);
                 }
             }
