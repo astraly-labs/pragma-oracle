@@ -9,7 +9,7 @@ const OPTION: felt252 = 'OPTION';
 const USD_CURRENCY_ID: felt252 = 'USD';
 
 
-#[derive(Copy, Drop, Serde, starknet::Store)]
+#[derive(Copy, Drop, Serde)]
 struct BaseEntry {
     timestamp: u64,
     source: felt252,
@@ -72,7 +72,7 @@ struct eSSVI {
 }
 
 
-#[derive(Serde, Drop, Copy)]
+#[derive(Serde, Drop, Copy, starknet::Store)]
 struct EntryStorage {
     timestamp: u64,
     volume: u128,
@@ -143,7 +143,7 @@ struct Currency {
     ethereum_address: ContractAddress, // optional
 }
 
-#[derive(Serde, Drop)]
+#[derive(Serde, Drop, starknet::Store)]
 struct Checkpoint {
     timestamp: u64,
     value: u128,
@@ -151,7 +151,7 @@ struct Checkpoint {
     num_sources_aggregated: u32,
 }
 
-#[derive(Serde, Drop, Copy, starknet::Store)]
+#[derive(Serde, Drop, Copy)]
 struct FetchCheckpoint {
     pair_id: felt252,
     type_of: felt252,
@@ -169,7 +169,7 @@ struct PragmaPricesResponse {
     expiration_timestamp: Option<u64>,
 }
 
-#[derive(Serde, Drop, Copy)]
+#[derive(Serde, Drop, Copy, starknet::Store)]
 enum AggregationMode {
     Median: (),
     Mean: (),
@@ -287,5 +287,26 @@ impl FuturePartialOrd of PartialOrd<FutureEntry> {
     }
     fn gt(lhs: FutureEntry, rhs: FutureEntry) -> bool {
         lhs.price > rhs.price
+    }
+}
+
+impl AggregationModeIntoU8 of TryInto<AggregationMode, u8> {
+    fn try_into(self: AggregationMode) -> Option<u8> {
+        match self {
+            AggregationMode::Median(()) => Option::Some(0_u8),
+            AggregationMode::Mean(()) => Option::Some(1_u8),
+            AggregationMode::Error(()) => Option::None(()),
+        }
+    }
+}
+impl u8IntoAggregationMode of Into<u8, AggregationMode> {
+    fn into(self: u8) -> AggregationMode {
+        if self == 0_u8 {
+            AggregationMode::Median(())
+        } else if self == 1_u8 {
+            AggregationMode::Mean(())
+        } else {
+            AggregationMode::Error(())
+        }
     }
 }
