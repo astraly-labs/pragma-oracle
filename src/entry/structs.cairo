@@ -9,7 +9,7 @@ const OPTION: felt252 = 'OPTION';
 const USD_CURRENCY_ID: felt252 = 'USD';
 
 
-#[derive(Copy, Drop, Serde, starknet::Store)]
+#[derive(Copy, Drop, Serde)]
 struct BaseEntry {
     timestamp: u64,
     source: felt252,
@@ -150,7 +150,7 @@ struct Checkpoint {
     num_sources_aggregated: u32,
 }
 
-#[derive(Serde, Drop, Copy, starknet::Store)]
+#[derive(Serde, Drop, Copy)]
 struct FetchCheckpoint {
     pair_id: felt252,
     type_of: felt252,
@@ -253,7 +253,6 @@ impl SpotPartialOrd of PartialOrd<SpotEntry> {
 }
 
 impl FuturePartialOrd of PartialOrd<FutureEntry> {
-    #[inline(always)]
     fn le(lhs: FutureEntry, rhs: FutureEntry) -> bool {
         lhs.price <= rhs.price
     }
