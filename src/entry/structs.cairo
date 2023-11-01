@@ -9,7 +9,7 @@ const OPTION: felt252 = 'OPTION';
 const USD_CURRENCY_ID: felt252 = 'USD';
 
 
-#[derive(Copy, Drop, Serde, starknet::Store)]
+#[derive(Copy, Drop, Serde)]
 struct BaseEntry {
     timestamp: u64,
     source: felt252,
@@ -72,7 +72,7 @@ struct eSSVI {
 }
 
 
-#[derive(Serde, Drop, Copy)]
+#[derive(Serde, Drop, Copy, starknet::Store)]
 struct EntryStorage {
     timestamp: u64,
     volume: u128,
@@ -143,7 +143,7 @@ struct Currency {
     ethereum_address: ContractAddress, // optional
 }
 
-#[derive(Serde, Drop)]
+#[derive(Serde, Drop, starknet::Store)]
 struct Checkpoint {
     timestamp: u64,
     value: u128,
@@ -151,7 +151,7 @@ struct Checkpoint {
     num_sources_aggregated: u32,
 }
 
-#[derive(Serde, Drop, Copy, starknet::Store)]
+#[derive(Serde, Drop, Copy)]
 struct FetchCheckpoint {
     pair_id: felt252,
     type_of: felt252,
@@ -169,22 +169,24 @@ struct PragmaPricesResponse {
     expiration_timestamp: Option<u64>,
 }
 
-#[derive(Serde, Drop, Copy)]
+#[derive(Serde, Drop, Copy, starknet::Store)]
 enum AggregationMode {
     Median: (),
     Mean: (),
     Error: (),
 }
 
-
 /// DataType should implement this trait
 /// If it has a `base_entry` field defined by `BaseEntry` struct
-trait HasBaseEntry<T> {
+trait hasBaseEntry<T> {
+
     fn get_base_entry(self: @T) -> BaseEntry;
     fn get_base_timestamp(self: @T) -> u64;
 }
 
-impl SpothasBaseEntry of HasBaseEntry<SpotEntry> {
+
+impl SpothasBaseEntry of hasBaseEntry<SpotEntry> {
+
     fn get_base_entry(self: @SpotEntry) -> BaseEntry {
         (*self).base
     }
@@ -192,8 +194,8 @@ impl SpothasBaseEntry of HasBaseEntry<SpotEntry> {
         (*self).base.timestamp
     }
 }
+impl FuturehasBaseEntry of hasBaseEntry<FutureEntry> {
 
-impl FuturehasBaseEntry of HasBaseEntry<FutureEntry> {
     fn get_base_entry(self: @FutureEntry) -> BaseEntry {
         (*self).base
     }
@@ -202,7 +204,9 @@ impl FuturehasBaseEntry of HasBaseEntry<FutureEntry> {
     }
 }
 
-impl GenericBaseEntry of HasBaseEntry<GenericEntry> {
+
+impl GenericBaseEntry of hasBaseEntry<GenericEntry> {
+
     fn get_base_entry(self: @GenericEntry) -> BaseEntry {
         (*self).base
     }
@@ -210,6 +214,7 @@ impl GenericBaseEntry of HasBaseEntry<GenericEntry> {
         (*self).base.timestamp
     }
 }
+
 
 impl ResponseHasBaseEntryImpl of HasBaseEntry<PragmaPricesResponse> {
     fn get_base_entry(self: @PragmaPricesResponse) -> BaseEntry {
@@ -220,7 +225,8 @@ impl ResponseHasBaseEntryImpl of HasBaseEntry<PragmaPricesResponse> {
     }
 }
 
-impl OptionhasBaseEntry of HasBaseEntry<OptionEntry> {
+impl OptionhasBaseEntry of hasBaseEntry<OptionEntry> {
+
     fn get_base_entry(self: @OptionEntry) -> BaseEntry {
         (*self).base
     }
@@ -246,6 +252,7 @@ impl FHasPriceImpl of HasPrice<FutureEntry> {
     }
 }
 
+
 impl GHasPriceImpl of HasPrice<GenericEntry> {
     fn get_price(self: @GenericEntry) -> u128 {
         (*self).value
@@ -256,6 +263,7 @@ impl ResponseHasPriceImpl of HasPrice<PragmaPricesResponse> {
         (*self).price
     }
 }
+
 
 
 impl SpotPartialOrd of PartialOrd<SpotEntry> {
@@ -275,7 +283,9 @@ impl SpotPartialOrd of PartialOrd<SpotEntry> {
 }
 
 impl FuturePartialOrd of PartialOrd<FutureEntry> {
+
     #[inline(always)]
+
     fn le(lhs: FutureEntry, rhs: FutureEntry) -> bool {
         lhs.price <= rhs.price
     }
@@ -289,3 +299,26 @@ impl FuturePartialOrd of PartialOrd<FutureEntry> {
         lhs.price > rhs.price
     }
 }
+
+
+impl AggregationModeIntoU8 of TryInto<AggregationMode, u8> {
+    fn try_into(self: AggregationMode) -> Option<u8> {
+        match self {
+            AggregationMode::Median(()) => Option::Some(0_u8),
+            AggregationMode::Mean(()) => Option::Some(1_u8),
+            AggregationMode::Error(()) => Option::None(()),
+        }
+    }
+}
+impl u8IntoAggregationMode of Into<u8, AggregationMode> {
+    fn into(self: u8) -> AggregationMode {
+        if self == 0_u8 {
+            AggregationMode::Median(())
+        } else if self == 1_u8 {
+            AggregationMode::Mean(())
+        } else {
+            AggregationMode::Error(())
+        }
+    }
+}
+

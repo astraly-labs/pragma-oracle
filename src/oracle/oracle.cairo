@@ -3,6 +3,8 @@ use pragma::entry::structs::{
     USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, PossibleEntryStorage, FutureEntry, OptionEntry,
     GenericEntry, SimpleDataType, AggregationMode, GenericEntryStorage, PossibleEntries, ArrayEntry,
     EntryStorage, HasPrice, HasBaseEntry
+
+
 };
 
 use pragma::admin::admin::Admin;
@@ -177,6 +179,7 @@ mod Oracle {
         StorageBaseAddress, SyscallResult, ContractAddress, get_caller_address, ClassHash, Into,
         TryInto, ResultTrait, ResultTraitImpl, BoxTrait, ArrayTrait, SpanTrait, Zeroable,
         IOracleABI, GenericEntryStorage, EntryStorage, List, ListTrait, HasPrice, HasBaseEntry
+
     };
     use alexandria_data_structures::array_ext::SpanTraitExt;
     use hash::LegacyHash;
@@ -249,16 +252,6 @@ mod Oracle {
         oracle_sources_threshold_storage: u32,
     }
 
-
-    impl AggregationModeIntoU8 of Into<AggregationMode, u8> {
-        fn into(self: AggregationMode) -> u8 {
-            match self {
-                AggregationMode::Median(()) => 0_u8,
-                AggregationMode::Mean(()) => 1_u8,
-                AggregationMode::Error(()) => 150_u8,
-            }
-        }
-    }
     impl TupleSize5LegacyHash<
         E0,
         E1,
@@ -283,96 +276,6 @@ mod Oracle {
             let state = E2LegacyHash::hash(state, e2);
             let state = E3LegacyHash::hash(state, e3);
             E4LegacyHash::hash(state, e4)
-        }
-    }
-
-    fn u8_into_AggregationMode(value: u8) -> AggregationMode {
-        if value == 0_u8 {
-            AggregationMode::Median(())
-        } else if value == 1_u8 {
-            AggregationMode::Mean(())
-        } else {
-            AggregationMode::Error(())
-        }
-    }
-
-    impl EntryStorePacking of StorePacking<EntryStorage, felt252> {
-        fn pack(value: EntryStorage) -> felt252 {
-            // entries verifications (no overflow)
-            assert(
-                value.timestamp.into() == value.timestamp.into() & TIMESTAMP_SHIFT_MASK_U32,
-                'EntryStorePack:tmp too big'
-            );
-            assert(
-                value.volume.into() == value.volume.into() & VOLUME_SHIFT_MASK_U100,
-                'EntryStorePack:volume too big'
-            );
-            assert(
-                value.price.into() == value.price.into() & PRICE_SHIFT_MASK_U120,
-                'EntryStorePack:price too big'
-            );
-            let pack_value: felt252 = value.timestamp.into()
-                + value.volume.into() * TIMESTAMP_SHIFT_U32
-                + value.price.into() * VOLUME_SHIFT_U132;
-            assert(pack_value.into() < MAX_FELT, 'EntryStorePacking:tot too big');
-            pack_value
-        }
-        fn unpack(value: felt252) -> EntryStorage {
-            let value: u256 = value.into();
-            let volume_shift: NonZero<u256> = integer::u256_try_as_non_zero(
-                VOLUME_SHIFT_U132.into()
-            )
-                .unwrap();
-            let (price, rest) = integer::u256_safe_div_rem(value, volume_shift);
-            let timestamp_shift: NonZero<u256> = integer::u256_try_as_non_zero(
-                TIMESTAMP_SHIFT_U32.into()
-            )
-                .unwrap();
-
-            let (vol, time) = integer::u256_safe_div_rem(rest, timestamp_shift);
-            EntryStorage {
-                timestamp: time.try_into().unwrap(),
-                volume: vol.try_into().unwrap(),
-                price: price.try_into().unwrap()
-            }
-        }
-    }
-
-    impl CheckpointStorePacking of StorePacking<Checkpoint, felt252> {
-        fn pack(value: Checkpoint) -> felt252 {
-            let converted_agg_mode: u8 = value.aggregation_mode.into();
-            value.timestamp.into()
-                + value.value.into() * CHECKPOINT_TIMESTAMP_SHIFT_U32
-                + converted_agg_mode.into() * CHECKPOINT_VALUE_SHIFT_U160
-                + value.num_sources_aggregated.into() * CHECKPOINT_AGGREGATION_MODE_SHIFT_U172
-        }
-        fn unpack(value: felt252) -> Checkpoint {
-            let value: u256 = value.into();
-            let agg_shift: NonZero<u256> = integer::u256_try_as_non_zero(
-                CHECKPOINT_AGGREGATION_MODE_SHIFT_U172.into()
-            )
-                .unwrap();
-            let (num_sources, rest) = integer::u256_safe_div_rem(value, agg_shift);
-            let val_shift: NonZero<u256> = integer::u256_try_as_non_zero(
-                CHECKPOINT_VALUE_SHIFT_U160.into()
-            )
-                .unwrap();
-
-            let (agg_mode, rest_2) = integer::u256_safe_div_rem(rest, val_shift);
-            let u8_agg_mode = agg_mode.try_into().unwrap();
-            let aggregation_mode: AggregationMode = u8_into_AggregationMode(u8_agg_mode);
-            let time_shift: NonZero<u256> = integer::u256_try_as_non_zero(
-                CHECKPOINT_TIMESTAMP_SHIFT_U32.into()
-            )
-                .unwrap();
-
-            let (val, time) = integer::u256_safe_div_rem(rest_2, time_shift);
-            Checkpoint {
-                timestamp: time.try_into().unwrap(),
-                value: val.try_into().unwrap(),
-                aggregation_mode: aggregation_mode,
-                num_sources_aggregated: num_sources.try_into().unwrap()
-            }
         }
     }
 
@@ -1649,7 +1552,7 @@ mod Oracle {
                     DataType::SpotEntry(pair_id) => {
                         let cur_idx = self
                             .oracle_checkpoint_index
-                            .read((pair_id, SPOT, 0, aggregation_mode.into()));
+                            .read((pair_id, SPOT, 0, aggregation_mode.try_into().unwrap()));
 
                         set_checkpoint_storage(
                             ref self,
@@ -1657,12 +1560,15 @@ mod Oracle {
                             SPOT,
                             cur_idx,
                             0,
-                            aggregation_mode.into(),
+                            aggregation_mode.try_into().unwrap(),
                             new_checkpoint
                         );
                         self
                             .oracle_checkpoint_index
-                            .write((pair_id, SPOT, 0, aggregation_mode.into()), cur_idx + 1);
+                            .write(
+                                (pair_id, SPOT, 0, aggregation_mode.try_into().unwrap()),
+                                cur_idx + 1
+                            );
                         self.emit(Event::CheckpointSpotEntry(CheckpointSpotEntry { pair_id }));
                     },
                     DataType::FutureEntry((
@@ -1670,7 +1576,14 @@ mod Oracle {
                     )) => {
                         let cur_idx = self
                             .oracle_checkpoint_index
-                            .read((pair_id, FUTURE, expiration_timestamp, aggregation_mode.into()));
+                            .read(
+                                (
+                                    pair_id,
+                                    FUTURE,
+                                    expiration_timestamp,
+                                    aggregation_mode.try_into().unwrap()
+                                )
+                            );
 
                         set_checkpoint_storage(
                             ref self,
@@ -1678,13 +1591,18 @@ mod Oracle {
                             FUTURE,
                             cur_idx,
                             expiration_timestamp,
-                            aggregation_mode.into(),
+                            aggregation_mode.try_into().unwrap(),
                             new_checkpoint
                         );
                         self
                             .oracle_checkpoint_index
                             .write(
-                                (pair_id, FUTURE, expiration_timestamp, aggregation_mode.into()),
+                                (
+                                    pair_id,
+                                    FUTURE,
+                                    expiration_timestamp,
+                                    aggregation_mode.try_into().unwrap()
+                                ),
                                 cur_idx + 1
                             );
                         self
@@ -1748,14 +1666,6 @@ mod Oracle {
         }
     }
 
-
-    fn aggregation_into_u8(self: AggregationMode) -> u8 {
-        match self {
-            AggregationMode::Median(()) => 0_u8,
-            AggregationMode::Mean(()) => 1_u8,
-            AggregationMode::Error(()) => 150_u8,
-        }
-    }
 
     // 
     // HELPERS
@@ -1832,7 +1742,7 @@ mod Oracle {
         let checkpoint = match data_type {
             DataType::SpotEntry(pair_id) => {
                 get_checkpoint_storage(
-                    self, pair_id, SPOT, checkpoint_index, 0, aggregation_mode.into()
+                    self, pair_id, SPOT, checkpoint_index, 0, aggregation_mode.try_into().unwrap()
                 )
             },
             DataType::FutureEntry((
@@ -1844,12 +1754,12 @@ mod Oracle {
                     FUTURE,
                     checkpoint_index,
                     expiration_timestamp,
-                    aggregation_mode.into()
+                    aggregation_mode.try_into().unwrap()
                 )
             },
             DataType::GenericEntry(key) => {
                 get_checkpoint_storage(
-                    self, key, GENERIC, checkpoint_index, 0, aggregation_mode.into()
+                    self, key, GENERIC, checkpoint_index, 0, aggregation_mode.try_into().unwrap()
                 )
             }
         };
@@ -1867,17 +1777,28 @@ mod Oracle {
     ) -> (u64, bool) {
         let checkpoint_index = match data_type {
             DataType::SpotEntry(pair_id) => {
-                self.oracle_checkpoint_index.read((pair_id, SPOT, 0, aggregation_mode.into()))
+                self
+                    .oracle_checkpoint_index
+                    .read((pair_id, SPOT, 0, aggregation_mode.try_into().unwrap()))
             },
             DataType::FutureEntry((
                 pair_id, expiration_timestamp
             )) => {
                 self
                     .oracle_checkpoint_index
-                    .read((pair_id, FUTURE, expiration_timestamp, aggregation_mode.into()))
+                    .read(
+                        (
+                            pair_id,
+                            FUTURE,
+                            expiration_timestamp,
+                            aggregation_mode.try_into().unwrap()
+                        )
+                    )
             },
             DataType::GenericEntry(key) => {
-                self.oracle_checkpoint_index.read((key, GENERIC, 0, aggregation_mode.into()))
+                self
+                    .oracle_checkpoint_index
+                    .read((key, GENERIC, 0, aggregation_mode.try_into().unwrap()))
             }
         };
 
