@@ -140,7 +140,6 @@ mod SummaryStats {
                 .get_latest_checkpoint_index(data_type, aggregation_mode);
             let (_start_cp, start_index) = oracle_dispatcher
                 .get_last_checkpoint_before(data_type, start_tick, aggregation_mode);
-            let decimals = oracle_dispatcher.get_decimals(data_type);
 
             let mut end_index = 0;
             if (end_tick == 0) {
@@ -168,8 +167,8 @@ mod SummaryStats {
                 tick_arr.append(TickElem { tick: cp.timestamp, value: fixed_val });
                 idx += 1;
             };
-
-            (volatility(tick_arr.span()), decimals)
+            //the number of decimals is hardcoded to 8 by the volatilty computation in metrics.cairo
+            (volatility(tick_arr.span()), 8)
         }
 
 
