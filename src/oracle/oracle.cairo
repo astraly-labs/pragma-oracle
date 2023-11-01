@@ -3,8 +3,6 @@ use pragma::entry::structs::{
     USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, PossibleEntryStorage, FutureEntry, OptionEntry,
     GenericEntry, SimpleDataType, AggregationMode, GenericEntryStorage, PossibleEntries, ArrayEntry,
     EntryStorage, HasPrice, HasBaseEntry
-
-
 };
 
 use pragma::admin::admin::Admin;
@@ -179,7 +177,6 @@ mod Oracle {
         StorageBaseAddress, SyscallResult, ContractAddress, get_caller_address, ClassHash, Into,
         TryInto, ResultTrait, ResultTraitImpl, BoxTrait, ArrayTrait, SpanTrait, Zeroable,
         IOracleABI, GenericEntryStorage, EntryStorage, List, ListTrait, HasPrice, HasBaseEntry
-
     };
     use alexandria_data_structures::array_ext::SpanTraitExt;
     use hash::LegacyHash;

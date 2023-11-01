@@ -179,14 +179,12 @@ enum AggregationMode {
 /// DataType should implement this trait
 /// If it has a `base_entry` field defined by `BaseEntry` struct
 trait hasBaseEntry<T> {
-
     fn get_base_entry(self: @T) -> BaseEntry;
     fn get_base_timestamp(self: @T) -> u64;
 }
 
 
 impl SpothasBaseEntry of hasBaseEntry<SpotEntry> {
-
     fn get_base_entry(self: @SpotEntry) -> BaseEntry {
         (*self).base
     }
@@ -195,7 +193,6 @@ impl SpothasBaseEntry of hasBaseEntry<SpotEntry> {
     }
 }
 impl FuturehasBaseEntry of hasBaseEntry<FutureEntry> {
-
     fn get_base_entry(self: @FutureEntry) -> BaseEntry {
         (*self).base
     }
@@ -206,7 +203,6 @@ impl FuturehasBaseEntry of hasBaseEntry<FutureEntry> {
 
 
 impl GenericBaseEntry of hasBaseEntry<GenericEntry> {
-
     fn get_base_entry(self: @GenericEntry) -> BaseEntry {
         (*self).base
     }
@@ -226,7 +222,6 @@ impl ResponseHasBaseEntryImpl of HasBaseEntry<PragmaPricesResponse> {
 }
 
 impl OptionhasBaseEntry of hasBaseEntry<OptionEntry> {
-
     fn get_base_entry(self: @OptionEntry) -> BaseEntry {
         (*self).base
     }
@@ -265,7 +260,6 @@ impl ResponseHasPriceImpl of HasPrice<PragmaPricesResponse> {
 }
 
 
-
 impl SpotPartialOrd of PartialOrd<SpotEntry> {
     #[inline(always)]
     fn le(lhs: SpotEntry, rhs: SpotEntry) -> bool {
@@ -283,9 +277,7 @@ impl SpotPartialOrd of PartialOrd<SpotEntry> {
 }
 
 impl FuturePartialOrd of PartialOrd<FutureEntry> {
-
     #[inline(always)]
-
     fn le(lhs: FutureEntry, rhs: FutureEntry) -> bool {
         lhs.price <= rhs.price
     }
