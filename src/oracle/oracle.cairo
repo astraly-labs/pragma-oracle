@@ -1068,6 +1068,7 @@ mod Oracle {
                             PossibleEntries::Spot(_) => {},
                             PossibleEntries::Future(future_entry) => {
                                 future_entries.append(future_entry);
+                                volumes.append(future_entry.volume);
                             },
                             PossibleEntries::Generic(_) => {},
                         }
@@ -1076,6 +1077,8 @@ mod Oracle {
                     let median = Entry::aggregate_entries::<FutureEntry>(
                         future_entries.span(), AggregationMode::Median(())
                     );
+                    let median_volume = Entry::compute_median(volumes);
+
                     let last_updated_timestamp = Entry::aggregate_timestamps_max::<FutureEntry>(
                         future_entries.span()
                     );
@@ -1087,7 +1090,7 @@ mod Oracle {
                             },
                             pair_id: pair_id,
                             price: median,
-                            volume: *future_entries.at(0).volume,
+                            volume: median_volume,
                             expiration_timestamp: expiration_timestamp
                         }
                     );
