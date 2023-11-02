@@ -1,8 +1,8 @@
 use pragma::entry::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
-    USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, FutureEntry, OptionEntry,
-    GenericEntry, SimpleDataType, AggregationMode, PossibleEntries, ArrayEntry,
-    EntryStorage, HasPrice, HasBaseEntry
+    USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, FutureEntry, OptionEntry, GenericEntry,
+    SimpleDataType, AggregationMode, PossibleEntries, ArrayEntry, EntryStorage, HasPrice,
+    HasBaseEntry
 };
 
 use pragma::admin::admin::Admin;
@@ -170,13 +170,13 @@ trait IPragmaABI<TContractState> {
 mod Oracle {
     use super::{
         BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
-        USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, FutureEntry,
-        OptionEntry, GenericEntry, SimpleDataType, AggregationMode, PossibleEntries, ArrayEntry,
-        Admin, Upgradeable, Serde, storage_read_syscall, storage_write_syscall,
-        storage_address_from_base_and_offset, storage_base_address_from_felt252, Store,
-        StorageBaseAddress, SyscallResult, ContractAddress, get_caller_address, ClassHash, Into,
-        TryInto, ResultTrait, ResultTraitImpl, BoxTrait, ArrayTrait, SpanTrait, Zeroable,
-        IOracleABI, EntryStorage, List, ListTrait, HasPrice, HasBaseEntry
+        USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, FutureEntry, OptionEntry, GenericEntry,
+        SimpleDataType, AggregationMode, PossibleEntries, ArrayEntry, Admin, Upgradeable, Serde,
+        storage_read_syscall, storage_write_syscall, storage_address_from_base_and_offset,
+        storage_base_address_from_felt252, Store, StorageBaseAddress, SyscallResult,
+        ContractAddress, get_caller_address, ClassHash, Into, TryInto, ResultTrait, ResultTraitImpl,
+        BoxTrait, ArrayTrait, SpanTrait, Zeroable, IOracleABI, EntryStorage, List, ListTrait,
+        HasPrice, HasBaseEntry
     };
     use alexandria_data_structures::array_ext::SpanTraitExt;
     use hash::LegacyHash;
@@ -1461,7 +1461,7 @@ mod Oracle {
             ref self: ContractState, new_publisher_registry_address: ContractAddress
         ) {
             self.assert_only_admin();
-            let old_publisher_registry_address = IOracleABI::get_publisher_registry_address(@self); 
+            let old_publisher_registry_address = IOracleABI::get_publisher_registry_address(@self);
             self.oracle_publisher_registry_address_storage.write(new_publisher_registry_address);
             self
                 .emit(
@@ -2477,9 +2477,7 @@ mod Oracle {
                     publishers.append(new_publisher);
                 },
                 DataType::GenericEntry(key) => {
-                    let new_publisher = self
-                        .oracle_publishers_storage
-                        .read((key, GENERIC, idx, 0));
+                    let new_publisher = self.oracle_publishers_storage.read((key, GENERIC, idx, 0));
                     publishers.append(new_publisher);
                 }
             }
