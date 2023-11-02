@@ -2,7 +2,7 @@ use pragma::entry::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
     USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, PossibleEntryStorage, FutureEntry, OptionEntry,
     GenericEntry, SimpleDataType, AggregationMode, GenericEntryStorage, PossibleEntries, ArrayEntry,
-    EntryStorage, hasBaseEntry
+    EntryStorage, HasPrice, HasBaseEntry
 };
 
 use pragma::admin::admin::Admin;
@@ -20,6 +20,7 @@ use result::{ResultTrait, ResultTraitImpl};
 use box::BoxTrait;
 use array::{SpanTrait, ArrayTrait};
 use zeroable::Zeroable;
+use alexandria_storage::list::{List, ListTrait};
 
 #[starknet::interface]
 trait IOracleABI<TContractState> {
@@ -35,6 +36,9 @@ trait IOracleABI<TContractState> {
         self: @TContractState, data_types: Span<DataType>, sources: Span<felt252>
     ) -> Span<PragmaPricesResponse>;
     fn get_data_entry(
+        self: @TContractState, data_type: DataType, source: felt252, publisher: felt252
+    ) -> PossibleEntries;
+    fn get_data_entry_for_publishers(
         self: @TContractState, data_type: DataType, source: felt252
     ) -> PossibleEntries;
     fn get_data_for_sources(
@@ -112,6 +116,9 @@ trait IPragmaABI<TContractState> {
     ) -> PragmaPricesResponse;
 
     fn get_data_entry(
+        self: @TContractState, data_type: DataType, source: felt252, publisher: felt252
+    ) -> PossibleEntries;
+    fn get_data_entry_for_publishers(
         self: @TContractState, data_type: DataType, source: felt252
     ) -> PossibleEntries;
 
@@ -169,8 +176,9 @@ mod Oracle {
         storage_address_from_base_and_offset, storage_base_address_from_felt252, Store,
         StorageBaseAddress, SyscallResult, ContractAddress, get_caller_address, ClassHash, Into,
         TryInto, ResultTrait, ResultTraitImpl, BoxTrait, ArrayTrait, SpanTrait, Zeroable,
-        IOracleABI, GenericEntryStorage, EntryStorage, hasBaseEntry
+        IOracleABI, GenericEntryStorage, EntryStorage, List, ListTrait, HasPrice, HasBaseEntry
     };
+    use alexandria_data_structures::array_ext::SpanTraitExt;
     use hash::LegacyHash;
     use pragma::entry::entry::Entry;
     use pragma::operations::time_series::convert::{convert_via_usd, normalize_to_decimals};
@@ -222,8 +230,16 @@ mod Oracle {
         oracle_sources_storage: LegacyMap::<(felt252, felt252, u64, u64), felt252>,
         //oracle_sources_len_storage, legacyMap between (pair_id ,(SPOT/FUTURES/OPTIONS/GENERIC), expiration_timestamp) and the len of the sources array
         oracle_sources_len_storage: LegacyMap::<(felt252, felt252, u64), u64>,
-        //oracle_data_entry_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS/GENERIC), source, expiration_timestamp (0 for SPOT))
-        oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, u64), EntryStorage>,
+        //oracle_publisher_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS/GENERIC), index, expiration_timestamp) and the publisher
+        oracle_publishers_storage: LegacyMap::<(felt252, felt252, u64, u64), felt252>,
+        //oracle_publisher_len_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS/GENERIC), expiration_timestamp) and the len of the publisher array
+        oracle_publishers_len_storage: LegacyMap::<(felt252, felt252, u64), u64>,
+        //oracle_data_entry_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS/GENERIC), source, publisher, expiration_timestamp (0 for SPOT))
+        oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, felt252, u64),
+        EntryStorage>,
+        //oracle_list_of_publishers_for_sources_storage, legacyMap between (source,(SPOT/FUTURES/OPTIONS/GENERIC), and the pair_id) and the list of publishers
+        oracle_list_of_publishers_for_sources_storage: LegacyMap::<(felt252, felt252, felt252),
+        List<felt252>>,
         //oracle_data_entry_storage len , legacyMap between pair_id, (SPOT/FUTURES/OPTIONS/GENERIC), expiration_timestamp and the length
         oracle_data_len_all_sources: LegacyMap::<(felt252, felt252, u64), u64>,
         //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT), aggregation_mode) associated to a checkpoint
@@ -411,17 +427,17 @@ mod Oracle {
         // @returns a span of PossibleEntries, which can be spot entries, future entries, generic entries ...
         // @returns the last updated timestamp
         fn get_data_entries_for_sources(
-            self: @ContractState, data_type: DataType, sources: Span<felt252>
+            self: @ContractState, data_type: DataType, sources: Span<felt252>,
         ) -> (Span<PossibleEntries>, u64) {
             if (sources.len() == 0) {
-                let all_sources = get_all_sources(self, data_type);
+                let all_sources = get_all_sources(self, data_type).span();
                 let last_updated_timestamp = get_latest_entry_timestamp(
-                    self, data_type, all_sources.span()
+                    self, data_type, all_sources,
                 );
                 let current_timestamp: u64 = get_block_timestamp();
                 let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
                 let (entries, entries_len) = get_all_entries(
-                    self, data_type, all_sources.span(), conservative_current_timestamp
+                    self, data_type, all_sources, conservative_current_timestamp
                 );
                 return (entries.span(), conservative_current_timestamp);
             } else {
@@ -464,7 +480,7 @@ mod Oracle {
             self: @ContractState, data_type: DataType, sources: Span<felt252>
         ) -> PragmaPricesResponse {
             let prices_response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
-                self, data_type, AggregationMode::Median(()), sources
+                self, data_type, AggregationMode::Median(()), sources,
             );
             prices_response
         }
@@ -521,7 +537,6 @@ mod Oracle {
             let (entries, last_updated_timestamp) = IOracleABI::get_data_entries_for_sources(
                 self, data_type, sources
             );
-
             if (entries.len() == 0) {
                 return PragmaPricesResponse {
                     price: 0,
@@ -531,28 +546,49 @@ mod Oracle {
                     expiration_timestamp: Option::Some(0),
                 };
             }
+            let mut data_sources = if (sources.len() == 0) {
+                get_all_sources(self, data_type).span()
+            } else {
+                sources
+            };
 
             // TODO: Return only array instead of `ArrayEntry`
             let filtered_entries: ArrayEntry = filter_data_array(data_type, entries);
 
+            let mut response_array = ArrayTrait::<PragmaPricesResponse>::new();
             match data_type {
                 DataType::SpotEntry(pair_id) => {
                     match filtered_entries {
                         ArrayEntry::SpotEntry(array_spot) => {
-                            let price = Entry::aggregate_entries::<SpotEntry>(
-                                array_spot.span(), aggregation_mode
+                            let mut cur_idx = 0;
+                            loop {
+                                if (cur_idx == data_sources.len()) {
+                                    break ();
+                                }
+                                let source = *data_sources.get(cur_idx).unwrap().unbox();
+                                let filtered_data = filter_array_by_source::<SpotEntry>(
+                                    self, array_spot.span(), source, SPOT, pair_id
+                                );
+                                let response = compute_median_for_source::<SpotEntry>(
+                                    self, data_type, filtered_data, aggregation_mode
+                                );
+                                response_array.append(response);
+                                cur_idx += 1;
+                            };
+
+                            let price = Entry::aggregate_entries::<PragmaPricesResponse>(
+                                response_array.span(), aggregation_mode
+                            );
+                            let last_updated_timestamp =
+                                Entry::aggregate_timestamps_max::<PragmaPricesResponse>(
+                                response_array.span()
                             );
                             let decimals = IOracleABI::get_decimals(self, data_type);
-                            let last_updated_timestamp =
-                                Entry::aggregate_timestamps_max::<SpotEntry>(
-                                array_spot.span()
-                            );
-
                             return PragmaPricesResponse {
                                 price: price,
                                 decimals: decimals,
                                 last_updated_timestamp: last_updated_timestamp,
-                                num_sources_aggregated: entries.len(),
+                                num_sources_aggregated: data_sources.len(),
                                 expiration_timestamp: Option::Some(0),
                             // Should be None
                             };
@@ -595,20 +631,36 @@ mod Oracle {
                             };
                         },
                         ArrayEntry::FutureEntry(array_future) => {
-                            let price = Entry::aggregate_entries::<FutureEntry>(
-                                array_future.span(), aggregation_mode
+                            let mut cur_idx = 0;
+                            loop {
+                                if (cur_idx == data_sources.len()) {
+                                    break ();
+                                }
+                                let source = *data_sources.at(cur_idx);
+                                let filtered_data = filter_array_by_source::<FutureEntry>(
+                                    self, array_future.span(), source, FUTURE, pair_id
+                                );
+                                let response = compute_median_for_source::<FutureEntry>(
+                                    self, data_type, filtered_data, aggregation_mode
+                                );
+                                response_array.append(response);
+                                cur_idx += 1;
+                            };
+                            let price = Entry::aggregate_entries::<PragmaPricesResponse>(
+                                response_array.span(), aggregation_mode
+                            );
+                            let last_updated_timestamp =
+                                Entry::aggregate_timestamps_max::<PragmaPricesResponse>(
+                                response_array.span()
                             );
                             let decimals = IOracleABI::get_decimals(self, data_type);
-                            let last_updated_timestamp =
-                                Entry::aggregate_timestamps_max::<FutureEntry>(
-                                array_future.span()
-                            );
                             return PragmaPricesResponse {
                                 price: price,
                                 decimals: decimals,
                                 last_updated_timestamp: last_updated_timestamp,
-                                num_sources_aggregated: entries.len(),
-                                expiration_timestamp: Option::Some(expiration_timestamp)
+                                num_sources_aggregated: data_sources.len(),
+                                expiration_timestamp: Option::Some(0),
+                            // Should be None
                             };
                         },
                         ArrayEntry::GenericEntry(_) => {
@@ -646,20 +698,36 @@ mod Oracle {
                             };
                         },
                         ArrayEntry::GenericEntry(array_generic) => {
-                            let price = Entry::aggregate_entries::<GenericEntry>(
-                                array_generic.span(), aggregation_mode
+                            let mut cur_idx = 0;
+                            loop {
+                                if (cur_idx == data_sources.len()) {
+                                    break ();
+                                }
+                                let source = *data_sources.at(cur_idx);
+                                let filtered_data = filter_array_by_source::<GenericEntry>(
+                                    self, array_generic.span(), source, GENERIC, key
+                                );
+                                let response = compute_median_for_source::<GenericEntry>(
+                                    self, data_type, filtered_data, aggregation_mode
+                                );
+                                response_array.append(response);
+                                cur_idx += 1;
+                            };
+                            let price = Entry::aggregate_entries::<PragmaPricesResponse>(
+                                response_array.span(), aggregation_mode
+                            );
+                            let last_updated_timestamp =
+                                Entry::aggregate_timestamps_max::<PragmaPricesResponse>(
+                                response_array.span()
                             );
                             let decimals = IOracleABI::get_decimals(self, data_type);
-                            let last_updated_timestamp =
-                                Entry::aggregate_timestamps_max::<GenericEntry>(
-                                array_generic.span()
-                            );
                             return PragmaPricesResponse {
                                 price: price,
                                 decimals: decimals,
                                 last_updated_timestamp: last_updated_timestamp,
-                                num_sources_aggregated: entries.len(),
-                                expiration_timestamp: Option::Some(0)
+                                num_sources_aggregated: data_sources.len(),
+                                expiration_timestamp: Option::Some(0),
+                            // Should be None
                             };
                         },
                     }
@@ -777,6 +845,9 @@ mod Oracle {
             let rebased_value = convert_via_usd(
                 normalised_basePPR_price, normalised_quotePPR_price, decimals
             );
+
+            let rebased_value = convert_via_usd(basePPR.price, quotePPR.price, decimals);
+
             let last_updated_timestamp = max(
                 quotePPR.last_updated_timestamp, basePPR.last_updated_timestamp
             );
@@ -843,7 +914,6 @@ mod Oracle {
         fn get_sources_threshold(self: @ContractState) -> u32 {
             self.oracle_sources_threshold_storage.read()
         }
-
         // @notice get the oracle admin address
         // @returns the ContractAddress of the admin
         fn get_admin_address(self: @ContractState) -> ContractAddress {
@@ -882,19 +952,21 @@ mod Oracle {
         // @param source: the source to retrieve the entry from
         // @returns a PossibleEntries, linked to the type of data needed (Spot, futures, generic, ...)
         fn get_data_entry(
-            self: @ContractState, data_type: DataType, source: felt252
+            self: @ContractState, data_type: DataType, source: felt252, publisher: felt252
         ) -> PossibleEntries {
             let _entry = match data_type {
                 DataType::SpotEntry(pair_id) => {
-                    get_entry_storage(self, pair_id, SPOT, source, 0)
+                    get_entry_storage(self, pair_id, SPOT, source, publisher, 0)
                 },
                 DataType::FutureEntry((
                     pair_id, expiration_timestamp
                 )) => {
-                    get_entry_storage(self, pair_id, FUTURE, source, expiration_timestamp)
+                    get_entry_storage(
+                        self, pair_id, FUTURE, source, publisher, expiration_timestamp
+                    )
                 },
                 DataType::GenericEntry(key) => {
-                    get_entry_storage(self, key, GENERIC, source, 0)
+                    get_entry_storage(self, key, GENERIC, source, publisher, 0)
                 }
             };
             assert(!_entry.timestamp.is_zero(), 'No data entry found');
@@ -903,7 +975,7 @@ mod Oracle {
                     PossibleEntries::Spot(
                         SpotEntry {
                             base: BaseEntry {
-                                timestamp: _entry.timestamp, source: source, publisher: 0
+                                timestamp: _entry.timestamp, source: source, publisher: publisher
                             },
                             pair_id: pair_id,
                             price: _entry.price,
@@ -917,7 +989,7 @@ mod Oracle {
                     PossibleEntries::Future(
                         FutureEntry {
                             base: BaseEntry {
-                                timestamp: _entry.timestamp, source: source, publisher: 0
+                                timestamp: _entry.timestamp, source: source, publisher: publisher
                             },
                             pair_id: pair_id,
                             price: _entry.price,
@@ -930,7 +1002,7 @@ mod Oracle {
                     PossibleEntries::Generic(
                         GenericEntry {
                             base: BaseEntry {
-                                timestamp: _entry.timestamp, source: source, publisher: 0
+                                timestamp: _entry.timestamp, source: source, publisher: publisher
                             },
                             key: key,
                             value: _entry.price
@@ -940,6 +1012,135 @@ mod Oracle {
             }
         }
 
+        // @notice get the data entry for a given data type and a source (realise a median of the publishers for the source)
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID))
+        // @param source: the source to retrieve the entry from
+        // @returns a PossibleEntries, linked to the type of data needed (Spot, futures, generic, ...)
+        fn get_data_entry_for_publishers(
+            self: @ContractState, data_type: DataType, source: felt252
+        ) -> PossibleEntries {
+            let mut cur_idx = 0;
+            let mut volumes = ArrayTrait::<u128>::new();
+            match data_type {
+                DataType::SpotEntry(pair_id) => {
+                    let publishers = get_publishers_for_source(self, source, SPOT, pair_id);
+                    let mut spot_entries = ArrayTrait::<SpotEntry>::new();
+                    loop {
+                        if (cur_idx == publishers.len()) {
+                            break ();
+                        }
+                        let publisher = *publishers.at(cur_idx);
+                        let entry = IOracleABI::get_data_entry(self, data_type, source, publisher);
+                        match entry {
+                            PossibleEntries::Spot(spot_entry) => {
+                                spot_entries.append(spot_entry);
+                                volumes.append(spot_entry.volume);
+                            },
+                            PossibleEntries::Future(_) => {},
+                            PossibleEntries::Generic(_) => {},
+                        }
+                        cur_idx += 1;
+                    };
+                    let median = Entry::aggregate_entries::<SpotEntry>(
+                        spot_entries.span(), AggregationMode::Median(())
+                    );
+                    let median_volume = Entry::compute_median(volumes);
+                    let last_updated_timestamp = Entry::aggregate_timestamps_max::<SpotEntry>(
+                        spot_entries.span()
+                    );
+                    let decimals = IOracleABI::get_decimals(self, data_type);
+                    return PossibleEntries::Spot(
+                        SpotEntry {
+                            base: BaseEntry {
+                                timestamp: last_updated_timestamp, source: source, publisher: 0
+                            },
+                            pair_id: pair_id,
+                            price: median,
+                            volume: median_volume
+                        }
+                    );
+                },
+                DataType::FutureEntry((
+                    pair_id, expiration_timestamp
+                )) => {
+                    let mut future_entries = ArrayTrait::<FutureEntry>::new();
+                    let publishers = get_publishers_for_source(self, source, FUTURE, pair_id);
+
+                    loop {
+                        if (cur_idx == publishers.len()) {
+                            break ();
+                        }
+                        let publisher = *publishers.at(cur_idx);
+                        let entry = IOracleABI::get_data_entry(self, data_type, source, publisher);
+                        match entry {
+                            PossibleEntries::Spot(_) => {},
+                            PossibleEntries::Future(future_entry) => {
+                                future_entries.append(future_entry);
+                                volumes.append(future_entry.volume);
+                            },
+                            PossibleEntries::Generic(_) => {},
+                        }
+                        cur_idx += 1;
+                    };
+                    let median = Entry::aggregate_entries::<FutureEntry>(
+                        future_entries.span(), AggregationMode::Median(())
+                    );
+                    let median_volume = Entry::compute_median(volumes);
+
+                    let last_updated_timestamp = Entry::aggregate_timestamps_max::<FutureEntry>(
+                        future_entries.span()
+                    );
+                    let decimals = IOracleABI::get_decimals(self, data_type);
+                    return PossibleEntries::Future(
+                        FutureEntry {
+                            base: BaseEntry {
+                                timestamp: last_updated_timestamp, source: source, publisher: 0
+                            },
+                            pair_id: pair_id,
+                            price: median,
+                            volume: median_volume,
+                            expiration_timestamp: expiration_timestamp
+                        }
+                    );
+                },
+                DataType::GenericEntry(key) => {
+                    let publishers = get_publishers_for_source(self, source, GENERIC, key);
+
+                    let mut generic_entries = ArrayTrait::<GenericEntry>::new();
+                    loop {
+                        if (cur_idx == publishers.len()) {
+                            break ();
+                        }
+                        let publisher = *publishers.at(cur_idx);
+                        let entry = IOracleABI::get_data_entry(self, data_type, source, publisher);
+                        match entry {
+                            PossibleEntries::Spot(_) => {},
+                            PossibleEntries::Future(_) => {},
+                            PossibleEntries::Generic(generic_entry) => {
+                                generic_entries.append(generic_entry);
+                            },
+                        }
+                        cur_idx += 1;
+                    };
+                    let median = Entry::aggregate_entries::<GenericEntry>(
+                        generic_entries.span(), AggregationMode::Median(())
+                    );
+                    let last_updated_timestamp = Entry::aggregate_timestamps_max::<GenericEntry>(
+                        generic_entries.span()
+                    );
+                    let decimals = IOracleABI::get_decimals(self, data_type);
+                    return PossibleEntries::Generic(
+                        GenericEntry {
+                            base: BaseEntry {
+                                timestamp: last_updated_timestamp, source: source, publisher: 0
+                            },
+                            key: key,
+                            value: median
+                        }
+                    );
+                }
+            }
+        }
         //
         // Setters
         //
@@ -952,12 +1153,19 @@ mod Oracle {
                 PossibleEntries::Spot(spot_entry) => {
                     validate_sender_for_source(@self, spot_entry);
                     let res = get_entry_storage(
-                        @self, spot_entry.pair_id, SPOT, spot_entry.base.source, 0
+                        @self,
+                        spot_entry.pair_id,
+                        SPOT,
+                        spot_entry.base.source,
+                        spot_entry.base.publisher,
+                        0
                     );
-
                     if (res.timestamp != 0) {
                         let entry: PossibleEntries = IOracleABI::get_data_entry(
-                            @self, DataType::SpotEntry(spot_entry.pair_id), spot_entry.base.source
+                            @self,
+                            DataType::SpotEntry(spot_entry.pair_id),
+                            spot_entry.base.source,
+                            spot_entry.base.publisher
                         );
                         match entry {
                             PossibleEntries::Spot(spot) => {
@@ -967,18 +1175,39 @@ mod Oracle {
                             PossibleEntries::Generic(_) => {},
                         }
                     } else {
-                        let sources_len = self
-                            .oracle_sources_len_storage
+                        let mut publishers_list = self
+                            .oracle_list_of_publishers_for_sources_storage
+                            .read((spot_entry.base.source, SPOT, spot_entry.pair_id));
+                        if (publishers_list.len() == 0) {
+                            let sources_len = self
+                                .oracle_sources_len_storage
+                                .read((spot_entry.pair_id, SPOT, 0));
+                            self
+                                .oracle_sources_storage
+                                .write(
+                                    (spot_entry.pair_id, SPOT, sources_len, 0),
+                                    spot_entry.get_base_entry().source
+                                );
+                            self
+                                .oracle_sources_len_storage
+                                .write((spot_entry.pair_id, SPOT, 0), sources_len + 1);
+                        }
+
+                        let publisher_len = self
+                            .oracle_publishers_len_storage
                             .read((spot_entry.pair_id, SPOT, 0));
                         self
-                            .oracle_sources_storage
+                            .oracle_publishers_storage
                             .write(
-                                (spot_entry.pair_id, SPOT, sources_len, 0),
-                                spot_entry.get_base_entry().source
+                                (spot_entry.pair_id, SPOT, publisher_len, 0),
+                                spot_entry.get_base_entry().publisher
                             );
                         self
-                            .oracle_sources_len_storage
-                            .write((spot_entry.pair_id, SPOT, 0), sources_len + 1);
+                            .oracle_publishers_len_storage
+                            .write((spot_entry.pair_id, SPOT, 0), publisher_len + 1);
+                        if (!publishers_list.array().span().contains(spot_entry.base.publisher)) {
+                            publishers_list.append(spot_entry.base.publisher);
+                        }
                     }
                     self.emit(Event::SubmittedSpotEntry(SubmittedSpotEntry { spot_entry }));
                     let element = EntryStorage {
@@ -987,7 +1216,13 @@ mod Oracle {
                         price: spot_entry.price.into()
                     };
                     set_entry_storage(
-                        ref self, spot_entry.pair_id, SPOT, spot_entry.base.source, 0, element
+                        ref self,
+                        spot_entry.pair_id,
+                        SPOT,
+                        spot_entry.base.source,
+                        spot_entry.base.publisher,
+                        0,
+                        element
                     );
 
                     let storage_len = self
@@ -1004,6 +1239,7 @@ mod Oracle {
                         future_entry.pair_id,
                         FUTURE,
                         future_entry.base.source,
+                        future_entry.base.publisher,
                         future_entry.expiration_timestamp
                     );
                     if (res.timestamp != 0) {
@@ -1012,7 +1248,8 @@ mod Oracle {
                             DataType::FutureEntry(
                                 (future_entry.pair_id, future_entry.expiration_timestamp)
                             ),
-                            future_entry.base.source
+                            future_entry.base.source,
+                            future_entry.base.publisher
                         );
                         match entry {
                             PossibleEntries::Spot(_) => {},
@@ -1022,28 +1259,69 @@ mod Oracle {
                             PossibleEntries::Generic(_) => {}
                         }
                     } else {
-                        let sources_len = self
-                            .oracle_sources_len_storage
+                        let mut publishers_list = self
+                            .oracle_list_of_publishers_for_sources_storage
+                            .read((future_entry.base.source, FUTURE, future_entry.pair_id));
+                        if (publishers_list.len() == 0) {
+                            let sources_len = self
+                                .oracle_sources_len_storage
+                                .read(
+                                    (
+                                        future_entry.pair_id,
+                                        FUTURE,
+                                        future_entry.expiration_timestamp
+                                    )
+                                );
+                            self
+                                .oracle_sources_storage
+                                .write(
+                                    (
+                                        future_entry.pair_id,
+                                        FUTURE,
+                                        sources_len,
+                                        future_entry.expiration_timestamp
+                                    ),
+                                    future_entry.get_base_entry().source
+                                );
+                            self
+                                .oracle_sources_len_storage
+                                .write(
+                                    (
+                                        future_entry.pair_id,
+                                        FUTURE,
+                                        future_entry.expiration_timestamp
+                                    ),
+                                    sources_len + 1
+                                );
+                        }
+                        let publisher_len = self
+                            .oracle_publishers_len_storage
                             .read(
                                 (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp)
                             );
                         self
-                            .oracle_sources_storage
+                            .oracle_publishers_storage
                             .write(
                                 (
                                     future_entry.pair_id,
                                     FUTURE,
-                                    sources_len,
+                                    publisher_len,
                                     future_entry.expiration_timestamp
                                 ),
-                                future_entry.get_base_entry().source
+                                future_entry.get_base_entry().publisher
                             );
                         self
-                            .oracle_sources_len_storage
+                            .oracle_publishers_len_storage
                             .write(
                                 (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp),
-                                sources_len + 1
+                                publisher_len + 1
                             );
+                        let mut publishers_list = self
+                            .oracle_list_of_publishers_for_sources_storage
+                            .read((future_entry.base.source, FUTURE, future_entry.pair_id));
+                        if (!publishers_list.array().span().contains(future_entry.base.publisher)) {
+                            publishers_list.append(future_entry.base.publisher);
+                        }
                     }
 
                     self.emit(Event::SubmittedFutureEntry(SubmittedFutureEntry { future_entry }));
@@ -1058,6 +1336,7 @@ mod Oracle {
                         future_entry.pair_id,
                         FUTURE,
                         future_entry.base.source,
+                        future_entry.base.publisher,
                         future_entry.expiration_timestamp,
                         element
                     );
@@ -1074,14 +1353,20 @@ mod Oracle {
                 PossibleEntries::Generic(generic_entry) => {
                     validate_sender_for_source(@self, generic_entry);
                     let res = get_entry_storage(
-                        @self, generic_entry.key, GENERIC, generic_entry.base.source, 0
+                        @self,
+                        generic_entry.key,
+                        GENERIC,
+                        generic_entry.base.source,
+                        generic_entry.base.publisher,
+                        0
                     );
 
                     if (res.timestamp != 0) {
                         let entry: PossibleEntries = IOracleABI::get_data_entry(
                             @self,
                             DataType::GenericEntry(generic_entry.key),
-                            generic_entry.base.source
+                            generic_entry.base.source,
+                            generic_entry.base.publisher
                         );
 
                         match entry {
@@ -1092,18 +1377,41 @@ mod Oracle {
                             }
                         }
                     } else {
-                        let sources_len = self
-                            .oracle_sources_len_storage
+                        let mut publishers_list = self
+                            .oracle_list_of_publishers_for_sources_storage
+                            .read((generic_entry.base.source, GENERIC, generic_entry.key));
+                        if (publishers_list.len() == 0) {
+                            let sources_len = self
+                                .oracle_sources_len_storage
+                                .read((generic_entry.key, GENERIC, 0));
+                            self
+                                .oracle_sources_storage
+                                .write(
+                                    (generic_entry.key, GENERIC, sources_len, 0),
+                                    generic_entry.get_base_entry().source
+                                );
+                            self
+                                .oracle_sources_len_storage
+                                .write((generic_entry.key, GENERIC, 0), sources_len + 1);
+                        }
+                        let publisher_len = self
+                            .oracle_publishers_len_storage
                             .read((generic_entry.key, GENERIC, 0));
                         self
-                            .oracle_sources_storage
+                            .oracle_publishers_storage
                             .write(
-                                (generic_entry.key, GENERIC, sources_len, 0),
-                                generic_entry.get_base_entry().source
+                                (generic_entry.key, GENERIC, publisher_len, 0),
+                                generic_entry.get_base_entry().publisher
                             );
                         self
-                            .oracle_sources_len_storage
-                            .write((generic_entry.key, GENERIC, 0), sources_len + 1);
+                            .oracle_publishers_len_storage
+                            .write((generic_entry.key, GENERIC, 0), publisher_len + 1);
+                        if (!publishers_list
+                            .array()
+                            .span()
+                            .contains(generic_entry.base.publisher)) {
+                            publishers_list.append(generic_entry.base.publisher);
+                        }
                     }
                     self
                         .emit(
@@ -1119,7 +1427,13 @@ mod Oracle {
                         price: generic_entry.value.into(),
                     };
                     set_entry_storage(
-                        ref self, generic_entry.key, GENERIC, generic_entry.base.source, 0, element
+                        ref self,
+                        generic_entry.key,
+                        GENERIC,
+                        generic_entry.base.source,
+                        generic_entry.base.publisher,
+                        0,
+                        element
                     );
                     let storage_len = self
                         .oracle_data_len_all_sources
@@ -1226,7 +1540,6 @@ mod Oracle {
             let priceResponse = IOracleABI::get_data_for_sources(
                 @self, data_type, aggregation_mode, sources
             );
-
             assert(!priceResponse.last_updated_timestamp.is_zero(), 'No checkpoint available');
 
             let sources_threshold = self.oracle_sources_threshold_storage.read();
@@ -1396,6 +1709,34 @@ mod Oracle {
         }
     }
 
+    // @notice retrieve all the available publishers for a given data type
+    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+    // @returns a span of publishers
+    fn get_all_publishers(self: @ContractState, data_type: DataType) -> Array<felt252> {
+        let mut publishers = ArrayTrait::<felt252>::new();
+        match data_type {
+            DataType::SpotEntry(pair_id) => {
+                let publisher_len = self.oracle_publishers_len_storage.read((pair_id, SPOT, 0));
+                build_publishers_array(self, data_type, ref publishers, publisher_len);
+                return publishers;
+            },
+            DataType::FutureEntry((
+                pair_id, expiration_timestamp
+            )) => {
+                let publisher_len = self
+                    .oracle_publishers_len_storage
+                    .read((pair_id, FUTURE, expiration_timestamp));
+                build_publishers_array(self, data_type, ref publishers, publisher_len);
+                return publishers;
+            },
+            DataType::GenericEntry(key) => {
+                let publisher_len = self.oracle_publishers_len_storage.read((key, GENERIC, 0));
+                build_publishers_array(self, data_type, ref publishers, publisher_len);
+                return publishers;
+            }
+        }
+    }
+
     // @notice retrieve a checkpoint based on its index
     // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
     // @param checkpoint_index : the index of the checkpoint to consider
@@ -1477,9 +1818,22 @@ mod Oracle {
         }
     }
 
+    // @notice get the list of publisher for a given source
+    // @param source: the source to consider
+    // @param type_of_data: the type of data to consider (e.g SPOT, FUTURE, GENERIC)
+    // @returns a span of publishers
+    fn get_publishers_for_source(
+        self: @ContractState, source: felt252, type_of_data: felt252, pair_id: felt252
+    ) -> Span<felt252> {
+        self
+            .oracle_list_of_publishers_for_sources_storage
+            .read((source, type_of_data, pair_id))
+            .array()
+            .span()
+    }
     // @notice check if the publisher is registered, and allowed to publish the entry, calling the publisher registry contract
     // @param entry: the entry to be published 
-    fn validate_sender_for_source<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
+    fn validate_sender_for_source<T, impl THasBaseEntry: HasBaseEntry<T>, impl TDrop: Drop<T>>(
         self: @ContractState, _entry: T
     ) {
         let publisher_registry_address = IOracleABI::get_publisher_registry_address(self);
@@ -1504,21 +1858,25 @@ mod Oracle {
     // @param a span of sources
     // @returns the latest timestamp
     fn get_latest_entry_timestamp(
-        self: @ContractState, data_type: DataType, sources: Span<felt252>
+        self: @ContractState, data_type: DataType, sources: Span<felt252>,
     ) -> u64 {
         let mut cur_idx = 0;
         let mut latest_timestamp = 0;
-        let storage_len = match data_type {
+        let (storage_len, type_of_data, pair_id) = match data_type {
             DataType::SpotEntry(pair_id) => {
-                self.oracle_data_len_all_sources.read((pair_id, SPOT, 0))
+                (self.oracle_data_len_all_sources.read((pair_id, SPOT, 0)), SPOT, pair_id)
             },
             DataType::FutureEntry((
                 pair_id, expiration_timestamp
             )) => {
-                self.oracle_data_len_all_sources.read((pair_id, FUTURE, expiration_timestamp))
+                (
+                    self.oracle_data_len_all_sources.read((pair_id, FUTURE, expiration_timestamp)),
+                    FUTURE,
+                    pair_id
+                )
             },
             DataType::GenericEntry(key) => {
-                self.oracle_data_len_all_sources.read((key, GENERIC, 0))
+                (self.oracle_data_len_all_sources.read((key, GENERIC, 0)), GENERIC, key)
             }
         };
 
@@ -1530,25 +1888,38 @@ mod Oracle {
                     break ();
                 }
                 let source: felt252 = *sources.get(cur_idx).unwrap().unbox();
-                let entry: PossibleEntries = IOracleABI::get_data_entry(self, data_type, source);
+                let publishers = get_publishers_for_source(
+                    self, source, type_of_data, pair_id
+                ); // In case a publisher cannot add data for another data type, will require a check before
+                let mut publisher_cur_idx = 0;
+                loop {
+                    if (publisher_cur_idx == publishers.len()) {
+                        break ();
+                    }
+                    let publisher: felt252 = *publishers.get(publisher_cur_idx).unwrap().unbox();
+                    let entry: PossibleEntries = IOracleABI::get_data_entry(
+                        self, data_type, source, publisher
+                    );
 
-                match entry {
-                    PossibleEntries::Spot(spot_entry) => {
-                        if spot_entry.base.timestamp > latest_timestamp {
-                            latest_timestamp = spot_entry.base.timestamp;
-                        }
-                    },
-                    PossibleEntries::Future(future_entry) => {
-                        if future_entry.base.timestamp > latest_timestamp {
-                            latest_timestamp = future_entry.base.timestamp;
-                        }
-                    },
-                    PossibleEntries::Generic(generic_entry) => {
-                        if generic_entry.base.timestamp > latest_timestamp {
-                            latest_timestamp = generic_entry.base.timestamp;
+                    match entry {
+                        PossibleEntries::Spot(spot_entry) => {
+                            if spot_entry.base.timestamp > latest_timestamp {
+                                latest_timestamp = spot_entry.base.timestamp;
+                            }
+                        },
+                        PossibleEntries::Future(future_entry) => {
+                            if future_entry.base.timestamp > latest_timestamp {
+                                latest_timestamp = future_entry.base.timestamp;
+                            }
+                        },
+                        PossibleEntries::Generic(generic_entry) => {
+                            if generic_entry.base.timestamp > latest_timestamp {
+                                latest_timestamp = generic_entry.base.timestamp;
+                            }
                         }
                     }
-                }
+                    publisher_cur_idx += 1;
+                };
                 cur_idx += 1;
             };
             return latest_timestamp;
@@ -1568,46 +1939,67 @@ mod Oracle {
         ref entries: Array<PossibleEntries>,
         latest_timestamp: u64
     ) {
+        let (type_of_data, pair_id) = match data_type {
+            DataType::SpotEntry(pair_id) => (SPOT, pair_id),
+            DataType::FutureEntry((pair_id, _)) => (FUTURE, pair_id),
+            DataType::GenericEntry(key) => (GENERIC, key)
+        };
         let mut cur_idx = 0;
         loop {
             if (cur_idx >= sources.len()) {
                 break ();
             }
             let source: felt252 = *sources.get(cur_idx).unwrap().unbox();
-            let g_entry: PossibleEntries = IOracleABI::get_data_entry(self, data_type, source);
-            match g_entry {
-                PossibleEntries::Spot(spot_entry) => {
-                    let is_entry_initialized: bool = spot_entry.get_base_timestamp() != 0;
-                    let condition: bool = is_entry_initialized
-                        & (spot_entry
-                            .get_base_timestamp() > (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
-                    if condition {
-                        entries.append(PossibleEntries::Spot(spot_entry));
-                    }
-                },
-                PossibleEntries::Future(future_entry) => {
-                    let is_entry_initialized: bool = future_entry.get_base_timestamp() != 0;
-                    let condition: bool = is_entry_initialized
-                        & (future_entry
-                            .get_base_timestamp() > (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
-                    if condition {
-                        entries.append(PossibleEntries::Future(future_entry));
-                    }
-                },
-                PossibleEntries::Generic(generic_entry) => {
-                    let is_entry_initialized: bool = generic_entry.get_base_timestamp() != 0;
-
-                    let condition: bool = is_entry_initialized
-                        & (generic_entry
-                            .get_base_timestamp() > (latest_timestamp - BACKWARD_TIMESTAMP_BUFFER));
-                    if condition {
-                        entries.append(PossibleEntries::Generic(generic_entry));
-                    }
+            let publishers = get_publishers_for_source(self, source, type_of_data, pair_id);
+            assert(publishers.len() != 0, 'No publisher for source');
+            let mut publisher_cur_idx = 0;
+            loop {
+                if (publisher_cur_idx >= publishers.len()) {
+                    break ();
                 }
-            };
+                let publisher: felt252 = *publishers.get(publisher_cur_idx).unwrap().unbox();
+                let g_entry: PossibleEntries = IOracleABI::get_data_entry(
+                    self, data_type, source, publisher
+                );
 
+                match g_entry {
+                    PossibleEntries::Spot(spot_entry) => {
+                        let is_entry_initialized: bool = spot_entry.get_base_timestamp() != 0;
+                        let condition: bool = is_entry_initialized
+                            && (spot_entry
+                                .get_base_timestamp() > (latest_timestamp
+                                    - BACKWARD_TIMESTAMP_BUFFER));
+                        if condition {
+                            entries.append(PossibleEntries::Spot(spot_entry));
+                        }
+                    },
+                    PossibleEntries::Future(future_entry) => {
+                        let is_entry_initialized: bool = future_entry.get_base_timestamp() != 0;
+                        let condition: bool = is_entry_initialized
+                            && (future_entry
+                                .get_base_timestamp() > (latest_timestamp
+                                    - BACKWARD_TIMESTAMP_BUFFER));
+                        if condition {
+                            entries.append(PossibleEntries::Future(future_entry));
+                        }
+                    },
+                    PossibleEntries::Generic(generic_entry) => {
+                        let is_entry_initialized: bool = generic_entry.get_base_timestamp() != 0;
+
+                        let condition: bool = is_entry_initialized
+                            && (generic_entry
+                                .get_base_timestamp() > (latest_timestamp
+                                    - BACKWARD_TIMESTAMP_BUFFER));
+                        if condition {
+                            entries.append(PossibleEntries::Generic(generic_entry));
+                        }
+                    }
+                };
+                publisher_cur_idx += 1;
+            };
             cur_idx += 1;
         };
+
         return ();
     }
 
@@ -1693,11 +2085,100 @@ mod Oracle {
         }
     }
 
+    fn filter_array_by_source<
+        T,
+        impl THasBaseEntry: HasBaseEntry<T>,
+        impl TDrop: Drop<T>,
+        impl TDestruct: Destruct<T>,
+        impl TCopy: Copy<T>
+    >(
+        self: @ContractState,
+        array: Span<T>,
+        source: felt252,
+        type_of_data: felt252,
+        pair_id: felt252
+    ) -> Span<T> {
+        let mut cur_idx = 0;
+        let mut publisher_filtered_array = ArrayTrait::<T>::new();
+        let publishers = get_publishers_for_source(self, source, type_of_data, pair_id);
+        loop {
+            if (cur_idx == array.len()) {
+                break ();
+            }
+            let entry = *array.at(cur_idx);
+            if (publishers.contains(entry.get_base_entry().publisher)
+                && (entry.get_base_entry().source == source)) {
+                publisher_filtered_array.append(entry);
+            }
+            cur_idx = cur_idx + 1;
+        };
+        return publisher_filtered_array.span();
+    }
+
+    fn compute_median_for_source<
+        T,
+        impl THasPrice: HasPrice<T>,
+        impl THasBaseEntry: HasBaseEntry<T>,
+        impl TCopy: Copy<T>,
+        impl TDrop: Drop<T>
+    >(
+        self: @ContractState,
+        data_type: DataType,
+        filtered_array: Span<T>,
+        aggregation_mode: AggregationMode
+    ) -> PragmaPricesResponse {
+        let mut cur_idx = 0;
+        match data_type {
+            DataType::SpotEntry(pair_id) => {
+                let price = Entry::aggregate_entries::<T>(filtered_array, aggregation_mode);
+                let last_updated_timestamp = Entry::aggregate_timestamps_max::<T>(filtered_array);
+
+                return PragmaPricesResponse {
+                    price: price,
+                    decimals: 0, // we will realise a unique get_decimals call at the end
+                    last_updated_timestamp: last_updated_timestamp,
+                    num_sources_aggregated: 0, //will be fulled at the end
+                    expiration_timestamp: Option::Some(0),
+                // Should be None
+                };
+            },
+            DataType::FutureEntry((
+                pair_id, expiration_timestamp
+            )) => {
+                let price = Entry::aggregate_entries::<T>(filtered_array, aggregation_mode);
+                let last_updated_timestamp = Entry::aggregate_timestamps_max::<T>(filtered_array);
+
+                return PragmaPricesResponse {
+                    price: price,
+                    decimals: 0,
+                    last_updated_timestamp: last_updated_timestamp,
+                    num_sources_aggregated: 0,
+                    expiration_timestamp: Option::Some(expiration_timestamp),
+                // Should be None
+                };
+            },
+            DataType::GenericEntry(key) => {
+                let price = Entry::aggregate_entries::<T>(filtered_array, aggregation_mode);
+                let last_updated_timestamp = Entry::aggregate_timestamps_max::<T>(filtered_array);
+
+                return PragmaPricesResponse {
+                    price: price,
+                    decimals: 0,
+                    last_updated_timestamp: last_updated_timestamp,
+                    num_sources_aggregated: 0,
+                    expiration_timestamp: Option::Some(0),
+                // Should be None
+                };
+            }
+        }
+    }
+
+
     // @notice check if the timestamp of the new entry is bigger than the timestamp of the old entry, and update the source storage 
     // @dev should fail if the old_timestamp > new_timestamp
     // @param new_entry : an entry (spot entry, future entry, ... )
     // @param last_entry : an entry (with the same nature as new_entry)
-    fn validate_data_timestamp<T, impl THasBaseEntry: hasBaseEntry<T>, impl TDrop: Drop<T>>(
+    fn validate_data_timestamp<T, impl THasBaseEntry: HasBaseEntry<T>, impl TDrop: Drop<T>>(
         ref self: ContractState, new_entry: PossibleEntries, last_entry: T,
     ) {
         let current_timestamp = get_block_timestamp();
@@ -1840,9 +2321,10 @@ mod Oracle {
         key: felt252,
         type_of: felt252,
         source: felt252,
+        publisher: felt252,
         expiration_timestamp: u64
     ) -> EntryStorage {
-        self.oracle_data_entry_storage.read((key, type_of, source, expiration_timestamp))
+        self.oracle_data_entry_storage.read((key, type_of, source, publisher, expiration_timestamp))
     }
 
     fn set_entry_storage(
@@ -1850,10 +2332,13 @@ mod Oracle {
         key: felt252,
         type_of: felt252,
         source: felt252,
+        publisher: felt252,
         expiration_timestamp: u64,
         entry: EntryStorage
     ) {
-        self.oracle_data_entry_storage.write((key, type_of, source, expiration_timestamp), entry);
+        self
+            .oracle_data_entry_storage
+            .write((key, type_of, source, publisher, expiration_timestamp), entry);
     }
 
     fn set_checkpoint_storage(
@@ -1963,6 +2448,50 @@ mod Oracle {
             idx = idx + 1;
         };
         return ();
+    }
+
+
+    // @notice retrieve all the publishers from the storage and set it in an array
+    // @dev recursive function
+    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+    // @param publishers: reference to a publishers array, to be filled
+    // @param publishers_len, the max number of publishers for the given data_type/aggregation_mode
+
+    fn build_publishers_array(
+        self: @ContractState,
+        data_type: DataType,
+        ref publishers: Array<felt252>,
+        publishers_len: u64
+    ) {
+        let mut idx: u64 = 0;
+        loop {
+            if (idx == publishers_len) {
+                break ();
+            }
+            match data_type {
+                DataType::SpotEntry(pair_id) => {
+                    let new_publisher = self
+                        .oracle_publishers_storage
+                        .read((pair_id, SPOT, idx.into(), 0));
+                    publishers.append(new_publisher);
+                },
+                DataType::FutureEntry((
+                    pair_id, expiration_timestamp
+                )) => {
+                    let new_publisher = self
+                        .oracle_publishers_storage
+                        .read((pair_id, FUTURE, idx.into(), expiration_timestamp));
+                    publishers.append(new_publisher);
+                },
+                DataType::GenericEntry(key) => {
+                    let new_publisher = self
+                        .oracle_publishers_storage
+                        .read((key, GENERIC, idx.into(), 0));
+                    publishers.append(new_publisher);
+                }
+            }
+            idx = idx + 1;
+        };
     }
 }
 

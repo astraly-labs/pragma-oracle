@@ -1,68 +1,19 @@
 use array::{ArrayTrait, SpanTrait};
 use pragma::entry::structs::{BaseEntry, AggregationMode};
 use pragma::operations::sorting::merge_sort::merge;
-use pragma::entry::structs::{SpotEntry, FutureEntry, GenericEntry};
+use pragma::entry::structs::{
+    SpotEntry, FutureEntry, GenericEntry, PragmaPricesResponse, HasPrice, HasBaseEntry,
+};
 use traits::TryInto;
 use traits::Into;
 use option::OptionTrait;
 
-trait HasPrice<T> {
-    fn get_price(self: @T) -> u128;
-}
-
-impl SHasPriceImpl of HasPrice<SpotEntry> {
-    fn get_price(self: @SpotEntry) -> u128 {
-        (*self).price
-    }
-}
-impl FHasPriceImpl of HasPrice<FutureEntry> {
-    fn get_price(self: @FutureEntry) -> u128 {
-        (*self).price
-    }
-}
-
-
-impl GHasPriceImpl of HasPrice<GenericEntry> {
-    fn get_price(self: @GenericEntry) -> u128 {
-        (*self).value
-    }
-}
 
 mod Entry {
     use super::{
         ArrayTrait, BaseEntry, AggregationMode, merge, SpotEntry, FutureEntry, GenericEntry,
-        TryInto, Into, OptionTrait, HasPrice, SpanTrait,
+        TryInto, Into, OptionTrait, HasPrice, SpanTrait, PragmaPricesResponse, HasBaseEntry,
     };
-
-    trait hasBaseEntry<T> {
-        fn get_base_entry(self: @T) -> BaseEntry;
-        fn get_base_timestamp(self: @T) -> u64;
-    }
-
-    impl ShasBaseEntryImpl of hasBaseEntry<SpotEntry> {
-        fn get_base_entry(self: @SpotEntry) -> BaseEntry {
-            (*self).base
-        }
-        fn get_base_timestamp(self: @SpotEntry) -> u64 {
-            (*self).base.timestamp
-        }
-    }
-    impl FhasBaseEntryImpl of hasBaseEntry<FutureEntry> {
-        fn get_base_entry(self: @FutureEntry) -> BaseEntry {
-            (*self).base
-        }
-        fn get_base_timestamp(self: @FutureEntry) -> u64 {
-            (*self).base.timestamp
-        }
-    }
-    impl OhasBaseEntryImpl of hasBaseEntry<GenericEntry> {
-        fn get_base_entry(self: @GenericEntry) -> BaseEntry {
-            (*self).base
-        }
-        fn get_base_timestamp(self: @GenericEntry) -> u64 {
-            (*self).base.timestamp
-        }
-    }
 
 
     //
@@ -106,7 +57,7 @@ mod Entry {
     // @return last_updated_timestamp: the latest timestamp from the array
     fn aggregate_timestamps_max<
         T,
-        impl THasBaseEntry: hasBaseEntry<T>, // impl TPartialOrd: PartialOrd<T>,
+        impl THasBaseEntry: HasBaseEntry<T>, // impl TPartialOrd: PartialOrd<T>,
         impl TCopy: Copy<T>,
         impl TDrop: Drop<T>
     >(
@@ -130,6 +81,8 @@ mod Entry {
             };
         }
     }
+
+    //
 
     // @notice returns the median value from an entries array
     // @param entries: array of entries to aggregate
@@ -159,6 +112,7 @@ mod Entry {
         }
     }
 
+
     // @notice Returns the mean value from an entries array
     // @param entries: entries array to aggregate
     // @return value: the mean value from the array of entries
@@ -177,6 +131,24 @@ mod Entry {
                     break sum / entries_len.into();
                 }
             };
+        }
+    }
+
+    fn compute_median(entry_array: Array<u128>) -> u128 {
+        let sorted_array = alexandria_sorting::merge_sort::merge(entry_array);
+        let entries_len = sorted_array.len();
+        assert(entries_len > 0_usize, 'entries must not be empty');
+        let is_even = 1 - entries_len % 2_usize;
+        if (is_even == 0) {
+            let median_idx = (entries_len) / 2;
+            let median_entry = *sorted_array.at(median_idx);
+            median_entry
+        } else {
+            let median_idx_1 = entries_len / 2;
+            let median_idx_2 = median_idx_1 - 1;
+            let median_entry_1 = (*sorted_array.at(median_idx_1));
+            let median_entry_2 = (*sorted_array.at(median_idx_2));
+            (median_entry_1 + median_entry_2) / 2
         }
     }
 }

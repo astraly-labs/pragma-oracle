@@ -356,37 +356,37 @@ fn test_get_decimals_should_fail_if_not_found_2() {
 #[available_gas(200000000000)]
 fn test_data_entry() {
     let (publisher_registry, oracle) = setup();
-    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 1);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (2000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 2);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 2, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (3000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::SpotEntry(3), 1);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(3), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (8000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::SpotEntry(4), 1);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(4), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (8000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::SpotEntry(4), 2);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(4), 2, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (3000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::SpotEntry(5), 1);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(5), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (5000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 11111110)), 1);
+    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 11111110)), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (2000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 11111110)), 2);
+    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 11111110)), 2, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (2000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::FutureEntry((3, 11111110)), 1);
+    let entry = oracle.get_data_entry(DataType::FutureEntry((3, 11111110)), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (3000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::FutureEntry((4, 11111110)), 1);
+    let entry = oracle.get_data_entry(DataType::FutureEntry((4, 11111110)), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (4000000), 'wrong price');
-    let entry = oracle.get_data_entry(DataType::FutureEntry((5, 11111110)), 1);
+    let entry = oracle.get_data_entry(DataType::FutureEntry((5, 11111110)), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (5000000), 'wrong price');
 }
@@ -397,7 +397,7 @@ fn test_data_entry() {
 fn test_data_entry_should_fail_if_not_found() {
     //no panic because we want get_data_entry is called the first time data is published
     let (publisher_registry, oracle) = setup();
-    let entry = oracle.get_data_entry(DataType::SpotEntry(100), 1);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(100), 1, 1);
 }
 
 #[test]
@@ -406,7 +406,7 @@ fn test_data_entry_should_fail_if_not_found() {
 fn test_data_entry_should_fail_if_not_found_2() {
     //Test should return if the pair_id or the expiration timestamp is not related to a FutureEntry
     let (publisher_registry, oracle) = setup();
-    let entry = oracle.get_data_entry(DataType::FutureEntry((100, 110100)), 1);
+    let entry = oracle.get_data_entry(DataType::FutureEntry((100, 110100)), 1, 1);
 }
 
 #[test]
@@ -415,11 +415,11 @@ fn test_data_entry_should_fail_if_not_found_2() {
 fn test_data_entry_should_fail_if_not_found_3() {
     //Test should fail if the pair_id or the expiration timestamp is not related to a FutureEntry
     let (publisher_registry, oracle) = setup();
-    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 110100)), 1);
+    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 110100)), 1, 1);
 }
 
 #[test]
-#[available_gas(2000000000)]
+#[available_gas(20000000000)]
 fn test_get_data() {
     let (publisher_registry, oracle) = setup();
     let entry = oracle.get_data(DataType::SpotEntry(2), AggregationMode::Median(()));
@@ -897,4 +897,311 @@ fn test_add_pair_should_panic_if_quote_currency_do_not_corresponds() {
     let (publisher_registry, oracle) = setup();
     oracle
         .add_pair(Pair { id: 10, quote_currency_id: 123123132, base_currency_id: USD_CURRENCY_ID, })
+}
+
+
+#[test]
+#[available_gas(2000000000)]
+fn test_multiple_publishers_price() {
+    let admin = contract_address_const::<0x123456789>();
+    let test_address = contract_address_const::<0x1234567>();
+    set_contract_address(admin);
+    let (publisher_registry, oracle) = setup();
+    publisher_registry.add_publisher(2, test_address);
+    // Add source 1 for publisher 1
+    publisher_registry.add_source_for_publisher(2, 1);
+    // Add source 2 for publisher 1
+    publisher_registry.add_source_for_publisher(2, 2);
+    let now = 100000;
+    set_contract_address(test_address);
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 2,
+                    price: 4 * 1000000,
+                    volume: 100
+                }
+            )
+        );
+
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    pair_id: 2,
+                    price: 5 * 1000000,
+                    volume: 50
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 3,
+                    price: 8 * 1000000,
+                    volume: 100
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 4,
+                    price: 8 * 1000000,
+                    volume: 20
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    pair_id: 4,
+                    price: 3 * 1000000,
+                    volume: 10
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 5,
+                    price: 5 * 1000000,
+                    volume: 20
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 2,
+                    price: 2 * 1000000,
+                    volume: 40,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    pair_id: 2,
+                    price: 2 * 1000000,
+                    volume: 30,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 3,
+                    price: 3 * 1000000,
+                    volume: 1000,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 4,
+                    price: 4 * 1000000,
+                    volume: 2321,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 5,
+                    price: 5 * 1000000,
+                    volume: 231,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    pair_id: 5,
+                    price: 5 * 1000000,
+                    volume: 232,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+    let entry = oracle.get_data(DataType::SpotEntry(2), AggregationMode::Median(()));
+    assert(entry.price == (3500000), 'wrong price');
+    assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::SpotEntry(3), AggregationMode::Median(()));
+    assert(entry.price == (8000000), 'wrong price');
+    assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::SpotEntry(4), AggregationMode::Median(()));
+    assert(entry.price == (5500000), 'wrong price');
+    assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::SpotEntry(5), AggregationMode::Median(()));
+    assert(entry.price == (5000000), 'wrong price');
+    assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
+    assert(entry.price == (2 * 1000000), 'wrong price');
+    assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
+    assert(entry.price == (2 * 1000000), 'wrong price');
+    assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::FutureEntry((3, 11111110)), AggregationMode::Median(()));
+    assert(entry.price == (3 * 1000000), 'wrong price');
+    assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::FutureEntry((4, 11111110)), AggregationMode::Median(()));
+    assert(entry.price == (4 * 1000000), 'wrong price');
+    assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
+    let entry = oracle.get_data(DataType::FutureEntry((5, 11111110)), AggregationMode::Median(()));
+    assert(entry.price == (5 * 1000000), 'wrong price');
+}
+
+#[test]
+#[available_gas(2000000000)]
+fn test_get_data_entry_for_publishers() {
+    let admin = contract_address_const::<0x123456789>();
+    let (publisher_registry, oracle) = setup();
+    let test_address = contract_address_const::<0x1234567>();
+    set_contract_address(admin);
+    let (publisher_registry, oracle) = setup();
+    publisher_registry.add_publisher(2, test_address);
+    // Add source 1 for publisher 1
+    publisher_registry.add_source_for_publisher(2, 1);
+    // Add source 2 for publisher 1
+    publisher_registry.add_source_for_publisher(2, 2);
+    let now = 100000;
+    set_contract_address(test_address);
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 2,
+                    price: 4 * 1000000,
+                    volume: 120
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 2,
+                    price: 4 * 1000000,
+                    volume: 120,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+
+    let entry = oracle.get_data_entry_for_publishers(DataType::SpotEntry(2), 1);
+    match entry {
+        PossibleEntries::Spot(entry) => {
+            assert(entry.price == (3000000), 'wrong price');
+            assert(entry.volume == 110, 'wrong volume');
+        },
+        PossibleEntries::Future(entry) => {
+            assert(false, 'wrong entry type');
+        },
+        PossibleEntries::Generic(entry) => {
+            assert(false, 'wrong entry type');
+        }
+    }
+    let entry = oracle.get_data_entry_for_publishers(DataType::FutureEntry((2, 11111110)), 1);
+    match entry {
+        PossibleEntries::Spot(entry) => {
+            assert(false, 'wrong entry type');
+        },
+        PossibleEntries::Future(entry) => {
+            assert(entry.price == (3000000), 'wrong price');
+            assert(entry.volume == 80, 'wrong volume');
+        },
+        PossibleEntries::Generic(entry) => {
+            assert(false, 'wrong entry type');
+        }
+    }
+    let test_address_2 = contract_address_const::<0x1234567314>();
+    set_contract_address(admin);
+    publisher_registry.add_publisher(3, test_address_2);
+    // Add source 1 for publisher 1
+    publisher_registry.add_source_for_publisher(3, 1);
+    // Add source 2 for publisher 1
+    publisher_registry.add_source_for_publisher(3, 2);
+    set_contract_address(test_address_2);
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 3 },
+                    pair_id: 2,
+                    price: 7 * 1000000,
+                    volume: 150
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 3 },
+                    pair_id: 2,
+                    price: 7 * 1000000,
+                    volume: 150,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+    let entry = oracle.get_data_entry_for_publishers(DataType::SpotEntry(2), 1);
+
+    match entry {
+        PossibleEntries::Spot(entry) => {
+            assert(entry.price == (4000000), 'wrong price');
+            assert(entry.volume == 120, 'wrong volume');
+        },
+        PossibleEntries::Future(entry) => {
+            assert(false, 'wrong entry type');
+        },
+        PossibleEntries::Generic(entry) => {
+            assert(false, 'wrong entry type');
+        }
+    }
+    let entry = oracle.get_data_entry_for_publishers(DataType::FutureEntry((2, 11111110)), 1);
+    match entry {
+        PossibleEntries::Spot(entry) => {
+            assert(false, 'wrong entry type');
+        },
+        PossibleEntries::Future(entry) => {
+            assert(entry.price == (4000000), 'wrong price');
+            assert(entry.volume == 120, 'wrong volume');
+        },
+        PossibleEntries::Generic(entry) => {
+            assert(false, 'wrong entry type');
+        }
+    }
 }
