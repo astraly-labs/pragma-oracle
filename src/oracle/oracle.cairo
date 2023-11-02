@@ -185,32 +185,13 @@ mod Oracle {
         IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
     };
 
-    use starknet::{get_block_timestamp, Felt252TryIntoContractAddress, StorePacking};
+    use starknet::{get_block_timestamp, Felt252TryIntoContractAddress};
 
     use cmp::{max, min};
     use option::OptionTrait;
     use debug::PrintTrait;
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 600; // 10 minutes
     const FORWARD_TIMESTAMP_BUFFER: u64 = 10; // 10 seconds
-
-    // Store Packing constants
-
-    // For the entry storage
-    const MAX_FELT: u256 =
-        3618502788666131213697322783095070105623107215331596699973092056135872020480; //max felt value
-    const TIMESTAMP_SHIFT_U32: felt252 = 0x100000000;
-    const TIMESTAMP_SHIFT_MASK_U32: u128 = 0xffffffff;
-    const VOLUME_SHIFT_U132: felt252 = 0x1000000000000000000000000000000000;
-    const VOLUME_SHIFT_MASK_U100: u128 = 0xfffffffffffffffffffffffff;
-    const PRICE_SHIFT_MASK_U120: u128 = 0xffffffffffffffffffffffffffffff;
-
-
-    //For the checkpoint storage
-
-    const CHECKPOINT_TIMESTAMP_SHIFT_U32: felt252 = 0x100000000;
-    const CHECKPOINT_VALUE_SHIFT_U160: felt252 = 0x10000000000000000000000000000000000000000;
-    const CHECKPOINT_AGGREGATION_MODE_SHIFT_U172: felt252 =
-        0x10000000000000000000000000000000000000000000;
 
 
     #[storage]
