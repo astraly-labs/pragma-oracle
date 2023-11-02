@@ -2052,6 +2052,12 @@ mod Oracle {
         }
     }
 
+    // @notice retrieve all the entries for a given data type and a given source
+    // @param array: a span of entries to consider
+    // @param source: the source to consider
+    // @param type_of_data: the type of data to consider (e.g SPOT, FUTURE, GENERIC)
+    // @param pair_id: the pair id to consider
+    // @returns a span of entries    
     fn filter_array_by_source<
         T,
         impl THasBaseEntry: HasBaseEntry<T>,
@@ -2082,6 +2088,12 @@ mod Oracle {
         return publisher_filtered_array.span();
     }
 
+
+    // @notice compute the median of the publishers for a given source and data type
+    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+    // @param filtered_array: a span of entries to consider
+    // @param aggregation_mode: the aggregation method to be used
+    // @returns a PragmaPricesResponse (see entry/structs)
     fn compute_median_for_source<
         T,
         impl THasPrice: HasPrice<T>,
@@ -2423,7 +2435,6 @@ mod Oracle {
     // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
     // @param publishers: reference to a publishers array, to be filled
     // @param publishers_len, the max number of publishers for the given data_type/aggregation_mode
-
     fn build_publishers_array(
         self: @ContractState,
         data_type: DataType,
