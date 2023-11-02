@@ -40,7 +40,6 @@ mod PublisherRegistry {
 
     #[storage]
     struct Storage {
-
         //the publisher address storage : legacyMap between a publisher and its address( ContractAddress)
         publisher_address_storage: LegacyMap::<felt252, ContractAddress>,
         //the len of the publishers storage list
@@ -76,7 +75,7 @@ mod PublisherRegistry {
 
     #[derive(Drop, starknet::Event)]
     struct RemovePublisher {
-        publisher: felt252, 
+        publisher: felt252,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -84,7 +83,7 @@ mod PublisherRegistry {
     enum Event {
         RegisteredPublisher: RegisteredPublisher,
         UpdatedPublisherAddress: UpdatedPublisherAddress,
-        RemovePublisher : RemovePublisher,
+        RemovePublisher: RemovePublisher,
     }
 
     #[external(v0)]
@@ -177,14 +176,7 @@ mod PublisherRegistry {
                 self.publishers_storage.write(publishers_len - 1, 0);
                 self.publishers_storage_len.write(publishers_len - 1);
             }
-            self
-                .emit(
-                    Event::RemovePublisher(
-                        RemovePublisher {
-                            publisher,
-                        }
-                    )
-                );
+            self.emit(Event::RemovePublisher(RemovePublisher { publisher, }));
         }
 
         // @notice add source for publisher
