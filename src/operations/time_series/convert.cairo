@@ -2,7 +2,16 @@ use alexandria_math::pow;
 use traits::Into;
 use debug::PrintTrait;
 
+
 const MAX_POWER: u128 = 10000000000000000000000000000000;
+
+fn normalize_to_decimals(value: u128, original_decimals: u32, target_decimals: u32) -> u128 {
+    if target_decimals >= original_decimals {
+        value * pow(10, (target_decimals - original_decimals).into())
+    } else {
+        value / pow(10, (original_decimals - target_decimals).into())
+    }
+}
 fn div_decimals(a_price: u128, b_price: u128, output_decimals: u128) -> u128 {
     let power = pow(10_u128, output_decimals);
 
@@ -51,4 +60,17 @@ fn test_convert_via_usd() {
     let output_decimals: u32 = 6;
     let result: u128 = convert_via_usd(a_price, b_price, output_decimals);
     assert(result == 20833333, 'div failed'); //10**6 output decimals 
+
+    let a_price: u128 = 25000000;
+    let original_decimals: u32 = 6;
+    let target_decimals: u32 = 8;
+    let result: u128 = normalize_to_decimals(a_price, original_decimals, target_decimals);
+    assert(result == 2500000000, 'div failed'); //10**8 output decimals
+
+    let a_price: u128 = 25000000;
+    let original_decimals: u32 = 8;
+    let target_decimals: u32 = 6;
+    let result: u128 = normalize_to_decimals(a_price, original_decimals, target_decimals);
+    assert(result == 250000, 'div failed') //10**6 output decimals
 }
+
