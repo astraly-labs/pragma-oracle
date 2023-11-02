@@ -1958,7 +1958,7 @@ mod Oracle {
                     PossibleEntries::Spot(spot_entry) => {
                         let is_entry_initialized: bool = spot_entry.get_base_timestamp() != 0;
                         let condition: bool = is_entry_initialized
-                            & (spot_entry
+                            && (spot_entry
                                 .get_base_timestamp() > (latest_timestamp
                                     - BACKWARD_TIMESTAMP_BUFFER));
                         if condition {
@@ -1968,7 +1968,7 @@ mod Oracle {
                     PossibleEntries::Future(future_entry) => {
                         let is_entry_initialized: bool = future_entry.get_base_timestamp() != 0;
                         let condition: bool = is_entry_initialized
-                            & (future_entry
+                            && (future_entry
                                 .get_base_timestamp() > (latest_timestamp
                                     - BACKWARD_TIMESTAMP_BUFFER));
                         if condition {
@@ -1979,7 +1979,7 @@ mod Oracle {
                         let is_entry_initialized: bool = generic_entry.get_base_timestamp() != 0;
 
                         let condition: bool = is_entry_initialized
-                            & (generic_entry
+                            && (generic_entry
                                 .get_base_timestamp() > (latest_timestamp
                                     - BACKWARD_TIMESTAMP_BUFFER));
                         if condition {
@@ -2099,7 +2099,7 @@ mod Oracle {
             }
             let entry = *array.at(cur_idx);
             if (publishers.contains(entry.get_base_entry().publisher)
-                && entry.get_base_entry().source == source) {
+                && (entry.get_base_entry().source == source)) {
                 publisher_filtered_array.append(entry);
             }
             cur_idx = cur_idx + 1;
