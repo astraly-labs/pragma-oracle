@@ -80,7 +80,6 @@ trait IOracleABI<TContractState> {
     ) -> Checkpoint;
     fn get_sources_threshold(self: @TContractState,) -> u32;
     fn get_admin_address(self: @TContractState,) -> ContractAddress;
-    fn get_implementation_hash(self: @TContractState) -> ClassHash;
     fn publish_data(ref self: TContractState, new_entry: PossibleEntries);
     fn publish_data_entries(ref self: TContractState, new_entries: Span<PossibleEntries>);
     fn set_admin_address(ref self: TContractState, new_admin_address: ContractAddress);
@@ -914,12 +913,6 @@ mod Oracle {
             Admin::get_admin_address(@state)
         }
 
-        // @notice get the implementation hash of the oracle 
-        // @returns the related class hash 
-        fn get_implementation_hash(self: @ContractState) -> ClassHash {
-            let state: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
-            Upgradeable::InternalImpl::get_implementation_hash(@state)
-        }
 
         // @notice retrieve the last checkpoint before a given timestamp
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))

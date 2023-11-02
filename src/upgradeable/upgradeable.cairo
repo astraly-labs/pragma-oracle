@@ -28,9 +28,5 @@ mod Upgradeable {
             self.class_hash.write(new_class_hash);
             self.emit(Upgraded { class_hash: new_class_hash });
         }
-
-        fn get_implementation_hash(self: @ContractState) -> ClassHash {
-            self.class_hash.read()
-        }
     }
 }
