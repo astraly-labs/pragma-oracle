@@ -1,7 +1,9 @@
 use starknet::{ContractAddress, StorePacking};
 use array::ArrayTrait;
+
 use traits::{TryInto, Into};
 const MEDIAN: felt252 = 'MEDIAN'; // str_to_felt("MEDIAN")
+
 const SPOT: felt252 = 'SPOT';
 const FUTURE: felt252 = 'FUTURE';
 const GENERIC: felt252 = 'GENERIC';
@@ -30,11 +32,6 @@ struct BaseEntry {
     timestamp: u64,
     source: felt252,
     publisher: felt252,
-}
-
-#[derive(Serde, Drop, Copy)]
-struct GenericEntryStorage {
-    timestamp__value: u256,
 }
 
 #[derive(Copy, Drop, Serde)]
@@ -111,12 +108,6 @@ enum DataType {
 // OptionEntry: (felt252, felt252),
 }
 
-#[derive(Drop, Copy)]
-enum PossibleEntryStorage {
-    Spot: u256, //structure SpotEntryStorage
-    Future: u256, //structure FutureEntryStorage
-//  Option: OptionEntryStorage, //structure OptionEntryStorage
-}
 
 #[derive(Drop, Copy, Serde)]
 enum SimpleDataType {
@@ -165,15 +156,6 @@ struct Checkpoint {
     value: u128,
     aggregation_mode: AggregationMode,
     num_sources_aggregated: u32,
-}
-
-#[derive(Serde, Drop, Copy)]
-struct FetchCheckpoint {
-    pair_id: felt252,
-    type_of: felt252,
-    index: u64,
-    expiration_timestamp: u64,
-    aggregation_mode: u8,
 }
 
 #[derive(Serde, Drop, Copy)]
