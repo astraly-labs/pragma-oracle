@@ -118,7 +118,7 @@ mod PublisherRegistry {
             assert(!existing_publisher_address.is_zero(), 'Name not registered');
 
             assert(caller == existing_publisher_address, 'Caller is not the publisher');
-
+            assert(!new_publisher_address.is_zero(), 'Publishr address cannot be zero');
             self.publisher_address_storage.write(publisher, new_publisher_address);
 
             self
@@ -186,7 +186,6 @@ mod PublisherRegistry {
                     @self, publisher, source
                 );
                 assert(can_publish == false, 'Already registered');
-                let cur_idx = self.publishers_sources_idx.read(publisher);
                 self.publishers_sources.write((publisher, cur_idx), source);
                 self.publishers_sources_idx.write(publisher, cur_idx + 1);
                 return ();
