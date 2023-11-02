@@ -116,7 +116,7 @@ trait IPragmaABI<TContractState> {
     ) -> PragmaPricesResponse;
 
     fn get_data_entry(
-        self: @TContractState, data_type: DataType, source: felt252
+        self: @TContractState, data_type: DataType, source: felt252, publisher: felt252
     ) -> PossibleEntries;
     fn get_data_entry_for_publishers(
         self: @TContractState, data_type: DataType, source: felt252
