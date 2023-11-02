@@ -957,10 +957,7 @@ mod Oracle {
                 self, quote_data_type, aggregation_mode, sources
             );
 
-            let decimals = max(
-                IOracleABI::get_decimals(self, base_data_type),
-                IOracleABI::get_decimals(self, quote_data_type)
-            );
+            let decimals = IOracleABI::get_decimals(self, base_data_type);
 
             let normalised_basePPR_price = normalize_to_decimals(
                 basePPR.price, IOracleABI::get_decimals(self, base_data_type), decimals
