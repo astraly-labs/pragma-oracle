@@ -181,7 +181,7 @@ mod Oracle {
     use alexandria_data_structures::array_ext::SpanTraitExt;
     use hash::LegacyHash;
     use pragma::entry::entry::Entry;
-    use pragma::operations::time_series::convert::convert_via_usd;
+    use pragma::operations::time_series::convert::{convert_via_usd, normalize_to_decimals};
     use pragma::publisher_registry::publisher_registry::{
         IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
     };
@@ -790,11 +790,11 @@ mod Oracle {
             let base_pair_id = self
                 .oracle_pair_id_storage
                 .read((base_currency_id, USD_CURRENCY_ID));
-
+            assert(base_pair_id != 0, 'No pair found');
             let quote_pair_id = self
                 .oracle_pair_id_storage
                 .read((quote_currency_id, USD_CURRENCY_ID));
-
+            assert(quote_pair_id != 0, 'No pair found');
             let (base_data_type, quote_data_type, currency) = match typeof {
                 SimpleDataType::SpotEntry(()) => {
                     (
@@ -834,12 +834,21 @@ mod Oracle {
                 self, quote_data_type, aggregation_mode, sources
             );
 
-            let decimals = min(
-                IOracleABI::get_decimals(self, base_data_type),
-                IOracleABI::get_decimals(self, quote_data_type)
+            let decimals = IOracleABI::get_decimals(self, base_data_type);
+
+            let normalised_basePPR_price = normalize_to_decimals(
+                basePPR.price, IOracleABI::get_decimals(self, base_data_type), decimals
+            );
+            let normalised_quotePPR_price = normalize_to_decimals(
+                quotePPR.price, IOracleABI::get_decimals(self, quote_data_type), decimals
+            );
+            let rebased_value = convert_via_usd(
+                normalised_basePPR_price, normalised_quotePPR_price, decimals
             );
 
+
             let rebased_value = convert_via_usd(basePPR.price, quotePPR.price, decimals);
+
             let last_updated_timestamp = max(
                 quotePPR.last_updated_timestamp, basePPR.last_updated_timestamp
             );
