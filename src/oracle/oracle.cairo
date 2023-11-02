@@ -846,7 +846,6 @@ mod Oracle {
                 normalised_basePPR_price, normalised_quotePPR_price, decimals
             );
 
-
             let rebased_value = convert_via_usd(basePPR.price, quotePPR.price, decimals);
 
             let last_updated_timestamp = max(
