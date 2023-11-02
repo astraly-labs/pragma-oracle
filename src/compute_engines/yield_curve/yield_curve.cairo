@@ -476,9 +476,6 @@ mod YieldCurve {
             let old_expiry = IYieldCurveABI::get_future_expiry_timestamp_expiry(
                 @self, pair_id, future_expiry_timestamp
             );
-            let old_expiry = IYieldCurveABI::get_future_expiry_timestamp_expiry(
-                @self, pair_id, future_expiry_timestamp
-            );
             let new_future_expiry_timestamp_status = FutureKeyStatus {
                 is_active: new_is_active, expiry_timestamp: old_expiry
             };

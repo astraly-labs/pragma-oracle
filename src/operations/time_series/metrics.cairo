@@ -21,7 +21,6 @@ enum Operations {
 /// Returns an array of `u128` from `TickElem` array
 fn extract_value(mut tick_arr: Span<TickElem>) -> Array<Fixed> {
     let mut output = ArrayTrait::<Fixed>::new();
-    let mut cur_idx = 0;
     loop {
         match tick_arr.pop_front() {
             Option::Some(cur_val) => {
@@ -38,7 +37,6 @@ fn extract_value(mut tick_arr: Span<TickElem>) -> Array<Fixed> {
 /// Sum the values of an array of `TickElem`
 fn sum_tick_array(mut tick_arr: Span<TickElem>) -> u128 {
     let mut output = 0;
-    let mut cur_idx = 0;
     loop {
         match tick_arr.pop_front() {
             Option::Some(cur_val) => {
@@ -56,7 +54,6 @@ fn sum_tick_array(mut tick_arr: Span<TickElem>) -> u128 {
 /// Sum the elements of an array of `u128`
 fn sum_array(mut tick_arr: Span<Fixed>) -> u128 {
     let mut output: u128 = 0;
-    let mut cur_idx = 0;
 
     loop {
         match tick_arr.pop_front() {

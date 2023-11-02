@@ -1,7 +1,7 @@
 use pragma::entry::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
-    USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, PossibleEntryStorage, FutureEntry, OptionEntry,
-    GenericEntry, SimpleDataType, AggregationMode, GenericEntryStorage, PossibleEntries, ArrayEntry,
+    USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, FutureEntry, OptionEntry,
+    GenericEntry, SimpleDataType, AggregationMode, PossibleEntries, ArrayEntry,
     EntryStorage, HasPrice, HasBaseEntry
 };
 
@@ -170,13 +170,13 @@ trait IPragmaABI<TContractState> {
 mod Oracle {
     use super::{
         BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
-        USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, PossibleEntryStorage, FutureEntry,
+        USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, FutureEntry,
         OptionEntry, GenericEntry, SimpleDataType, AggregationMode, PossibleEntries, ArrayEntry,
         Admin, Upgradeable, Serde, storage_read_syscall, storage_write_syscall,
         storage_address_from_base_and_offset, storage_base_address_from_felt252, Store,
         StorageBaseAddress, SyscallResult, ContractAddress, get_caller_address, ClassHash, Into,
         TryInto, ResultTrait, ResultTraitImpl, BoxTrait, ArrayTrait, SpanTrait, Zeroable,
-        IOracleABI, GenericEntryStorage, EntryStorage, List, ListTrait, HasPrice, HasBaseEntry
+        IOracleABI, EntryStorage, List, ListTrait, HasPrice, HasBaseEntry
     };
     use alexandria_data_structures::array_ext::SpanTraitExt;
     use hash::LegacyHash;
@@ -296,10 +296,6 @@ mod Oracle {
         future_entry: FutureEntry
     }
 
-    #[derive(Drop, starknet::Event)]
-    struct SubmittedOptionEntry {
-        option_entry: OptionEntry
-    }
 
     #[derive(Drop, starknet::Event)]
     struct SubmittedGenericEntry {
@@ -344,7 +340,6 @@ mod Oracle {
         UpdatedPublisherRegistryAddress: UpdatedPublisherRegistryAddress,
         SubmittedSpotEntry: SubmittedSpotEntry,
         SubmittedFutureEntry: SubmittedFutureEntry,
-        SubmittedOptionEntry: SubmittedOptionEntry,
         SubmittedGenericEntry: SubmittedGenericEntry,
         SubmittedCurrency: SubmittedCurrency,
         UpdatedCurrency: UpdatedCurrency,
@@ -430,7 +425,7 @@ mod Oracle {
             self: @ContractState, data_type: DataType, sources: Span<felt252>,
         ) -> (Span<PossibleEntries>, u64) {
             if (sources.len() == 0) {
-                let all_sources = get_all_sources(self, data_type).span();
+                let all_sources = get_all_sources(self, data_type);
                 let last_updated_timestamp = get_latest_entry_timestamp(
                     self, data_type, all_sources,
                 );
@@ -456,7 +451,7 @@ mod Oracle {
         // @returns a span of PossibleEntries, which can be spot entries, future entries, generic entries...
         fn get_data_entries(self: @ContractState, data_type: DataType) -> Span<PossibleEntries> {
             let mut sources = ArrayTrait::<felt252>::new();
-            let sources = get_all_sources(self, data_type).span();
+            let sources = get_all_sources(self, data_type);
             let (entries, _) = IOracleABI::get_data_entries_for_sources(self, data_type, sources);
             entries
         }
@@ -465,7 +460,7 @@ mod Oracle {
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data_median(self: @ContractState, data_type: DataType) -> PragmaPricesResponse {
-            let sources = get_all_sources(self, data_type).span();
+            let sources = get_all_sources(self, data_type);
             let prices_response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
                 self, data_type, AggregationMode::Median(()), sources
             );
@@ -515,7 +510,7 @@ mod Oracle {
         fn get_data(
             self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
         ) -> PragmaPricesResponse {
-            let sources = get_all_sources(self, data_type).span();
+            let sources = get_all_sources(self, data_type);
             let prices_response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
                 self, data_type, aggregation_mode, sources
             );
@@ -547,7 +542,7 @@ mod Oracle {
                 };
             }
             let mut data_sources = if (sources.len() == 0) {
-                get_all_sources(self, data_type).span()
+                get_all_sources(self, data_type)
             } else {
                 sources
             };
@@ -806,11 +801,9 @@ mod Oracle {
                 SimpleDataType::FutureEntry(()) => {
                     match expiration_timestamp {
                         Option::Some(expiration) => {
-                            let base_dt = DataType::FutureEntry((base_pair_id, expiration));
-                            let quote_dt = DataType::FutureEntry((quote_pair_id, expiration));
                             (
-                                base_dt,
-                                quote_dt,
+                                DataType::FutureEntry((base_pair_id, expiration)),
+                                DataType::FutureEntry((quote_pair_id, expiration)),
                                 self.oracle_currencies_storage.read(quote_currency_id)
                             )
                         },
@@ -1211,9 +1204,9 @@ mod Oracle {
                     }
                     self.emit(Event::SubmittedSpotEntry(SubmittedSpotEntry { spot_entry }));
                     let element = EntryStorage {
-                        timestamp: spot_entry.base.timestamp.into(),
-                        volume: spot_entry.volume.into(),
-                        price: spot_entry.price.into()
+                        timestamp: spot_entry.base.timestamp,
+                        volume: spot_entry.volume,
+                        price: spot_entry.price
                     };
                     set_entry_storage(
                         ref self,
@@ -1327,9 +1320,9 @@ mod Oracle {
                     self.emit(Event::SubmittedFutureEntry(SubmittedFutureEntry { future_entry }));
 
                     let element: EntryStorage = EntryStorage {
-                        timestamp: future_entry.base.timestamp.into(),
-                        volume: future_entry.volume.into(),
-                        price: future_entry.price.into()
+                        timestamp: future_entry.base.timestamp,
+                        volume: future_entry.volume,
+                        price: future_entry.price
                     };
                     set_entry_storage(
                         ref self,
@@ -1422,9 +1415,9 @@ mod Oracle {
                         .read((generic_entry.key, GENERIC, 0));
 
                     let element = EntryStorage {
-                        timestamp: generic_entry.base.timestamp.into(),
+                        timestamp: generic_entry.base.timestamp,
                         volume: 0,
-                        price: generic_entry.value.into(),
+                        price: generic_entry.value,
                     };
                     set_entry_storage(
                         ref self,
@@ -1468,9 +1461,7 @@ mod Oracle {
             ref self: ContractState, new_publisher_registry_address: ContractAddress
         ) {
             self.assert_only_admin();
-            let old_publisher_registry_address = self
-                .oracle_publisher_registry_address_storage
-                .read();
+            let old_publisher_registry_address = IOracleABI::get_publisher_registry_address(@self); 
             self.oracle_publisher_registry_address_storage.write(new_publisher_registry_address);
             self
                 .emit(
@@ -1683,13 +1674,13 @@ mod Oracle {
     // @notice retrieve all the available sources for a given data type
     // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
     // @returns a span of sources 
-    fn get_all_sources(self: @ContractState, data_type: DataType) -> Array<felt252> {
+    fn get_all_sources(self: @ContractState, data_type: DataType) -> Span<felt252> {
         let mut sources = ArrayTrait::<felt252>::new();
         match data_type {
             DataType::SpotEntry(pair_id) => {
                 let source_len = self.oracle_sources_len_storage.read((pair_id, SPOT, 0));
                 build_sources_array(self, data_type, ref sources, source_len);
-                return sources;
+                return sources.span();
             },
             DataType::FutureEntry((
                 pair_id, expiration_timestamp
@@ -1699,12 +1690,12 @@ mod Oracle {
                     .read((pair_id, FUTURE, expiration_timestamp));
                 build_sources_array(self, data_type, ref sources, source_len);
 
-                return sources;
+                return sources.span();
             },
             DataType::GenericEntry(key) => {
                 let source_len = self.oracle_sources_len_storage.read((key, GENERIC, 0));
                 build_sources_array(self, data_type, ref sources, source_len);
-                return sources;
+                return sources.span();
             }
         }
     }
@@ -2008,6 +1999,8 @@ mod Oracle {
     // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
     // @param sources: a span of sources to consider
     // @param max_timestamp: max timestamp wanted
+    // @returns a span of PossibleEntries
+    // @returns the length of the span
     fn get_all_entries(
         self: @ContractState, data_type: DataType, sources: Span<felt252>, max_timestamp: u64
     ) -> (Array<PossibleEntries>, u32) {
@@ -2472,7 +2465,7 @@ mod Oracle {
                 DataType::SpotEntry(pair_id) => {
                     let new_publisher = self
                         .oracle_publishers_storage
-                        .read((pair_id, SPOT, idx.into(), 0));
+                        .read((pair_id, SPOT, idx, 0));
                     publishers.append(new_publisher);
                 },
                 DataType::FutureEntry((
@@ -2480,13 +2473,13 @@ mod Oracle {
                 )) => {
                     let new_publisher = self
                         .oracle_publishers_storage
-                        .read((pair_id, FUTURE, idx.into(), expiration_timestamp));
+                        .read((pair_id, FUTURE, idx, expiration_timestamp));
                     publishers.append(new_publisher);
                 },
                 DataType::GenericEntry(key) => {
                     let new_publisher = self
                         .oracle_publishers_storage
-                        .read((key, GENERIC, idx.into(), 0));
+                        .read((key, GENERIC, idx, 0));
                     publishers.append(new_publisher);
                 }
             }
