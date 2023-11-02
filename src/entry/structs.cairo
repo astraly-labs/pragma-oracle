@@ -1,12 +1,30 @@
-use starknet::ContractAddress;
+use starknet::{ContractAddress, StorePacking};
 use array::ArrayTrait;
 
+use traits::{TryInto, Into};
+const MEDIAN: felt252 = 'MEDIAN'; // str_to_felt("MEDIAN")
 
 const SPOT: felt252 = 'SPOT';
 const FUTURE: felt252 = 'FUTURE';
 const GENERIC: felt252 = 'GENERIC';
 const OPTION: felt252 = 'OPTION';
 const USD_CURRENCY_ID: felt252 = 'USD';
+// For the entry storage
+const MAX_FELT: u256 =
+    3618502788666131213697322783095070105623107215331596699973092056135872020480; //max felt value
+const TIMESTAMP_SHIFT_U32: felt252 = 0x100000000;
+const TIMESTAMP_SHIFT_MASK_U32: u128 = 0xffffffff;
+const VOLUME_SHIFT_U132: felt252 = 0x1000000000000000000000000000000000;
+const VOLUME_SHIFT_MASK_U100: u128 = 0xfffffffffffffffffffffffff;
+const PRICE_SHIFT_MASK_U120: u128 = 0xffffffffffffffffffffffffffffff;
+
+
+//For the checkpoint storage
+
+const CHECKPOINT_TIMESTAMP_SHIFT_U32: felt252 = 0x100000000;
+const CHECKPOINT_VALUE_SHIFT_U160: felt252 = 0x10000000000000000000000000000000000000000;
+const CHECKPOINT_AGGREGATION_MODE_SHIFT_U172: felt252 =
+    0x10000000000000000000000000000000000000000000;
 
 
 #[derive(Copy, Drop, Serde)]
@@ -67,7 +85,7 @@ struct eSSVI {
 }
 
 
-#[derive(Serde, Drop, Copy, starknet::Store)]
+#[derive(Serde, Drop, Copy)]
 struct EntryStorage {
     timestamp: u64,
     volume: u128,
@@ -132,7 +150,7 @@ struct Currency {
     ethereum_address: ContractAddress, // optional
 }
 
-#[derive(Serde, Drop, starknet::Store)]
+#[derive(Serde, Drop)]
 struct Checkpoint {
     timestamp: u64,
     value: u128,
@@ -287,6 +305,85 @@ impl u8IntoAggregationMode of Into<u8, AggregationMode> {
             AggregationMode::Mean(())
         } else {
             AggregationMode::Error(())
+        }
+    }
+}
+
+
+impl EntryStorePacking of StorePacking<EntryStorage, felt252> {
+    fn pack(value: EntryStorage) -> felt252 {
+        // entries verifications (no overflow)
+        assert(
+            (value.timestamp.into() == value.timestamp.into() & TIMESTAMP_SHIFT_MASK_U32),
+            'EntryStorePack:tmp too big'
+        );
+        assert(
+            value.volume.into() == value.volume.into() & VOLUME_SHIFT_MASK_U100,
+            'EntryStorePack:volume too big'
+        );
+        assert(
+            value.price.into() == value.price.into() & PRICE_SHIFT_MASK_U120,
+            'EntryStorePack:price too big'
+        );
+        let pack_value: felt252 = value.timestamp.into()
+            + value.volume.into() * TIMESTAMP_SHIFT_U32
+            + value.price.into() * VOLUME_SHIFT_U132;
+        assert(pack_value.into() < MAX_FELT, 'EntryStorePacking:tot too big');
+        pack_value
+    }
+    fn unpack(value: felt252) -> EntryStorage {
+        let value: u256 = value.into();
+        let volume_shift: NonZero<u256> = integer::u256_try_as_non_zero(VOLUME_SHIFT_U132.into())
+            .unwrap();
+        let (price, rest) = integer::u256_safe_div_rem(value, volume_shift);
+        let timestamp_shift: NonZero<u256> = integer::u256_try_as_non_zero(
+            TIMESTAMP_SHIFT_U32.into()
+        )
+            .unwrap();
+
+        let (vol, time) = integer::u256_safe_div_rem(rest, timestamp_shift);
+        EntryStorage {
+            timestamp: time.try_into().unwrap(),
+            volume: vol.try_into().unwrap(),
+            price: price.try_into().unwrap()
+        }
+    }
+}
+
+impl CheckpointStorePacking of StorePacking<Checkpoint, felt252> {
+    fn pack(value: Checkpoint) -> felt252 {
+        let converted_agg_mode: u8 = value.aggregation_mode.try_into().unwrap();
+        value.timestamp.into()
+            + value.value.into() * CHECKPOINT_TIMESTAMP_SHIFT_U32
+            + converted_agg_mode.into() * CHECKPOINT_VALUE_SHIFT_U160
+            + value.num_sources_aggregated.into() * CHECKPOINT_AGGREGATION_MODE_SHIFT_U172
+    }
+    fn unpack(value: felt252) -> Checkpoint {
+        let value: u256 = value.into();
+        let agg_shift: NonZero<u256> = integer::u256_try_as_non_zero(
+            CHECKPOINT_AGGREGATION_MODE_SHIFT_U172.into()
+        )
+            .unwrap();
+        let (num_sources, rest) = integer::u256_safe_div_rem(value, agg_shift);
+        let val_shift: NonZero<u256> = integer::u256_try_as_non_zero(
+            CHECKPOINT_VALUE_SHIFT_U160.into()
+        )
+            .unwrap();
+
+        let (agg_mode, rest_2) = integer::u256_safe_div_rem(rest, val_shift);
+        let u8_agg_mode: u8 = agg_mode.try_into().unwrap();
+        let aggregation_mode: AggregationMode = u8_agg_mode.into();
+        let time_shift: NonZero<u256> = integer::u256_try_as_non_zero(
+            CHECKPOINT_TIMESTAMP_SHIFT_U32.into()
+        )
+            .unwrap();
+
+        let (val, time) = integer::u256_safe_div_rem(rest_2, time_shift);
+        Checkpoint {
+            timestamp: time.try_into().unwrap(),
+            value: val.try_into().unwrap(),
+            aggregation_mode: aggregation_mode,
+            num_sources_aggregated: num_sources.try_into().unwrap()
         }
     }
 }
