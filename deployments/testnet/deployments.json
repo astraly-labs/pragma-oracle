@@ -1,0 +1,14 @@
+{
+	"pragma_PublisherRegistry": {
+		"address": "0x0427f6944917381070c8828c311978c391614be2939ca94f34fb91f294dd502b",
+		"tx": "0x601666dfcee8933eef931e3502e3f20f5ea2408788988afe798db379f6f79a5"
+	},
+	"pragma_Oracle": {
+		"address": "0x620a609f88f612eb5773a6f4084f7b33be06a6fed7943445aebce80d6a146ba",
+		"tx": "0x23ca211a1c2c7b4f87609ac64c19c3ba412d586c2bf096d8a71beb377821de6"
+	},
+	"pragma_SummaryStats": {
+		"address": "0x6421fdd068d0dc56b7f5edc956833ca0ba66b2d5f9a8fea40932f226668b5c4",
+		"tx": "0x4226914a0911778c8d2f1c46d38ec7488c4c89d69fd18dfe08ed9f283ef0dac"
+	}
+}

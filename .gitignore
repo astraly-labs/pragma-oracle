@@ -9,7 +9,6 @@ venv
 
 # starknet
 node.json
-deployments
 artifacts
 build
 
