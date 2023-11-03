@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pragma"
-version = "0.2.0"
+version = "1.0.0"
 description = "Pragma, the provable oracle."
 authors = ["0xevolve <matthias@pragmaoracle.com>"]
 readme = "README.md"
