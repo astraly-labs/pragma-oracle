@@ -191,7 +191,7 @@ mod Oracle {
     use option::OptionTrait;
     use debug::PrintTrait;
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 600; // 10 minutes
-    const FORWARD_TIMESTAMP_BUFFER: u64 = 10; // 10 seconds
+    const FORWARD_TIMESTAMP_BUFFER: u64 = 120; // 2 minutes
 
 
     #[storage]
