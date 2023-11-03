@@ -634,7 +634,7 @@ mod Oracle {
                                 decimals: decimals,
                                 last_updated_timestamp: last_updated_timestamp,
                                 num_sources_aggregated: data_sources.len(),
-                                expiration_timestamp: Option::Some(0),
+                                expiration_timestamp: Option::Some(expiration_timestamp),
                             // Should be None
                             };
                         },

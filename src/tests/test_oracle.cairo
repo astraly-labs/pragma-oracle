@@ -454,6 +454,7 @@ fn data_treatment(entry: PossibleEntries) -> (u128, u64, u128) {
             (entry.price, entry.base.timestamp, entry.volume)
         },
         PossibleEntries::Future(entry) => {
+            assert(entry.expiration_timestamp == 11111110, 'wrong expiration timestamp');
             (entry.price, entry.base.timestamp, entry.volume)
         },
         PossibleEntries::Generic(entry) => {
@@ -476,6 +477,7 @@ fn get_data_median() {
     let (publisher_registry, oracle) = setup();
     let entry = oracle.get_data_median(DataType::SpotEntry(2));
     assert(entry.price == (2500000), 'wrong price');
+
     let entry = oracle.get_data_median(DataType::SpotEntry(3));
     assert(entry.price == (8000000), 'wrong price');
     assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
@@ -487,9 +489,12 @@ fn get_data_median() {
     assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
     let entry = oracle.get_data_median(DataType::FutureEntry((2, 11111110)));
     assert(entry.price == (2 * 1000000), 'wrong price');
+    assert(entry.expiration_timestamp.unwrap() == 11111110, 'wrong expiration timestamp');
+
     assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
     let entry = oracle.get_data_median(DataType::FutureEntry((2, 11111110)));
     assert(entry.price == (2 * 1000000), 'wrong price');
+    assert(entry.expiration_timestamp.unwrap() == 11111110, 'wrong expiration timestamp');
     assert(entry.num_sources_aggregated == 2, 'wrong number of sources');
 }
 
@@ -525,6 +530,8 @@ fn get_data_for_sources() {
         .get_data_for_sources(
             DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()), sources.span()
         );
+    assert(entry.expiration_timestamp.unwrap() == 11111110, 'wrong expiration timestamp');
+
     assert(entry.price == (2000000), 'wrong price');
 }
 
