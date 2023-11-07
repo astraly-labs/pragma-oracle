@@ -1532,7 +1532,7 @@ mod Oracle {
                         self.oracle_sources_storage.write((pair_id, SPOT, sources_len - 1, 0), 0);
                         self.oracle_sources_len_storage.write((pair_id, SPOT, 0), sources_len - 1);
                     }
-                    return true; 
+                    return true;
                 },
                 DataType::FutureEntry((
                     pair_id, expiration_timestamp
@@ -1558,18 +1558,28 @@ mod Oracle {
                         return false;
                     }
                     if (cur_idx == sources_len - 1) {
-                        self.oracle_sources_len_storage.write((pair_id, FUTURE, expiration_timestamp), sources_len - 1);
-                        self.oracle_sources_storage.write((pair_id, FUTURE, sources_len - 1, expiration_timestamp), 0);
+                        self
+                            .oracle_sources_len_storage
+                            .write((pair_id, FUTURE, expiration_timestamp), sources_len - 1);
+                        self
+                            .oracle_sources_storage
+                            .write((pair_id, FUTURE, sources_len - 1, expiration_timestamp), 0);
                     } else {
                         let last_source = self
                             .oracle_sources_storage
-                            .read((pair_id, FUTURE, sources_len - 1,expiration_timestamp));
-                        self.oracle_sources_storage.write((pair_id, FUTURE, cur_idx, expiration_timestamp), last_source);
-                        self.oracle_sources_storage.write((pair_id, FUTURE, sources_len - 1, expiration_timestamp), 0);
-                        self.oracle_sources_len_storage.write((pair_id, FUTURE, expiration_timestamp), sources_len - 1);
+                            .read((pair_id, FUTURE, sources_len - 1, expiration_timestamp));
+                        self
+                            .oracle_sources_storage
+                            .write((pair_id, FUTURE, cur_idx, expiration_timestamp), last_source);
+                        self
+                            .oracle_sources_storage
+                            .write((pair_id, FUTURE, sources_len - 1, expiration_timestamp), 0);
+                        self
+                            .oracle_sources_len_storage
+                            .write((pair_id, FUTURE, expiration_timestamp), sources_len - 1);
                     }
-                    return true; 
-                }, 
+                    return true;
+                },
                 DataType::GenericEntry(key) => {
                     let sources_len = self.oracle_sources_len_storage.read((key, GENERIC, 0));
                     let mut cur_idx = 0;
@@ -1600,7 +1610,7 @@ mod Oracle {
                         self.oracle_sources_storage.write((key, GENERIC, sources_len - 1, 0), 0);
                         self.oracle_sources_len_storage.write((key, GENERIC, 0), sources_len - 1);
                     }
-                    return true; 
+                    return true;
                 }
             }
         }
