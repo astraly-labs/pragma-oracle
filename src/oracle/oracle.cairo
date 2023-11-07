@@ -4,8 +4,8 @@ use pragma::entry::structs::{
     SimpleDataType, AggregationMode, PossibleEntries, ArrayEntry, EntryStorage, HasPrice,
     HasBaseEntry
 };
+use openzeppelin::access::ownable::Ownable;
 
-use pragma::admin::admin::Admin;
 use pragma::upgradeable::upgradeable::Upgradeable;
 use serde::Serde;
 
@@ -97,6 +97,7 @@ trait IOracleABI<TContractState> {
     );
     fn set_sources_threshold(ref self: TContractState, threshold: u32);
     fn upgrade(ref self: TContractState, impl_hash: ClassHash);
+    fn transfer_ownership(ref self: TContractState, new_owner: ContractAddress);
 }
 
 
@@ -170,7 +171,7 @@ mod Oracle {
     use super::{
         BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
         USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, FutureEntry, OptionEntry, GenericEntry,
-        SimpleDataType, AggregationMode, PossibleEntries, ArrayEntry, Admin, Upgradeable, Serde,
+        SimpleDataType, AggregationMode, PossibleEntries, ArrayEntry, Ownable, Upgradeable, Serde,
         storage_read_syscall, storage_write_syscall, storage_address_from_base_and_offset,
         storage_base_address_from_felt252, Store, StorageBaseAddress, SyscallResult,
         ContractAddress, get_caller_address, ClassHash, Into, TryInto, ResultTrait, ResultTraitImpl,
@@ -337,8 +338,8 @@ mod Oracle {
         currencies: Span<Currency>,
         pairs: Span<Pair>
     ) {
-        let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
-        Admin::initialize_admin_address(ref state, admin_address);
+        let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+        Ownable::InternalImpl::initializer(ref state, admin_address);
 
         self.oracle_publisher_registry_address_storage.write(publisher_registry_address);
         self._set_keys_currencies(currencies);
@@ -365,8 +366,8 @@ mod Oracle {
         // @notice Check if the caller is the admin, use the contract Admin
         //@dev internal function, fails if not called by the admin
         fn assert_only_admin(self: @ContractState) {
-            let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            let admin = Admin::get_admin_address(@state);
+            let state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+            let admin = Ownable::OwnableImpl::owner(@state);
             let caller = get_caller_address();
             assert(caller == admin, 'Admin: unauthorized');
         }
@@ -890,8 +891,8 @@ mod Oracle {
         // @notice get the oracle admin address
         // @returns the ContractAddress of the admin
         fn get_admin_address(self: @ContractState) -> ContractAddress {
-            let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::get_admin_address(@state)
+            let state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+            Ownable::OwnableImpl::owner(@state)
         }
 
 
@@ -1495,6 +1496,19 @@ mod Oracle {
             return ();
         }
 
+
+        // @notice transfer the ownership of the contract
+        // @dev can be called only by the admin$
+        // @param new_owner: the new owner address
+        fn transfer_ownership(ref self : ContractState, new_owner: ContractAddress) {
+            self.assert_only_admin();
+            let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+            Ownable::OwnableImpl::transfer_ownership(ref state, new_owner);
+            return ();
+        }
+
+
+
         // @notice set a new checkpoint for a given data type and and aggregation mode
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @param aggregation_mode: the aggregation method to be used 
@@ -1614,12 +1628,12 @@ mod Oracle {
         // @param  new_admin_address: the new admin address to be set 
         // @improvement recommendation to update to a 2 step admin update process - the newly appointed admin also has to accept the role before they are assigned; in the mean time, the old admin can revoke the appointment
         fn set_admin_address(ref self: ContractState, new_admin_address: ContractAddress) {
-            let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
-            let old_admin = Admin::get_admin_address(@state);
+            let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+            Ownable::InternalImpl::assert_only_owner(@state);
+            let old_admin = Ownable::OwnableImpl::owner(@state);
             assert(new_admin_address != old_admin, 'Same admin address');
             assert(!new_admin_address.is_zero(), 'Admin address cannot be zero');
-            Admin::set_admin_address(ref state, new_admin_address);
+            Ownable::OwnableImpl::transfer_ownership(ref state, new_admin_address);
             self.emit(Event::ChangedAdmin(ChangedAdmin { new_admin: new_admin_address }));
         }
 

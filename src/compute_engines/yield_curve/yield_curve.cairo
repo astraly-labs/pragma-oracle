@@ -100,7 +100,8 @@ mod YieldCurve {
     };
     use debug::PrintTrait;
     use starknet::get_caller_address;
-    use pragma::admin::admin::Admin;
+    use openzeppelin::access::ownable::Ownable;
+
     const ON_SOURCE_KEY: felt252 = 'ON'; // str_to_felt("ON")
     const FUTURE_SPOT_SOURCE_KEY: felt252 = 'FUTURE/SPOT'; // str_to_felt("FUTURE/SPOT")
     const THEGRAPH_PRAGMA_SOURCE_KEY: felt252 = 'THEGRAPH'; // str_to_felt("THEGRAPH")
@@ -126,7 +127,8 @@ mod YieldCurve {
     fn constructor(
         ref self: ContractState, admin_address: ContractAddress, oracle_address: ContractAddress
     ) {
-        self.set_admin_address(admin_address);
+        let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+        Ownable::InternalImpl::initializer(ref state, admin_address);
         self.oracle_address_storage.write(oracle_address);
         return ();
     }
@@ -157,8 +159,8 @@ mod YieldCurve {
         // @notice get address for admin
         // @return admin_address: address of current admin
         fn get_admin_address(self: @ContractState) -> ContractAddress {
-            let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::get_admin_address(@state)
+            let state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+            Ownable::OwnableImpl::owner(@state)
         }
 
         // @notice get address for oracle controller
@@ -356,12 +358,12 @@ mod YieldCurve {
         // @dev only the admin can set the new address
         // @param new_address: new admin address
         fn set_admin_address(ref self: ContractState, new_address: ContractAddress) {
-            let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
-            let old_admin = Admin::get_admin_address(@state);
+            assert_only_admin(@self);
+            let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+            let old_admin = Ownable::OwnableImpl::owner(@state);
             assert(new_address != old_admin, 'Same admin address');
             assert(!new_address.is_zero(), 'Admin address cannot be zero');
-            Admin::set_admin_address(ref state, new_address);
+            Ownable::OwnableImpl::transfer_ownership(ref state, new_address);
             return ();
         }
 
@@ -512,8 +514,8 @@ mod YieldCurve {
     // @notice Check if the caller is the admin, use the contract Admin
     // @dev internal function, fails if not called by the admin
     fn assert_only_admin(self: @ContractState) {
-        let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-        let admin = Admin::get_admin_address(@state);
+        let state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+        let admin = Ownable::OwnableImpl::owner(@state);
         let caller = get_caller_address();
         assert(caller == admin, 'Admin: unauthorized');
     }
