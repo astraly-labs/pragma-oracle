@@ -45,7 +45,7 @@ async def main():
     declarations["pragma_Oracle"] = new_implementation_hash
     dump_declarations(declarations)
 
-    logger.info(f"Uprgaded the oracle contract with tx {hex(tx_hash)}")
+    logger.info(f"Upgraded the oracle contract with tx {hex(tx_hash)}")
 
     logger.info("✅ Upgrade Completed")
 

@@ -80,6 +80,8 @@ trait IOracleABI<TContractState> {
     ) -> Checkpoint;
     fn get_sources_threshold(self: @TContractState,) -> u32;
     fn get_admin_address(self: @TContractState,) -> ContractAddress;
+    fn get_all_publishers(self: @TContractState, data_type: DataType) -> Span<felt252>;
+    fn get_all_sources(self: @TContractState, data_type: DataType) -> Span<felt252>;
     fn publish_data(ref self: TContractState, new_entry: PossibleEntries);
     fn publish_data_entries(ref self: TContractState, new_entries: Span<PossibleEntries>);
     fn set_admin_address(ref self: TContractState, new_admin_address: ContractAddress);
@@ -163,6 +165,8 @@ trait IPragmaABI<TContractState> {
     fn get_latest_checkpoint_index(
         self: @TContractState, data_type: DataType, aggregation_mode: AggregationMode
     ) -> (u64, bool);
+    fn get_all_publishers(self: @TContractState, data_type: DataType) -> Span<felt252>;
+    fn get_all_sources(self: @TContractState, data_type: DataType) -> Span<felt252>;
 }
 
 
@@ -406,7 +410,7 @@ mod Oracle {
             self: @ContractState, data_type: DataType, sources: Span<felt252>,
         ) -> (Span<PossibleEntries>, u64) {
             if (sources.len() == 0) {
-                let all_sources = get_all_sources(self, data_type);
+                let all_sources = IOracleABI::get_all_sources(self, data_type);
                 let last_updated_timestamp = get_latest_entry_timestamp(
                     self, data_type, all_sources,
                 );
@@ -432,7 +436,7 @@ mod Oracle {
         // @returns a span of PossibleEntries, which can be spot entries, future entries, generic entries...
         fn get_data_entries(self: @ContractState, data_type: DataType) -> Span<PossibleEntries> {
             let mut sources = ArrayTrait::<felt252>::new();
-            let sources = get_all_sources(self, data_type);
+            let sources = IOracleABI::get_all_sources(self, data_type);
             let (entries, _) = IOracleABI::get_data_entries_for_sources(self, data_type, sources);
             entries
         }
@@ -441,7 +445,7 @@ mod Oracle {
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data_median(self: @ContractState, data_type: DataType) -> PragmaPricesResponse {
-            let sources = get_all_sources(self, data_type);
+            let sources = IOracleABI::get_all_sources(self, data_type);
             let prices_response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
                 self, data_type, AggregationMode::Median(()), sources
             );
@@ -491,7 +495,7 @@ mod Oracle {
         fn get_data(
             self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
         ) -> PragmaPricesResponse {
-            let sources = get_all_sources(self, data_type);
+            let sources = IOracleABI::get_all_sources(self, data_type);
             let prices_response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
                 self, data_type, aggregation_mode, sources
             );
@@ -523,7 +527,7 @@ mod Oracle {
                 };
             }
             let mut data_sources = if (sources.len() == 0) {
-                get_all_sources(self, data_type)
+                IOracleABI::get_all_sources(self, data_type)
             } else {
                 sources
             };
@@ -1160,19 +1164,23 @@ mod Oracle {
                                 .oracle_sources_len_storage
                                 .write((spot_entry.pair_id, SPOT, 0), sources_len + 1);
                         }
-
-                        let publisher_len = self
-                            .oracle_publishers_len_storage
-                            .read((spot_entry.pair_id, SPOT, 0));
-                        self
-                            .oracle_publishers_storage
-                            .write(
-                                (spot_entry.pair_id, SPOT, publisher_len, 0),
-                                spot_entry.get_base_entry().publisher
-                            );
-                        self
-                            .oracle_publishers_len_storage
-                            .write((spot_entry.pair_id, SPOT, 0), publisher_len + 1);
+                        let all_publishers = IOracleABI::get_all_publishers(
+                            @self, DataType::SpotEntry(spot_entry.pair_id)
+                        );
+                        if (!all_publishers.contains(spot_entry.base.publisher)) {
+                            let publisher_len = self
+                                .oracle_publishers_len_storage
+                                .read((spot_entry.pair_id, SPOT, 0));
+                            self
+                                .oracle_publishers_storage
+                                .write(
+                                    (spot_entry.pair_id, SPOT, publisher_len, 0),
+                                    spot_entry.get_base_entry().publisher
+                                );
+                            self
+                                .oracle_publishers_len_storage
+                                .write((spot_entry.pair_id, SPOT, 0), publisher_len + 1);
+                        }
                         if (!publishers_list.array().span().contains(spot_entry.base.publisher)) {
                             publishers_list.append(spot_entry.base.publisher);
                         }
@@ -1262,28 +1270,44 @@ mod Oracle {
                                     sources_len + 1
                                 );
                         }
-                        let publisher_len = self
-                            .oracle_publishers_len_storage
-                            .read(
-                                (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp)
-                            );
-                        self
-                            .oracle_publishers_storage
-                            .write(
-                                (
-                                    future_entry.pair_id,
-                                    FUTURE,
-                                    publisher_len,
-                                    future_entry.expiration_timestamp
-                                ),
-                                future_entry.get_base_entry().publisher
-                            );
-                        self
-                            .oracle_publishers_len_storage
-                            .write(
-                                (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp),
-                                publisher_len + 1
-                            );
+                        let all_publishers = IOracleABI::get_all_publishers(
+                            @self,
+                            DataType::FutureEntry(
+                                (future_entry.pair_id, future_entry.expiration_timestamp)
+                            )
+                        );
+                        if (!all_publishers.contains(future_entry.base.publisher)) {
+                            let publisher_len = self
+                                .oracle_publishers_len_storage
+                                .read(
+                                    (
+                                        future_entry.pair_id,
+                                        FUTURE,
+                                        future_entry.expiration_timestamp
+                                    )
+                                );
+                            self
+                                .oracle_publishers_storage
+                                .write(
+                                    (
+                                        future_entry.pair_id,
+                                        FUTURE,
+                                        publisher_len,
+                                        future_entry.expiration_timestamp
+                                    ),
+                                    future_entry.get_base_entry().publisher
+                                );
+                            self
+                                .oracle_publishers_len_storage
+                                .write(
+                                    (
+                                        future_entry.pair_id,
+                                        FUTURE,
+                                        future_entry.expiration_timestamp
+                                    ),
+                                    publisher_len + 1
+                                );
+                        }
                         let mut publishers_list = self
                             .oracle_list_of_publishers_for_sources_storage
                             .read((future_entry.base.source, FUTURE, future_entry.pair_id));
@@ -1362,18 +1386,23 @@ mod Oracle {
                                 .oracle_sources_len_storage
                                 .write((generic_entry.key, GENERIC, 0), sources_len + 1);
                         }
-                        let publisher_len = self
-                            .oracle_publishers_len_storage
-                            .read((generic_entry.key, GENERIC, 0));
-                        self
-                            .oracle_publishers_storage
-                            .write(
-                                (generic_entry.key, GENERIC, publisher_len, 0),
-                                generic_entry.get_base_entry().publisher
-                            );
-                        self
-                            .oracle_publishers_len_storage
-                            .write((generic_entry.key, GENERIC, 0), publisher_len + 1);
+                        let all_publishers = IOracleABI::get_all_publishers(
+                            @self, DataType::GenericEntry(generic_entry.key)
+                        );
+                        if (!all_publishers.contains(generic_entry.base.publisher)) {
+                            let publisher_len = self
+                                .oracle_publishers_len_storage
+                                .read((generic_entry.key, GENERIC, 0));
+                            self
+                                .oracle_publishers_storage
+                                .write(
+                                    (generic_entry.key, GENERIC, publisher_len, 0),
+                                    generic_entry.get_base_entry().publisher
+                                );
+                            self
+                                .oracle_publishers_len_storage
+                                .write((generic_entry.key, GENERIC, 0), publisher_len + 1);
+                        }
                         if (!publishers_list
                             .array()
                             .span()
@@ -1413,6 +1442,63 @@ mod Oracle {
             }
 
             return ();
+        }
+
+        // @notice retrieve all the available publishers for a given data type
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @returns a span of publishers
+        fn get_all_publishers(self: @ContractState, data_type: DataType) -> Span<felt252> {
+            let mut publishers = ArrayTrait::<felt252>::new();
+            match data_type {
+                DataType::SpotEntry(pair_id) => {
+                    let publisher_len = self.oracle_publishers_len_storage.read((pair_id, SPOT, 0));
+                    build_publishers_array(self, data_type, ref publishers, publisher_len);
+                    return publishers.span();
+                },
+                DataType::FutureEntry((
+                    pair_id, expiration_timestamp
+                )) => {
+                    let publisher_len = self
+                        .oracle_publishers_len_storage
+                        .read((pair_id, FUTURE, expiration_timestamp));
+                    build_publishers_array(self, data_type, ref publishers, publisher_len);
+                    return publishers.span();
+                },
+                DataType::GenericEntry(key) => {
+                    let publisher_len = self.oracle_publishers_len_storage.read((key, GENERIC, 0));
+                    build_publishers_array(self, data_type, ref publishers, publisher_len);
+                    return publishers.span();
+                }
+            }
+        }
+
+        // @notice retrieve all the available sources for a given data type
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        // @returns a span of sources 
+        fn get_all_sources(self: @ContractState, data_type: DataType) -> Span<felt252> {
+            let mut sources = ArrayTrait::<felt252>::new();
+            match data_type {
+                DataType::SpotEntry(pair_id) => {
+                    let source_len = self.oracle_sources_len_storage.read((pair_id, SPOT, 0));
+                    build_sources_array(self, data_type, ref sources, source_len);
+                    return sources.span();
+                },
+                DataType::FutureEntry((
+                    pair_id, expiration_timestamp
+                )) => {
+                    let source_len = self
+                        .oracle_sources_len_storage
+                        .read((pair_id, FUTURE, expiration_timestamp));
+                    build_sources_array(self, data_type, ref sources, source_len);
+
+                    return sources.span();
+                },
+                DataType::GenericEntry(key) => {
+                    let source_len = self.oracle_sources_len_storage.read((key, GENERIC, 0));
+                    build_sources_array(self, data_type, ref sources, source_len);
+                    return sources.span();
+                }
+            }
         }
 
         // @notice publish oracle data on chain (multiple entries)
@@ -1658,63 +1744,6 @@ mod Oracle {
     // HELPERS
     //
 
-    // @notice retrieve all the available sources for a given data type
-    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
-    // @returns a span of sources 
-    fn get_all_sources(self: @ContractState, data_type: DataType) -> Span<felt252> {
-        let mut sources = ArrayTrait::<felt252>::new();
-        match data_type {
-            DataType::SpotEntry(pair_id) => {
-                let source_len = self.oracle_sources_len_storage.read((pair_id, SPOT, 0));
-                build_sources_array(self, data_type, ref sources, source_len);
-                return sources.span();
-            },
-            DataType::FutureEntry((
-                pair_id, expiration_timestamp
-            )) => {
-                let source_len = self
-                    .oracle_sources_len_storage
-                    .read((pair_id, FUTURE, expiration_timestamp));
-                build_sources_array(self, data_type, ref sources, source_len);
-
-                return sources.span();
-            },
-            DataType::GenericEntry(key) => {
-                let source_len = self.oracle_sources_len_storage.read((key, GENERIC, 0));
-                build_sources_array(self, data_type, ref sources, source_len);
-                return sources.span();
-            }
-        }
-    }
-
-    // @notice retrieve all the available publishers for a given data type
-    // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
-    // @returns a span of publishers
-    fn get_all_publishers(self: @ContractState, data_type: DataType) -> Array<felt252> {
-        let mut publishers = ArrayTrait::<felt252>::new();
-        match data_type {
-            DataType::SpotEntry(pair_id) => {
-                let publisher_len = self.oracle_publishers_len_storage.read((pair_id, SPOT, 0));
-                build_publishers_array(self, data_type, ref publishers, publisher_len);
-                return publishers;
-            },
-            DataType::FutureEntry((
-                pair_id, expiration_timestamp
-            )) => {
-                let publisher_len = self
-                    .oracle_publishers_len_storage
-                    .read((pair_id, FUTURE, expiration_timestamp));
-                build_publishers_array(self, data_type, ref publishers, publisher_len);
-                return publishers;
-            },
-            DataType::GenericEntry(key) => {
-                let publisher_len = self.oracle_publishers_len_storage.read((key, GENERIC, 0));
-                build_publishers_array(self, data_type, ref publishers, publisher_len);
-                return publishers;
-            }
-        }
-    }
-
     // @notice retrieve a checkpoint based on its index
     // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
     // @param checkpoint_index : the index of the checkpoint to consider
@@ -1931,6 +1960,7 @@ mod Oracle {
             let publishers = get_publishers_for_source(self, source, type_of_data, pair_id);
             assert(publishers.len() != 0, 'No publisher for source');
             let mut publisher_cur_idx = 0;
+
             loop {
                 if (publisher_cur_idx >= publishers.len()) {
                     break ();
