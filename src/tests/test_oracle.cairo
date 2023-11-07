@@ -1225,7 +1225,7 @@ fn test_transfer_ownership() {
     oracle.transfer_ownership(test_address);
     let admin_address = oracle.get_admin_address();
     assert(admin_address == test_address, 'wrong admin address');
-
+}
 
 #[test]
 #[available_gas(2000000000)]
