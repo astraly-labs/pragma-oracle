@@ -63,14 +63,12 @@ trait IRandomness<TContractState> {
 #[starknet::contract]
 mod Randomness {
     use super::{ContractAddress, IRandomness, RequestStatus};
-    use pragma::admin::admin::Admin;
     use starknet::{get_caller_address};
     use starknet::info::{get_block_number};
     use pragma::randomness::example_randomness::{
         IExampleRandomnessDispatcher, IExampleRandomnessDispatcherTrait
     };
     use openzeppelin::access::ownable::Ownable;
-
     use poseidon::poseidon_hash_span;
     use debug::PrintTrait;
 
@@ -124,8 +122,6 @@ mod Randomness {
     fn constructor(ref self: ContractState, admin_address: ContractAddress, public_key: felt252) {
         let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
         Ownable::InternalImpl::initializer(ref state, admin_address);
-        // let mut state : Admin::ContractState = Admin::unsafe_new_contract_state();
-        // Admin::initialize_admin_address(ref state, admin_address);
         self.public_key.write(public_key);
         return ();
     }
