@@ -259,6 +259,12 @@ mod Oracle {
     }
 
 
+    fn clean<T>(ref self: List<T>) {
+        self.len = 0;
+        Store::write(self.address_domain, self.base, self.len);
+    }
+
+
     #[derive(Drop, starknet::Event)]
     struct UpdatedPublisherRegistryAddress {
         old_publisher_registry_address: ContractAddress,
@@ -542,6 +548,7 @@ mod Oracle {
                                     break ();
                                 }
                                 let source = *data_sources.get(cur_idx).unwrap().unbox();
+                                source.print();
                                 let filtered_data = filter_array_by_source::<SpotEntry>(
                                     self, array_spot.span(), source, SPOT, pair_id
                                 );
@@ -1501,6 +1508,7 @@ mod Oracle {
         // @param source: the source to be removed
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID))
         fn remove_source(ref self: ContractState, source: felt252, data_type: DataType) -> bool {
+            self.assert_only_admin();
             match data_type {
                 DataType::SpotEntry(pair_id) => {
                     let sources_len = self.oracle_sources_len_storage.read((pair_id, SPOT, 0));
@@ -1532,6 +1540,10 @@ mod Oracle {
                         self.oracle_sources_storage.write((pair_id, SPOT, sources_len - 1, 0), 0);
                         self.oracle_sources_len_storage.write((pair_id, SPOT, 0), sources_len - 1);
                     }
+                    let mut publishers_list = self
+                        .oracle_list_of_publishers_for_sources_storage
+                        .read((source, SPOT, pair_id));
+                    publishers_list.clean();
                     return true;
                 },
                 DataType::FutureEntry((
@@ -1578,6 +1590,10 @@ mod Oracle {
                             .oracle_sources_len_storage
                             .write((pair_id, FUTURE, expiration_timestamp), sources_len - 1);
                     }
+                    let mut publishers_list = self
+                        .oracle_list_of_publishers_for_sources_storage
+                        .read((source, FUTURE, pair_id));
+                    publishers_list.clean();
                     return true;
                 },
                 DataType::GenericEntry(key) => {
@@ -1610,6 +1626,10 @@ mod Oracle {
                         self.oracle_sources_storage.write((key, GENERIC, sources_len - 1, 0), 0);
                         self.oracle_sources_len_storage.write((key, GENERIC, 0), sources_len - 1);
                     }
+                    let mut publishers_list = self
+                        .oracle_list_of_publishers_for_sources_storage
+                        .read((source, GENERIC, key));
+                    publishers_list.clean();
                     return true;
                 }
             }
