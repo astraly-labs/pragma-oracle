@@ -1500,13 +1500,12 @@ mod Oracle {
         // @notice transfer the ownership of the contract
         // @dev can be called only by the admin$
         // @param new_owner: the new owner address
-        fn transfer_ownership(ref self : ContractState, new_owner: ContractAddress) {
+        fn transfer_ownership(ref self: ContractState, new_owner: ContractAddress) {
             self.assert_only_admin();
             let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
             Ownable::OwnableImpl::transfer_ownership(ref state, new_owner);
             return ();
         }
-
 
 
         // @notice set a new checkpoint for a given data type and and aggregation mode
