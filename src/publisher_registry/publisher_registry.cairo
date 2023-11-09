@@ -36,7 +36,7 @@ mod PublisherRegistry {
     use serde::Serde;
     use traits::Into;
     use traits::TryInto;
-    use pragma::admin::admin::Admin;
+    use pragma::admin::admin::Ownable;
     use super::IPublisherRegistryABI;
     use debug::PrintTrait;
 
@@ -56,8 +56,8 @@ mod PublisherRegistry {
 
     #[constructor]
     fn constructor(ref self: ContractState, admin_address: ContractAddress) {
-        let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
-        Admin::initialize_admin_address(ref state, admin_address);
+        let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+        Ownable::InternalImpl::initializer(ref state, admin_address);
     }
 
 
@@ -81,6 +81,12 @@ mod PublisherRegistry {
     }
 
     #[derive(Drop, starknet::Event)]
+    struct TransferOwnership {
+        old_address: ContractAddress,
+        new_address: ContractAddress
+    }
+
+    #[derive(Drop, starknet::Event)]
     struct DeletedSource {
         source: felt252,
     }
@@ -91,6 +97,7 @@ mod PublisherRegistry {
         RegisteredPublisher: RegisteredPublisher,
         UpdatedPublisherAddress: UpdatedPublisherAddress,
         RemovedPublisher: RemovedPublisher,
+        TransferOwnership: TransferOwnership
         DeletedSource: DeletedSource
     }
 
@@ -313,19 +320,25 @@ mod PublisherRegistry {
         // @notice set an admin address
         // @param new_admin_address: the new admin address
         fn set_admin_address(ref self: ContractState, new_admin_address: ContractAddress) {
-            let mut state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            Admin::assert_only_admin(@state);
-            let old_admin = Admin::get_admin_address(@state);
+            let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+            Ownable::InternalImpl::assert_only_owner(@state);
+            let old_admin = Ownable::OwnableImpl::owner(@state);
             assert(new_admin_address != old_admin, 'Same admin address');
             assert(!new_admin_address.is_zero(), 'Admin address cannot be zero');
-            Admin::set_admin_address(ref state, new_admin_address);
+            Ownable::OwnableImpl::transfer_ownership(ref state, new_admin_address);
+            self
+                .emit(
+                    Event::TransferOwnership(
+                        TransferOwnership { old_address: old_admin, new_address: new_admin_address }
+                    )
+                );
         }
 
         // @notice get the current admin address
         // @returns the admin address
         fn get_admin_address(self: @ContractState) -> ContractAddress {
-            let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-            let res = Admin::get_admin_address(@state);
+            let state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+            let res = Ownable::OwnableImpl::owner(@state);
             res
         }
 
@@ -364,8 +377,8 @@ mod PublisherRegistry {
     // @notice Check if the caller is the admin, use the contract Admin
     // @dev internal function, fails if not called by the admin
     fn assert_only_admin(self: @ContractState) {
-        let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-        let admin = Admin::get_admin_address(@state);
+        let state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+        let admin = Ownable::OwnableImpl::owner(@state);
         let caller = get_caller_address();
         assert(caller == admin, 'Admin: unauthorized');
     }
