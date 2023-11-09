@@ -123,7 +123,7 @@ fn _sum_volatility(arr: Span<TickElem>) -> Fixed {
     let mut cur_idx = 1;
     let mut sum = FixedTrait::new(0, false);
     loop {
-        if (cur_idx == arr.len()) {
+        if (cur_idx >= arr.len()) {
             break ();
         }
         let cur_val = *arr.at(cur_idx);
