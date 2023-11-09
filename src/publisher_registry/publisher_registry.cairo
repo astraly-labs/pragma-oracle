@@ -97,7 +97,7 @@ mod PublisherRegistry {
         RegisteredPublisher: RegisteredPublisher,
         UpdatedPublisherAddress: UpdatedPublisherAddress,
         RemovedPublisher: RemovedPublisher,
-        TransferOwnership: TransferOwnership
+        TransferOwnership: TransferOwnership,
         DeletedSource: DeletedSource
     }
 
