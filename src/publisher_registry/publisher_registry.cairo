@@ -383,11 +383,6 @@ mod PublisherRegistry {
         assert(caller == admin, 'Admin: unauthorized');
     }
 
-    fn assert_caller_is_admin(self: @ContractState, caller_address: ContractAddress) {
-        let state: Admin::ContractState = Admin::unsafe_new_contract_state();
-        let admin = Admin::get_admin_address(@state);
-        assert(admin == caller_address, 'Admin: unauthorized')
-    }
 
     // @notice retrieve all the publishers 
     // @dev recursive function 
