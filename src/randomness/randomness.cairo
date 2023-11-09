@@ -68,7 +68,7 @@ mod Randomness {
     use pragma::randomness::example_randomness::{
         IExampleRandomnessDispatcher, IExampleRandomnessDispatcherTrait
     };
-    use openzeppelin::access::ownable::Ownable;
+    use pragma::admin::admin::Ownable;
     use poseidon::poseidon_hash_span;
     use debug::PrintTrait;
 

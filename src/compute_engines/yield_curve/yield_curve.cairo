@@ -100,7 +100,7 @@ mod YieldCurve {
     };
     use debug::PrintTrait;
     use starknet::get_caller_address;
-    use openzeppelin::access::ownable::Ownable;
+    use pragma::admin::admin::Ownable;
 
     const ON_SOURCE_KEY: felt252 = 'ON'; // str_to_felt("ON")
     const FUTURE_SPOT_SOURCE_KEY: felt252 = 'FUTURE/SPOT'; // str_to_felt("FUTURE/SPOT")
@@ -122,7 +122,17 @@ mod YieldCurve {
         on_key_is_active_storage: LegacyMap::<felt252, bool>
     }
 
+    #[derive(Drop, starknet::Event)]
+    struct TransferOwnership {
+        old_address: ContractAddress,
+        new_address: ContractAddress
+    }
 
+    #[derive(Drop, starknet::Event)]
+    #[event]
+    enum Event {
+        TransferOwnership: TransferOwnership
+    }
     #[constructor]
     fn constructor(
         ref self: ContractState, admin_address: ContractAddress, oracle_address: ContractAddress
@@ -364,6 +374,12 @@ mod YieldCurve {
             assert(new_address != old_admin, 'Same admin address');
             assert(!new_address.is_zero(), 'Admin address cannot be zero');
             Ownable::OwnableImpl::transfer_ownership(ref state, new_address);
+            self
+                .emit(
+                    Event::TransferOwnership(
+                        TransferOwnership { old_address: old_admin, new_address: new_address }
+                    )
+                );
             return ();
         }
 

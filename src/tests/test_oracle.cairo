@@ -1222,7 +1222,7 @@ fn test_transfer_ownership() {
     set_contract_address(admin);
     let admin_address = oracle.get_admin_address();
     assert(admin_address == admin, 'wrong admin address');
-    oracle.transfer_ownership(test_address);
+    oracle.set_admin_address(test_address);
     let admin_address = oracle.get_admin_address();
     assert(admin_address == test_address, 'wrong admin address');
 }

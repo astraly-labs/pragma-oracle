@@ -4,8 +4,7 @@ use pragma::entry::structs::{
     SimpleDataType, AggregationMode, PossibleEntries, ArrayEntry, EntryStorage, HasPrice,
     HasBaseEntry
 };
-use openzeppelin::access::ownable::Ownable;
-
+use pragma::admin::admin::Ownable;
 use pragma::upgradeable::upgradeable::Upgradeable;
 use serde::Serde;
 
@@ -99,7 +98,6 @@ trait IOracleABI<TContractState> {
     );
     fn set_sources_threshold(ref self: TContractState, threshold: u32);
     fn upgrade(ref self: TContractState, impl_hash: ClassHash);
-    fn transfer_ownership(ref self: TContractState, new_owner: ContractAddress);
 }
 
 
@@ -1579,17 +1577,6 @@ mod Oracle {
             self
                 .oracle_pair_id_storage
                 .write((new_pair.quote_currency_id, new_pair.base_currency_id), new_pair.id);
-            return ();
-        }
-
-
-        // @notice transfer the ownership of the contract
-        // @dev can be called only by the admin$
-        // @param new_owner: the new owner address
-        fn transfer_ownership(ref self: ContractState, new_owner: ContractAddress) {
-            self.assert_only_admin();
-            let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
-            Ownable::OwnableImpl::transfer_ownership(ref state, new_owner);
             return ();
         }
 

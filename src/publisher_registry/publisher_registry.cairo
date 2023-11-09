@@ -34,7 +34,7 @@ mod PublisherRegistry {
     use serde::Serde;
     use traits::Into;
     use traits::TryInto;
-    use openzeppelin::access::ownable::Ownable;
+    use pragma::admin::admin::Ownable;
     use super::IPublisherRegistryABI;
     use debug::PrintTrait;
 
@@ -79,11 +79,18 @@ mod PublisherRegistry {
     }
 
     #[derive(Drop, starknet::Event)]
+    struct TransferOwnership {
+        old_address: ContractAddress,
+        new_address: ContractAddress
+    }
+
+    #[derive(Drop, starknet::Event)]
     #[event]
     enum Event {
         RegisteredPublisher: RegisteredPublisher,
         UpdatedPublisherAddress: UpdatedPublisherAddress,
         RemovedPublisher: RemovedPublisher,
+        TransferOwnership: TransferOwnership
     }
 
     #[external(v0)]
@@ -287,6 +294,12 @@ mod PublisherRegistry {
             assert(new_admin_address != old_admin, 'Same admin address');
             assert(!new_admin_address.is_zero(), 'Admin address cannot be zero');
             Ownable::OwnableImpl::transfer_ownership(ref state, new_admin_address);
+            self
+                .emit(
+                    Event::TransferOwnership(
+                        TransferOwnership { old_address: old_admin, new_address: new_admin_address }
+                    )
+                );
         }
 
         // @notice get the current admin address
