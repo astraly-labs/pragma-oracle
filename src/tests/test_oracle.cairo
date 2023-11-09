@@ -1090,7 +1090,6 @@ fn test_get_data_entry_for_publishers() {
     let (publisher_registry, oracle) = setup();
     let test_address = contract_address_const::<0x1234567>();
     set_contract_address(admin);
-    let (publisher_registry, oracle) = setup();
     publisher_registry.add_publisher(2, test_address);
     // Add source 1 for publisher 1
     publisher_registry.add_source_for_publisher(2, 1);
@@ -1206,6 +1205,57 @@ fn test_get_data_entry_for_publishers() {
             assert(false, 'wrong entry type');
         }
     }
+}
+
+
+#[test]
+#[available_gas(2000000000)]
+fn test_get_all_publishers() {
+    let now = 100000;
+    let (publisher_registry, oracle) = setup();
+    let publishers = oracle.get_all_publishers(DataType::SpotEntry(2));
+    assert(publishers.len() == 1, 'wrong number of publishers(S)');
+    assert(*publishers.at(0) == 1, 'wrong publisher(S)');
+    let test_address = contract_address_const::<0x1234567>();
+
+    publisher_registry.add_publisher(2, test_address);
+    // Add source 1 for publisher 1
+    publisher_registry.add_source_for_publisher(2, 1);
+    // Add source 2 for publisher 1
+    publisher_registry.add_source_for_publisher(2, 2);
+    set_contract_address(test_address);
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    pair_id: 2,
+                    price: 4 * 1000000,
+                    volume: 120
+                }
+            )
+        );
+    let publishers = oracle.get_all_publishers(DataType::SpotEntry(2));
+    assert(publishers.len() == 2, 'wrong number of publishers(S)');
+    assert(*publishers.at(0) == 1, 'wrong publisher(S)');
+    assert(*publishers.at(1) == 2, 'wrong publisher(S)');
+    let future_publishers = oracle.get_all_publishers(DataType::FutureEntry((2, 11111110)));
+    assert(future_publishers.len() == 1, 'wrong number of publishers(F)');
+    assert(*future_publishers.at(0) == 1, 'wrong publisher(F)');
+}
+
+#[test]
+#[available_gas(2000000000)]
+fn test_get_all_sources() {
+    let (publisher_registry, oracle) = setup();
+    let sources = oracle.get_all_sources(DataType::SpotEntry(2));
+    assert(sources.len() == 2, 'wrong number of sources(S)');
+    assert(*sources.at(0) == 1, 'wrong source(S)');
+    assert(*sources.at(1) == 2, 'wrong source(S)');
+    let future_sources = oracle.get_all_sources(DataType::FutureEntry((2, 11111110)));
+    assert(future_sources.len() == 2, 'wrong number of sources(F)');
+    assert(*future_sources.at(0) == 1, 'wrong source(F)');
+    assert(*future_sources.at(1) == 2, 'wrong source(F)');
 }
 
 #[test]
