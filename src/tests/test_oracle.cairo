@@ -135,7 +135,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         );
     pairs.append(Pair { id: 6, quote_currency_id: 'hop', base_currency_id: USD_CURRENCY_ID, });
     let admin = contract_address_const::<0x123456789>();
-
+    set_contract_address(admin);
     set_block_timestamp(BLOCK_TIMESTAMP);
     set_chain_id(CHAIN_ID);
     let now = 100000;
@@ -149,7 +149,6 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
     let mut publisher_registry = IPublisherRegistryABIDispatcher {
         contract_address: publisher_registry_address
     };
-    set_contract_address(admin);
     //Deploy the oracle
     let mut oracle_calldata = ArrayTrait::<felt252>::new();
     admin.serialize(ref oracle_calldata);
@@ -1207,7 +1206,6 @@ fn test_get_data_entry_for_publishers() {
     }
 }
 
-
 #[test]
 #[available_gas(2000000000)]
 fn test_get_all_publishers() {
@@ -1263,7 +1261,6 @@ fn test_get_all_sources() {
 fn test_remove_source() {
     let (publisher_registry, oracle) = setup();
     let admin = contract_address_const::<0x123456789>();
-    let test_address = contract_address_const::<0x1234567>();
     set_contract_address(admin);
     publisher_registry.add_source_for_publisher(1, 3);
     let now = 100000;

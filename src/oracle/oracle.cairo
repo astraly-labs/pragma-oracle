@@ -1590,6 +1590,7 @@ mod Oracle {
 
         // @notice remove a source for a given data type(DataType)
         // @dev can be called only by the admin
+        // @dev need to also call remove_source_for_all_publishers on the publisher registry contract
         // @param source: the source to be removed
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID))
         fn remove_source(ref self: ContractState, source: felt252, data_type: DataType) -> bool {
