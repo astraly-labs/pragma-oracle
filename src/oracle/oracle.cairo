@@ -552,7 +552,6 @@ mod Oracle {
                                     break ();
                                 }
                                 let source = *data_sources.get(cur_idx).unwrap().unbox();
-                                source.print();
                                 let filtered_data = filter_array_by_source::<SpotEntry>(
                                     self, array_spot.span(), source, SPOT, pair_id
                                 );
