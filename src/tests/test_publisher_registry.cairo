@@ -212,6 +212,14 @@ fn test_add_publisher_should_fail_if_not_admin() {
     publisher_registry.add_publisher(2, contract_address_const::<0x12345>());
 }
 
+#[test]
+#[should_panic(expected: ('Cannot set address to zero', 'ENTRYPOINT_FAILED'))]
+#[available_gas(2000000000)]
+fn test_add_publisher_should_fail_if_null_address() {
+    set_contract_address(contract_address_const::<0x12345>());
+    let publisher_registry = deploy_publisher_registry();
+    publisher_registry.add_publisher(2, 0.try_into().unwrap());
+}
 
 #[test]
 #[should_panic]
