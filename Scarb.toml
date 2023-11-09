@@ -9,8 +9,6 @@ alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria.g
 alexandria_storage = { git = "https://github.com/keep-starknet-strange/alexandria.git", rev = "a3052ff" }
 alexandria_data_structures = { git = "https://github.com/keep-starknet-strange/alexandria.git", rev = "46c8d8ab9e3bfb68b70a29b3246f809cd8bf70e4" }
 alexandria_sorting = { git = "https://github.com/keep-starknet-strange/alexandria.git", rev = "46c8d8ab9e3bfb68b70a29b3246f809cd8bf70e4" }
-
-
 cubit = { git = "https://github.com/influenceth/cubit", rev = "2ccb2536dffa3f15ebd38b755c1be65fde1eab0c" }
 
 starknet = "2.2.0"

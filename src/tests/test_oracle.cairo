@@ -1214,6 +1214,20 @@ fn test_get_data_entry_for_publishers() {
 
 
 #[test]
+#[available_gas(20000000000000)]
+fn test_transfer_ownership() {
+    let (publisher_registry, oracle) = setup();
+    let admin = contract_address_const::<0x123456789>();
+    let test_address = contract_address_const::<0x1234567>();
+    set_contract_address(admin);
+    let admin_address = oracle.get_admin_address();
+    assert(admin_address == admin, 'wrong admin address');
+    oracle.set_admin_address(test_address);
+    let admin_address = oracle.get_admin_address();
+    assert(admin_address == test_address, 'wrong admin address');
+}
+
+#[test]
 #[available_gas(2000000000)]
 fn test_get_all_publishers() {
     let now = 100000;
