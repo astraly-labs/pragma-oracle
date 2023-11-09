@@ -283,3 +283,17 @@ fn test_change_admin_should_fail_if_admin_is_same_as_current_admin_2() {
     publisher_registry.set_admin_address(admin_2_address);
 }
 
+
+#[test]
+#[available_gas(20000000000000)]
+fn test_transfer_ownership() {
+    let admin = contract_address_const::<0x12345>();
+    set_contract_address(admin);
+    let publisher_registry = deploy_publisher_registry();
+    let test_address = contract_address_const::<0x1234567>();
+    let admin_address = publisher_registry.get_admin_address();
+    assert(admin_address == admin, 'wrong admin address');
+    publisher_registry.set_admin_address(test_address);
+    let admin_address = publisher_registry.get_admin_address();
+    assert(admin_address == test_address, 'wrong admin address');
+}
