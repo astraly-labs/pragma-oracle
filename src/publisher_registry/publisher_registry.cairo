@@ -108,7 +108,7 @@ mod PublisherRegistry {
             );
 
             assert(existing_publisher_address.is_zero(), 'Name already registered');
-
+            assert(!publisher_address.is_zero(), 'Cannot set address to zero');
             let publishers_len = self.publishers_storage_len.read();
 
             self.publishers_storage_len.write(publishers_len + 1);
