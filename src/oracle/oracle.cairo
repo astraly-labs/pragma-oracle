@@ -359,6 +359,7 @@ mod Oracle {
                 }
 
                 let key_currency = *key_currencies.get(idx).unwrap().unbox();
+                assert(key_currency.id != 0, 'Cannot set null id');
                 self.oracle_currencies_storage.write(key_currency.id, key_currency);
                 idx = idx + 1;
             };
@@ -383,6 +384,7 @@ mod Oracle {
                     break ();
                 }
                 let key_pair = *key_pairs.get(idx).unwrap().unbox();
+                assert(key_pair.id != 0, 'Cannot set null id');
                 let base_currency = self.oracle_currencies_storage.read(key_pair.base_currency_id);
                 assert(base_currency.id != 0, 'No base currency registered');
                 let quote_currency = self
@@ -1574,6 +1576,7 @@ mod Oracle {
             self.assert_only_admin();
             let check_pair = self.oracle_pairs_storage.read(new_pair.id);
             assert(check_pair.id == 0, 'Pair with this key registered');
+            assert(new_pair.id != 0, 'Cannot set id null');
             let base_currency = self.oracle_currencies_storage.read(new_pair.base_currency_id);
             assert(base_currency.id != 0, 'No base currency registered');
             let quote_currency = self.oracle_currencies_storage.read(new_pair.quote_currency_id);
