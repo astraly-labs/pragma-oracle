@@ -27,9 +27,6 @@ fn mul_decimals(a_price: u128, b_price: u128, output_decimals: u128) -> u128 {
     assert(power <= MAX_POWER, 'Conversion overflow');
     assert(a_price <= MAX_POWER, 'Conversion overflow');
 
-    assert(power <= MAX_POWER, 'Conversion overflow');
-    assert(a_price <= MAX_POWER, 'Conversion overflow');
-
     a_price * b_price * power
 }
 
