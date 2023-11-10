@@ -260,9 +260,9 @@ mod SummaryStats {
     ) -> Array<TickElem> {
         let mut tick_arr = ArrayTrait::<TickElem>::new();
         let mut idx = 0;
+        let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
+        let offset = latest_checkpoint_index - num_datapoints;
         loop {
-            let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
-            let offset = latest_checkpoint_index - num_datapoints;
             if (latest_checkpoint_index < idx * skip_frequency + offset) {
                 break ();
             }
