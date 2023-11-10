@@ -106,7 +106,7 @@ mod PublisherRegistry {
             let existing_publisher_address = PublisherRegistryImpl::get_publisher_address(
                 @self, publisher
             );
-            assert(!is_address_registered(@self,publisher_address), 'Address already registered');
+            assert(!is_address_registered(@self, publisher_address), 'Address already registered');
             assert(existing_publisher_address.is_zero(), 'Name already registered');
             assert(!publisher_address.is_zero(), 'Cannot set address to zero');
             let publishers_len = self.publishers_storage_len.read();
@@ -132,7 +132,9 @@ mod PublisherRegistry {
                 @self, publisher
             );
             let caller = get_caller_address();
-            assert(!is_address_registered(@self,new_publisher_address), 'Address already registered');
+            assert(
+                !is_address_registered(@self, new_publisher_address), 'Address already registered'
+            );
             assert(!existing_publisher_address.is_zero(), 'Name not registered');
 
             assert(caller == existing_publisher_address, 'Caller is not the publisher');
@@ -445,23 +447,22 @@ mod PublisherRegistry {
     // @notice check if a given contract address is already associated to a publisher 
     // @param address: address to check
     // @returns a boolean 
-    fn is_address_registered(self: @ContractState, address: ContractAddress) ->bool {
-        let mut cur_idx =0;
-        let arr_len = self.publishers_storage_len.read(); 
+    fn is_address_registered(self: @ContractState, address: ContractAddress) -> bool {
+        let mut cur_idx = 0;
+        let arr_len = self.publishers_storage_len.read();
         let mut boolean = false;
-        loop { 
-            if (cur_idx ==arr_len) { 
-                break();
+        loop {
+            if (cur_idx == arr_len) {
+                break ();
             }
             let publisher = self.publishers_storage.read(cur_idx);
             let publisher_address = self.publisher_address_storage.read(publisher);
-            if (publisher_address == address) { 
+            if (publisher_address == address) {
                 boolean = true;
             }
-            cur_idx+= 1;
+            cur_idx += 1;
         };
         boolean
-
     }
 }
 
