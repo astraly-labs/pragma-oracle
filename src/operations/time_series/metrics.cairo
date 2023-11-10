@@ -217,7 +217,7 @@ fn pairwise_1D(operation: Operations, x_len: u32, x: Span<Fixed>, y: Span<Fixed>
                 }
                 let x1 = *x.get(cur_idx).unwrap().unbox();
                 let y1 = *y.get(cur_idx).unwrap().unbox();
-                if x1.mag == y1.mag {
+                if x1.sign == y1.sign {
                     output.append(FixedTrait::new(mag: x1.mag * y1.mag, sign: false));
                 } else {
                     output.append(FixedTrait::new(mag: x1.mag * y1.mag, sign: true));
