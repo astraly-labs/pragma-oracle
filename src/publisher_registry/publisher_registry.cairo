@@ -459,6 +459,7 @@ mod PublisherRegistry {
             let publisher_address = self.publisher_address_storage.read(publisher);
             if (publisher_address == address) {
                 boolean = true;
+                break ();
             }
             cur_idx += 1;
         };
