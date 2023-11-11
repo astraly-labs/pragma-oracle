@@ -1,5 +1,6 @@
 use starknet::ContractAddress;
 use pragma::entry::structs::{DataType, AggregationMode};
+use debug::PrintTrait;
 use cubit::f128::types::fixed::{FixedTrait, ONE_u128};
 #[starknet::interface]
 trait ISummaryStatsABI<TContractState> {
