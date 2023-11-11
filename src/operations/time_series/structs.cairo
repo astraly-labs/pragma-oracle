@@ -1,6 +1,5 @@
 use array::ArrayTrait;
-use integer::u32;
-use cubit::f128::types::fixed::Fixed;
+ duse cubit::f128::types::fixed::Fixed;
 #[derive(Drop, Copy)]
 struct TickElem {
     tick: u64,

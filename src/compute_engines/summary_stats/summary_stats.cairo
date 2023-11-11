@@ -1,8 +1,6 @@
 use starknet::ContractAddress;
 use pragma::entry::structs::{DataType, AggregationMode};
-use result::ResultTrait;
-use cubit::f128::types::fixed::{FixedTrait, Fixed, ONE_u128};
-use debug::PrintTrait;
+use cubit::f128::types::fixed::{FixedTrait, ONE_u128};
 #[starknet::interface]
 trait ISummaryStatsABI<TContractState> {
     fn calculate_mean(
@@ -38,19 +36,13 @@ trait ISummaryStatsABI<TContractState> {
 mod SummaryStats {
     use starknet::ContractAddress;
 
-    use starknet::get_caller_address;
-    use zeroable::Zeroable;
-    use option::OptionTrait;
-    use result::ResultTrait;
     use array::ArrayTrait;
-    use traits::Into;
-    use traits::TryInto;
     use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
     use pragma::entry::structs::{DataType, AggregationMode};
     use pragma::operations::time_series::structs::TickElem;
     use pragma::operations::time_series::metrics::{volatility, mean, twap};
     use pragma::operations::time_series::scaler::scale_data;
-    use super::{FixedTrait, Fixed, ONE_u128, PrintTrait, ISummaryStatsABI};
+    use super::{FixedTrait, ONE_u128, PrintTrait, ISummaryStatsABI};
     const SCALED_ARR_SIZE: u32 = 30;
     #[storage]
     struct Storage {
