@@ -279,7 +279,7 @@ mod PublisherRegistry {
         }
 
         // @notice  get the publisher address
-        // @param the puublisher from which we want to retrieve the address
+        // @param the publisher from which we want to retrieve the address
         // @returns the address associated to the given publisher 
         fn get_publisher_address(self: @ContractState, publisher: felt252) -> ContractAddress {
             self.publisher_address_storage.read(publisher)
