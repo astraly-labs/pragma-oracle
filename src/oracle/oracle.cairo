@@ -350,7 +350,7 @@ mod Oracle {
     }
 
     #[generate_trait]
-    impl IOracleInternal of IOracleInternalTrait {
+    impl OracleInternal of IOracleInternalTrait {
         fn _set_keys_currencies(ref self: ContractState, key_currencies: Span<Currency>) {
             let mut idx: u32 = 0;
             loop {
@@ -368,7 +368,7 @@ mod Oracle {
 
         // @notice Check if the caller is the admin, use the contract Admin
         //@dev internal function, fails if not called by the admin
-        fn assert_only_admin(self: @ContractState) {
+        fn assert_only_admin() {
             let state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
             let admin = Ownable::OwnableImpl::owner(@state);
             let caller = get_caller_address();
@@ -1527,7 +1527,7 @@ mod Oracle {
         fn update_publisher_registry_address(
             ref self: ContractState, new_publisher_registry_address: ContractAddress
         ) {
-            self.assert_only_admin();
+            OracleInternal::assert_only_admin();
             let old_publisher_registry_address = IOracleABI::get_publisher_registry_address(@self);
             self.oracle_publisher_registry_address_storage.write(new_publisher_registry_address);
             self
@@ -1545,7 +1545,7 @@ mod Oracle {
         // @dev can be called only by the admin
         // @param new_currency: the new currency to be added 
         fn add_currency(ref self: ContractState, new_currency: Currency) {
-            self.assert_only_admin();
+            OracleInternal::assert_only_admin();
             assert(new_currency.id != 0, 'Currency id cannot be 0');
             let existing_currency = self.oracle_currencies_storage.read(new_currency.id);
             assert(existing_currency.id == 0, 'Currency already exists for key');
@@ -1559,7 +1559,7 @@ mod Oracle {
         // @param currency_id: the currency id to be updated
         // @param currency: the currency to be updated
         fn update_currency(ref self: ContractState, currency_id: felt252, currency: Currency) {
-            self.assert_only_admin();
+            OracleInternal::assert_only_admin();
             assert(currency_id == currency.id, 'Currency id not corresponding');
             let existing_currency = self.oracle_currencies_storage.read(currency_id);
             assert(existing_currency.id != 0, 'No currency recorded');
@@ -1573,7 +1573,7 @@ mod Oracle {
         // @dev can be called only by the admin
         // @param new_pair: the new pair to be added 
         fn add_pair(ref self: ContractState, new_pair: Pair) {
-            self.assert_only_admin();
+            OracleInternal::assert_only_admin();
             let check_pair = self.oracle_pairs_storage.read(new_pair.id);
             assert(check_pair.id == 0, 'Pair with this key registered');
             assert(new_pair.id != 0, 'Cannot set id null');
@@ -1721,7 +1721,7 @@ mod Oracle {
         // @notice set the source threshold 
         // @param threshold: the new source threshold to be set 
         fn set_sources_threshold(ref self: ContractState, threshold: u32) {
-            self.assert_only_admin();
+            OracleInternal::assert_only_admin();
             self.oracle_sources_threshold_storage.write(threshold);
         }
 
@@ -1729,7 +1729,7 @@ mod Oracle {
         // @dev callable only by the admin
         // @param impl_hash: the current implementation hash
         fn upgrade(ref self: ContractState, impl_hash: ClassHash) {
-            self.assert_only_admin();
+            OracleInternal::assert_only_admin();
             let mut upstate: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
             Upgradeable::InternalImpl::upgrade(ref upstate, impl_hash);
         }

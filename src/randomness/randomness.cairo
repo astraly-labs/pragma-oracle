@@ -134,7 +134,7 @@ mod Randomness {
             request_id: u64,
             status: RequestStatus
         ) {
-            assert_only_admin(@self);
+            assert_only_admin();
             self.request_status.write((requestor_address, request_id), status);
             return ();
         }
@@ -230,7 +230,7 @@ mod Randomness {
             block_hash: felt252,
             proof: Span<felt252>,
         ) {
-            assert_only_admin(@self);
+            assert_only_admin();
 
             let _hashed_value = hash_request(
                 request_id,
@@ -333,7 +333,7 @@ mod Randomness {
         return hash_;
     }
 
-    fn assert_only_admin(self: @ContractState) {
+    fn assert_only_admin() {
         let state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
         let admin = Ownable::OwnableImpl::owner(@state);
         let caller = get_caller_address();
