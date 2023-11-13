@@ -2,7 +2,6 @@ use starknet::{ContractAddress, StorePacking};
 use array::ArrayTrait;
 
 use traits::{TryInto, Into};
-const MEDIAN: felt252 = 'MEDIAN'; // str_to_felt("MEDIAN")
 
 const SPOT: felt252 = 'SPOT';
 const FUTURE: felt252 = 'FUTURE';

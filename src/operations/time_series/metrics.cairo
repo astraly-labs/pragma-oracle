@@ -123,7 +123,7 @@ fn _sum_volatility(arr: Span<TickElem>) -> Fixed {
     let mut cur_idx = 1;
     let mut sum = FixedTrait::new(0, false);
     loop {
-        if (cur_idx == arr.len()) {
+        if (cur_idx >= arr.len()) {
             break ();
         }
         let cur_val = *arr.at(cur_idx);
@@ -217,7 +217,7 @@ fn pairwise_1D(operation: Operations, x_len: u32, x: Span<Fixed>, y: Span<Fixed>
                 }
                 let x1 = *x.get(cur_idx).unwrap().unbox();
                 let y1 = *y.get(cur_idx).unwrap().unbox();
-                if x1.mag == y1.mag {
+                if x1.sign == y1.sign {
                     output.append(FixedTrait::new(mag: x1.mag * y1.mag, sign: false));
                 } else {
                     output.append(FixedTrait::new(mag: x1.mag * y1.mag, sign: true));

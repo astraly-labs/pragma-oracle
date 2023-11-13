@@ -21,6 +21,9 @@ fn merge<
 >(
     arr: Span<T>
 ) -> Span<T> {
+    if arr.len() == 0 {
+        return ArrayTrait::<T>::new().span();
+    }
     if arr.len() > 1_u32 {
         // Create left and right arrays
         let middle = arr.len() / 2;

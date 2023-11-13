@@ -213,6 +213,14 @@ fn test_add_publisher_should_fail_if_not_admin() {
     publisher_registry.add_publisher(2, contract_address_const::<0x12345>());
 }
 
+#[test]
+#[should_panic(expected: ('Cannot set address to zero', 'ENTRYPOINT_FAILED'))]
+#[available_gas(2000000000)]
+fn test_add_publisher_should_fail_if_null_address() {
+    set_contract_address(contract_address_const::<0x12345>());
+    let publisher_registry = deploy_publisher_registry();
+    publisher_registry.add_publisher(2, 0.try_into().unwrap());
+}
 
 #[test]
 #[should_panic]
@@ -322,4 +330,31 @@ fn test_remove_source_for_all_publishers() {
     let sources_2 = publisher_registry.get_publisher_sources(2);
     assert(sources_1.len() == 2, 'Source not deleted');
     assert(sources_2.len() == 2, 'Source not deleted');
+}
+
+#[test]
+#[should_panic(expected: ('Address already registered', 'ENTRYPOINT_FAILED'))]
+#[available_gas(20000000000)]
+fn test_add_pubisher_should_fail_if_already_registered() {
+    let admin = contract_address_const::<0x12345>();
+    set_contract_address(admin);
+    let publisher_registry = deploy_publisher_registry();
+    let publisher_address = contract_address_const::<0x54321>();
+    publisher_registry.add_publisher(1, publisher_address);
+    publisher_registry.add_publisher(2, publisher_address);
+}
+
+
+#[test]
+#[should_panic(expected: ('Address already registered', 'ENTRYPOINT_FAILED'))]
+#[available_gas(20000000000)]
+fn test_update_pubisher_should_fail_if_already_registered() {
+    let admin = contract_address_const::<0x12345>();
+    set_contract_address(admin);
+    let publisher_registry = deploy_publisher_registry();
+    let publisher_address = contract_address_const::<0x54321>();
+    publisher_registry.add_publisher(1, publisher_address);
+    let new_publisher_address = contract_address_const::<0x54322>();
+    publisher_registry.add_publisher(2, new_publisher_address);
+    publisher_registry.update_publisher_address(2, publisher_address);
 }

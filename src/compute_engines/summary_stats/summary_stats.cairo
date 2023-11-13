@@ -1,8 +1,7 @@
 use starknet::ContractAddress;
 use pragma::entry::structs::{DataType, AggregationMode};
-use result::ResultTrait;
-use cubit::f128::types::fixed::{FixedTrait, Fixed, ONE_u128};
 use debug::PrintTrait;
+use cubit::f128::types::fixed::{FixedTrait, ONE_u128};
 #[starknet::interface]
 trait ISummaryStatsABI<TContractState> {
     fn calculate_mean(
@@ -38,19 +37,13 @@ trait ISummaryStatsABI<TContractState> {
 mod SummaryStats {
     use starknet::ContractAddress;
 
-    use starknet::get_caller_address;
-    use zeroable::Zeroable;
-    use option::OptionTrait;
-    use result::ResultTrait;
     use array::ArrayTrait;
-    use traits::Into;
-    use traits::TryInto;
     use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
     use pragma::entry::structs::{DataType, AggregationMode};
     use pragma::operations::time_series::structs::TickElem;
     use pragma::operations::time_series::metrics::{volatility, mean, twap};
     use pragma::operations::time_series::scaler::scale_data;
-    use super::{FixedTrait, Fixed, ONE_u128, PrintTrait, ISummaryStatsABI};
+    use super::{FixedTrait, ONE_u128, PrintTrait, ISummaryStatsABI};
     const SCALED_ARR_SIZE: u32 = 30;
     #[storage]
     struct Storage {
@@ -99,14 +92,7 @@ mod SummaryStats {
             }
 
             let scaled_arr = _make_scaled_array(
-                oracle_address,
-                data_type,
-                start,
-                stop,
-                stop_index - start_index,
-                stop_index,
-                1,
-                aggregation_mode
+                oracle_address, data_type, stop_index - start_index, stop_index, 1, aggregation_mode
             );
 
             let mean = mean(scaled_arr.span()) / ONE_u128;
@@ -242,8 +228,6 @@ mod SummaryStats {
     // @notice generate an array with incremented entries, complying with the calculate_skip_freqency specification
     // @param oracle_address: the oracle address, used to call functions within the oracle
     // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
-    // @param start_tick: initial timestamp
-    // @param end_tick: final timestamp
     // @param num_datapoints: the total number of checkpoints available within the given interval
     // @param latest_checkpoint_index : the latest checkpoint index within the given interval
     // @param skip_frequency: the incrementation
@@ -251,8 +235,6 @@ mod SummaryStats {
     fn _make_scaled_array(
         oracle_address: ContractAddress,
         data_type: DataType,
-        start_tick: u64,
-        end_tick: u64,
         num_datapoints: u64,
         latest_checkpoint_index: u64,
         skip_frequency: u64,
@@ -260,9 +242,9 @@ mod SummaryStats {
     ) -> Array<TickElem> {
         let mut tick_arr = ArrayTrait::<TickElem>::new();
         let mut idx = 0;
+        let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
+        let offset = latest_checkpoint_index - num_datapoints;
         loop {
-            let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
-            let offset = latest_checkpoint_index - num_datapoints;
             if (latest_checkpoint_index < idx * skip_frequency + offset) {
                 break ();
             }
@@ -279,8 +261,6 @@ mod SummaryStats {
                 );
             idx += 1;
         };
-        let first = *tick_arr.at(0).value;
-        let first_t = *tick_arr.at(0).tick;
         // let _scaled_arr = scale_data(start_tick, end_tick, tick_arr.span(), SCALED_ARR_SIZE);
         return tick_arr;
     }

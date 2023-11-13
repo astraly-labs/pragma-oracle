@@ -111,13 +111,13 @@ mod PublisherRegistry {
         fn add_publisher(
             ref self: ContractState, publisher: felt252, publisher_address: ContractAddress
         ) {
-            assert_only_admin(@self);
+            assert_only_admin();
             let existing_publisher_address = PublisherRegistryImpl::get_publisher_address(
                 @self, publisher
             );
-
+            assert(!is_address_registered(@self, publisher_address), 'Address already registered');
             assert(existing_publisher_address.is_zero(), 'Name already registered');
-
+            assert(!publisher_address.is_zero(), 'Cannot set address to zero');
             let publishers_len = self.publishers_storage_len.read();
 
             self.publishers_storage_len.write(publishers_len + 1);
@@ -141,7 +141,9 @@ mod PublisherRegistry {
                 @self, publisher
             );
             let caller = get_caller_address();
-
+            assert(
+                !is_address_registered(@self, new_publisher_address), 'Address already registered'
+            );
             assert(!existing_publisher_address.is_zero(), 'Name not registered');
 
             assert(caller == existing_publisher_address, 'Caller is not the publisher');
@@ -163,7 +165,7 @@ mod PublisherRegistry {
         // @notice remove a given publisher
         // @param publisher : the publisher that needs to be removed
         fn remove_publisher(ref self: ContractState, publisher: felt252) {
-            assert_only_admin(@self);
+            assert_only_admin();
             let not_exists: bool = self.publisher_address_storage.read(publisher).is_zero();
             assert(!not_exists, 'Publisher not found');
             self.publisher_address_storage.write(publisher, Zeroable::zero());
@@ -199,7 +201,7 @@ mod PublisherRegistry {
         // @param: the publisher for which we need to add a source
         // @param: the source that needs to be added for the given publisher
         fn add_source_for_publisher(ref self: ContractState, publisher: felt252, source: felt252) {
-            assert_only_admin(@self);
+            assert_only_admin();
             let existing_publisher_address = PublisherRegistryImpl::get_publisher_address(
                 @self, publisher
             );
@@ -226,7 +228,7 @@ mod PublisherRegistry {
         fn add_sources_for_publisher(
             ref self: ContractState, publisher: felt252, sources: Span<felt252>
         ) {
-            assert_only_admin(@self);
+            assert_only_admin();
             let mut idx: u32 = 0;
 
             loop {
@@ -246,7 +248,7 @@ mod PublisherRegistry {
         fn remove_source_for_publisher(
             ref self: ContractState, publisher: felt252, source: felt252
         ) {
-            assert_only_admin(@self);
+            assert_only_admin();
             let cur_idx = self.publishers_sources_idx.read(publisher);
 
             if (cur_idx == 0) {
@@ -311,7 +313,7 @@ mod PublisherRegistry {
         }
 
         // @notice  get the publisher address
-        // @param the puublisher from which we want to retrieve the address
+        // @param the publisher from which we want to retrieve the address
         // @returns the address associated to the given publisher 
         fn get_publisher_address(self: @ContractState, publisher: felt252) -> ContractAddress {
             self.publisher_address_storage.read(publisher)
@@ -376,7 +378,7 @@ mod PublisherRegistry {
 
     // @notice Check if the caller is the admin, use the contract Admin
     // @dev internal function, fails if not called by the admin
-    fn assert_only_admin(self: @ContractState) {
+    fn assert_only_admin() {
         let state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
         let admin = Ownable::OwnableImpl::owner(@state);
         let caller = get_caller_address();
@@ -473,6 +475,28 @@ mod PublisherRegistry {
 
         // gas::withdraw_gas_all(get_builtin_costs()).expect('Out of gas');
         _iter_publisher_sources(self, cur_idx + 1_usize, max_idx, publisher, ref sources_arr)
+    }
+
+    // @notice check if a given contract address is already associated to a publisher 
+    // @param address: address to check
+    // @returns a boolean 
+    fn is_address_registered(self: @ContractState, address: ContractAddress) -> bool {
+        let mut cur_idx = 0;
+        let arr_len = self.publishers_storage_len.read();
+        let mut boolean = false;
+        loop {
+            if (cur_idx == arr_len) {
+                break ();
+            }
+            let publisher = self.publishers_storage.read(cur_idx);
+            let publisher_address = self.publisher_address_storage.read(publisher);
+            if (publisher_address == address) {
+                boolean = true;
+                break ();
+            }
+            cur_idx += 1;
+        };
+        boolean
     }
 }
 
