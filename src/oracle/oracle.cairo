@@ -2012,7 +2012,7 @@ mod Oracle {
     // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
     // @param sources: a span of sources to consider
     // @param max_timestamp: max timestamp wanted
-    // @returns a span of PossibleEntries
+    // @returns an array of PossibleEntries
     // @returns the length of the span
     fn get_all_entries(
         self: @ContractState, data_type: DataType, sources: Span<felt252>, max_timestamp: u64

@@ -203,7 +203,7 @@ mod Randomness {
                 num_words,
             );
             let stored_hash_ = self.request_hash.read((caller_address, request_id));
-            assert(_hashed_value == stored_hash_, 'invalid request owner');
+            assert(_hashed_value == stored_hash_, 'invalid request configuration');
             assert(requestor_address == caller_address, 'invalid request owner');
             self
                 .emit(
