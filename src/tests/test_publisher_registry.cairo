@@ -305,3 +305,31 @@ fn test_transfer_ownership() {
     let admin_address = publisher_registry.get_admin_address();
     assert(admin_address == test_address, 'wrong admin address');
 }
+
+
+#[test]
+#[should_panic(expected: ('Address already registered', 'ENTRYPOINT_FAILED'))]
+#[available_gas(20000000000)]
+fn test_add_pubisher_should_fail_if_already_registered() {
+    let admin = contract_address_const::<0x12345>();
+    set_contract_address(admin);
+    let publisher_registry = deploy_publisher_registry();
+    let publisher_address = contract_address_const::<0x54321>();
+    publisher_registry.add_publisher(1, publisher_address);
+    publisher_registry.add_publisher(2, publisher_address);
+}
+
+
+#[test]
+#[should_panic(expected: ('Address already registered', 'ENTRYPOINT_FAILED'))]
+#[available_gas(20000000000)]
+fn test_update_pubisher_should_fail_if_already_registered() {
+    let admin = contract_address_const::<0x12345>();
+    set_contract_address(admin);
+    let publisher_registry = deploy_publisher_registry();
+    let publisher_address = contract_address_const::<0x54321>();
+    publisher_registry.add_publisher(1, publisher_address);
+    let new_publisher_address = contract_address_const::<0x54322>();
+    publisher_registry.add_publisher(2, new_publisher_address);
+    publisher_registry.update_publisher_address(2, publisher_address);
+}
