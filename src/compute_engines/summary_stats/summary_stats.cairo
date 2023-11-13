@@ -261,8 +261,6 @@ mod SummaryStats {
                 );
             idx += 1;
         };
-        let first = *tick_arr.at(0).value;
-        let first_t = *tick_arr.at(0).tick;
         // let _scaled_arr = scale_data(start_tick, end_tick, tick_arr.span(), SCALED_ARR_SIZE);
         return tick_arr;
     }
