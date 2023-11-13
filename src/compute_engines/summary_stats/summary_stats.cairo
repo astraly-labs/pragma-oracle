@@ -1,6 +1,5 @@
 use starknet::ContractAddress;
 use pragma::entry::structs::{DataType, AggregationMode};
-use debug::PrintTrait;
 use cubit::f128::types::fixed::{FixedTrait, ONE_u128};
 #[starknet::interface]
 trait ISummaryStatsABI<TContractState> {
@@ -43,7 +42,7 @@ mod SummaryStats {
     use pragma::operations::time_series::structs::TickElem;
     use pragma::operations::time_series::metrics::{volatility, mean, twap};
     use pragma::operations::time_series::scaler::scale_data;
-    use super::{FixedTrait, ONE_u128, PrintTrait, ISummaryStatsABI};
+    use super::{FixedTrait, ONE_u128, ISummaryStatsABI};
     const SCALED_ARR_SIZE: u32 = 30;
     #[storage]
     struct Storage {

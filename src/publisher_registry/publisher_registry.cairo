@@ -38,7 +38,6 @@ mod PublisherRegistry {
     use traits::TryInto;
     use pragma::admin::admin::Ownable;
     use super::IPublisherRegistryABI;
-    use debug::PrintTrait;
 
     #[storage]
     struct Storage {
@@ -278,7 +277,7 @@ mod PublisherRegistry {
         // @param source the source to consider
         fn remove_source_for_all_publishers(ref self: ContractState, source: felt252) {
             let mut publishers = IPublisherRegistryABI::get_all_publishers(@self);
-            assert_only_admin(@self);
+            assert_only_admin();
             loop {
                 match publishers.pop_front() {
                     Option::Some(publisher) => {

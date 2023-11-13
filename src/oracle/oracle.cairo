@@ -193,7 +193,6 @@ mod Oracle {
 
     use cmp::{max, min};
     use option::OptionTrait;
-    use debug::PrintTrait;
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 600; // 10 minutes
     const FORWARD_TIMESTAMP_BUFFER: u64 = 120; // 2 minutes
 
@@ -1602,7 +1601,7 @@ mod Oracle {
         // @param source: the source to be removed
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID))
         fn remove_source(ref self: ContractState, source: felt252, data_type: DataType) -> bool {
-            self.assert_only_admin();
+            OracleInternal::assert_only_admin();
             match data_type {
                 DataType::SpotEntry(pair_id) => {
                     let sources_len = self.oracle_sources_len_storage.read((pair_id, SPOT, 0));

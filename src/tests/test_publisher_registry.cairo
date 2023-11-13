@@ -14,7 +14,6 @@ use starknet::contract_address::contract_address_const;
 use pragma::publisher_registry::publisher_registry::{
     IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
 };
-use debug::PrintTrait;
 use pragma::publisher_registry::publisher_registry::PublisherRegistry;
 
 

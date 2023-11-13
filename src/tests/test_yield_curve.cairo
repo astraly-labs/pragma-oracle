@@ -16,7 +16,6 @@ use pragma::compute_engines::yield_curve::yield_curve::{
 use serde::Serde;
 use starknet::SyscallResultTrait;
 use starknet::contract_address::contract_address_const;
-use debug::PrintTrait;
 use pragma::oracle::oracle::Oracle;
 use pragma::publisher_registry::publisher_registry::PublisherRegistry;
 use pragma::compute_engines::yield_curve::yield_curve::YieldCurve;

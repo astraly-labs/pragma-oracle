@@ -16,7 +16,6 @@ use pragma::publisher_registry::publisher_registry::{
     IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
 };
 use pragma::publisher_registry::publisher_registry::PublisherRegistry;
-use debug::PrintTrait;
 use starknet::ClassHash;
 use starknet::SyscallResultTrait;
 use starknet::testing::{set_contract_address, set_block_timestamp, set_chain_id,};

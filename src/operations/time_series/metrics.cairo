@@ -7,7 +7,6 @@ use cubit::f128::types::fixed::{
 use array::{ArrayTrait, SpanTrait};
 use traits::{Into, TryInto};
 use option::OptionTrait;
-use debug::PrintTrait;
 use box::BoxTrait;
 
 const ONE_YEAR_IN_SECONDS: u128 = 31536000_u128;

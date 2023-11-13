@@ -98,7 +98,6 @@ mod YieldCurve {
         DataType, AggregationMode, PragmaPricesResponse, PossibleEntries, SpotEntry, FutureEntry,
         GenericEntry
     };
-    use debug::PrintTrait;
     use starknet::get_caller_address;
     use pragma::admin::admin::Ownable;
 
