@@ -324,8 +324,8 @@ impl EntryStorePacking of StorePacking<EntryStorage, felt252> {
             value.price.into() == value.price.into() & PRICE_SHIFT_MASK_U120,
             'EntryStorePack:price too big'
         );
-        let pack_value = value.timestamp.into() + 
-            value.volume.into() * TIMESTAMP_SHIFT_U32
+        let pack_value = value.timestamp.into()
+            + value.volume.into() * TIMESTAMP_SHIFT_U32
             + value.price.into() * VOLUME_SHIFT_U132;
         assert(pack_value <= MAX_FELT, 'EntryStorePack:pack_val too big');
         pack_value.try_into().unwrap()
@@ -389,7 +389,5 @@ impl CheckpointStorePacking of StorePacking<Checkpoint, felt252> {
 
 
 #[test]
-#[available_gas(20000000000)]  
-fn test_packing_entry_storage() { 
-    
-}
+#[available_gas(20000000000)]
+fn test_packing_entry_storage() {}
