@@ -78,7 +78,7 @@ trait IOracleABI<TContractState> {
         aggregation_mode: AggregationMode
     ) -> Checkpoint;
     fn get_sources_threshold(self: @TContractState,) -> u32;
-    fn get_admin_address(self: @TContractState,) -> ContractAddress;
+    fn get_admin_address(self: @TContractState) -> ContractAddress;
     fn get_all_publishers(self: @TContractState, data_type: DataType) -> Span<felt252>;
     fn get_all_sources(self: @TContractState, data_type: DataType) -> Span<felt252>;
     fn publish_data(ref self: TContractState, new_entry: PossibleEntries);
