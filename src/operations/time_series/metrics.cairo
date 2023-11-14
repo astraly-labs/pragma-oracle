@@ -130,8 +130,10 @@ fn _sum_volatility(arr: Span<TickElem>) -> Fixed {
         let prev_val = *arr.at(cur_idx - 1);
         let cur_value = cur_val.value;
         let prev_value = prev_val.value;
+        assert(prev_value.mag > 0, 'failed to compute vol');
         let cur_timestamp = cur_val.tick;
         let prev_timestamp = prev_val.tick;
+        assert(cur_timestamp > prev_timestamp, 'failed to compute vol');
         if (prev_timestamp > cur_timestamp) {
             //edge case
             assert(1 == 1, 'failed to compute vol');

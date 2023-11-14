@@ -10,6 +10,7 @@ use debug::PrintTrait;
 use cubit::f128::types::fixed::{FixedTrait, Fixed, FixedPrint, ONE_u128};
 
 fn calculate_slope(x1: Fixed, x2: Fixed, y1: Fixed, y2: Fixed) -> Fixed {
+    assert(x2 > x1, 'cannot compute slope(x2<x1)');
     (y2 - y1) / (x2 - x1)
 }
 
@@ -18,6 +19,8 @@ fn calculate_slope(x1: Fixed, x2: Fixed, y1: Fixed, y2: Fixed) -> Fixed {
 fn scale_data(
     start_tick: u64, end_tick: u64, tick_array: Span<TickElem>, num_intervals: u32
 ) -> Array<TickElem> {
+    assert(num_intervals > 1, 'intervals must be > than 1');
+    assert(start_tick <= end_tick, 'start_tick must be < end_tick');
     let interval = (end_tick - start_tick) / (num_intervals.into() - 1);
 
     let mut output: Array<TickElem> = ArrayTrait::new();
