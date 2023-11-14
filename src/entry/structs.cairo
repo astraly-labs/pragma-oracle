@@ -12,10 +12,10 @@ const USD_CURRENCY_ID: felt252 = 'USD';
 const MAX_FELT: u256 =
     3618502788666131213697322783095070105623107215331596699973092056135872020480; //max felt value
 const TIMESTAMP_SHIFT_U32: u256 = 0x100000000;
-const TIMESTAMP_SHIFT_MASK_U32: u256 = 0xffffffff;
+const TIMESTAMP_SHIFT_MASK_U32: u128 = 0xffffffff;
 const VOLUME_SHIFT_U132: u256 = 0x1000000000000000000000000000000000;
-const VOLUME_SHIFT_MASK_U100: u256 = 0xfffffffffffffffffffffffff;
-const PRICE_SHIFT_MASK_U120: u256 = 0xffffffffffffffffffffffffffffff;
+const VOLUME_SHIFT_MASK_U100: u128 = 0xfffffffffffffffffffffffff;
+const PRICE_SHIFT_MASK_U120: u128 = 0xffffffffffffffffffffffffffffff;
 
 
 //For the checkpoint storage
@@ -324,10 +324,10 @@ impl EntryStorePacking of StorePacking<EntryStorage, felt252> {
             value.price.into() == value.price.into() & PRICE_SHIFT_MASK_U120,
             'EntryStorePack:price too big'
         );
-        let pack_value = value.timestamp.into()
+        let pack_value: u256 = value.timestamp.into()
             + value.volume.into() * TIMESTAMP_SHIFT_U32
             + value.price.into() * VOLUME_SHIFT_U132;
-        assert(pack_value <= MAX_FELT, 'EntryStorePack:pack_val too big');
+        assert(pack_value < MAX_FELT, 'EntryStorePack:pack_val too big');
         pack_value.try_into().unwrap()
     }
     fn unpack(value: felt252) -> EntryStorage {
