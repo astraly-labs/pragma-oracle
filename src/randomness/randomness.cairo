@@ -70,7 +70,6 @@ mod Randomness {
     };
     use pragma::admin::admin::Ownable;
     use poseidon::poseidon_hash_span;
-    use debug::PrintTrait;
 
     use array::{ArrayTrait, SpanTrait};
     use traits::{TryInto, Into};
