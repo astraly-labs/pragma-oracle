@@ -11,11 +11,11 @@ const USD_CURRENCY_ID: felt252 = 'USD';
 // For the entry storage
 const MAX_FELT: u256 =
     3618502788666131213697322783095070105623107215331596699973092056135872020480; //max felt value
-const TIMESTAMP_SHIFT_U32: felt252 = 0x100000000;
-const TIMESTAMP_SHIFT_MASK_U32: u128 = 0xffffffff;
-const VOLUME_SHIFT_U132: felt252 = 0x1000000000000000000000000000000000;
-const VOLUME_SHIFT_MASK_U100: u128 = 0xfffffffffffffffffffffffff;
-const PRICE_SHIFT_MASK_U120: u128 = 0xffffffffffffffffffffffffffffff;
+const TIMESTAMP_SHIFT_U32: u256 = 0x100000000;
+const TIMESTAMP_SHIFT_MASK_U32: u256 = 0xffffffff;
+const VOLUME_SHIFT_U132: u256 = 0x1000000000000000000000000000000000;
+const VOLUME_SHIFT_MASK_U100: u256 = 0xfffffffffffffffffffffffff;
+const PRICE_SHIFT_MASK_U120: u256 = 0xffffffffffffffffffffffffffffff;
 
 
 //For the checkpoint storage
@@ -84,7 +84,7 @@ struct eSSVI {
 }
 
 
-#[derive(Serde, Drop, Copy, starknet::Store)]
+#[derive(Serde, Drop, Copy)]
 struct EntryStorage {
     timestamp: u64,
     volume: u128,
@@ -309,44 +309,45 @@ impl u8IntoAggregationMode of Into<u8, AggregationMode> {
 }
 
 
-// impl EntryStorePacking of StorePacking<EntryStorage, felt252> {
-//     fn pack(value: EntryStorage) -> felt252 {
-//         // entries verifications (no overflow)
-//         assert(
-//             (value.timestamp.into() == value.timestamp.into() & TIMESTAMP_SHIFT_MASK_U32),
-//             'EntryStorePack:tmp too big'
-//         );
-//         assert(
-//             value.volume.into() == value.volume.into() & VOLUME_SHIFT_MASK_U100,
-//             'EntryStorePack:volume too big'
-//         );
-//         assert(
-//             value.price.into() == value.price.into() & PRICE_SHIFT_MASK_U120,
-//             'EntryStorePack:price too big'
-//         );
-//         let pack_value: felt252 = value.timestamp.into()
-//             + value.volume.into() * TIMESTAMP_SHIFT_U32
-//             + value.price.into() * VOLUME_SHIFT_U132;
-//         pack_value
-//     }
-//     fn unpack(value: felt252) -> EntryStorage {
-//         let value: u256 = value.into();
-//         let volume_shift: NonZero<u256> = integer::u256_try_as_non_zero(VOLUME_SHIFT_U132.into())
-//             .unwrap();
-//         let (price, rest) = integer::u256_safe_div_rem(value, volume_shift);
-//         let timestamp_shift: NonZero<u256> = integer::u256_try_as_non_zero(
-//             TIMESTAMP_SHIFT_U32.into()
-//         )
-//             .unwrap();
+impl EntryStorePacking of StorePacking<EntryStorage, felt252> {
+    fn pack(value: EntryStorage) -> felt252 {
+        // entries verifications (no overflow)
+        assert(
+            (value.timestamp.into() == value.timestamp.into() & TIMESTAMP_SHIFT_MASK_U32),
+            'EntryStorePack:tmp too big'
+        );
+        assert(
+            value.volume.into() == value.volume.into() & VOLUME_SHIFT_MASK_U100,
+            'EntryStorePack:volume too big'
+        );
+        assert(
+            value.price.into() == value.price.into() & PRICE_SHIFT_MASK_U120,
+            'EntryStorePack:price too big'
+        );
+        let pack_value = value.timestamp.into() + 
+            value.volume.into() * TIMESTAMP_SHIFT_U32
+            + value.price.into() * VOLUME_SHIFT_U132;
+        assert(pack_value <= MAX_FELT, 'EntryStorePack:pack_val too big');
+        pack_value.try_into().unwrap()
+    }
+    fn unpack(value: felt252) -> EntryStorage {
+        let value: u256 = value.into();
+        let volume_shift: NonZero<u256> = integer::u256_try_as_non_zero(VOLUME_SHIFT_U132.into())
+            .unwrap();
+        let (price, rest) = integer::u256_safe_div_rem(value, volume_shift);
+        let timestamp_shift: NonZero<u256> = integer::u256_try_as_non_zero(
+            TIMESTAMP_SHIFT_U32.into()
+        )
+            .unwrap();
 
-//         let (vol, time) = integer::u256_safe_div_rem(rest, timestamp_shift);
-//         EntryStorage {
-//             timestamp: time.try_into().unwrap(),
-//             volume: vol.try_into().unwrap(),
-//             price: price.try_into().unwrap()
-//         }
-//     }
-// }
+        let (vol, time) = integer::u256_safe_div_rem(rest, timestamp_shift);
+        EntryStorage {
+            timestamp: time.try_into().unwrap(),
+            volume: vol.try_into().unwrap(),
+            price: price.try_into().unwrap()
+        }
+    }
+}
 
 impl CheckpointStorePacking of StorePacking<Checkpoint, felt252> {
     fn pack(value: Checkpoint) -> felt252 {
@@ -384,4 +385,11 @@ impl CheckpointStorePacking of StorePacking<Checkpoint, felt252> {
             num_sources_aggregated: num_sources.try_into().unwrap()
         }
     }
+}
+
+
+#[test]
+#[available_gas(20000000000)]  
+fn test_packing_entry_storage() { 
+    
 }
