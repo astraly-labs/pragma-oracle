@@ -12,10 +12,3 @@ struct List {
     arr: Array<u128>,
 }
 
-struct PAIRWISE_OPERATION {
-    ADDITION: (), // DEFAULT
-    SUBTRACTION: (),
-    MULTIPLICATION: (),
-    DIVISION: (),
-    FIXED_POINT_MULTIPLICATION: (),
-}

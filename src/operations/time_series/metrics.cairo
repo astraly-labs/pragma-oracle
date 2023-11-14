@@ -1,4 +1,4 @@
-use pragma::operations::time_series::structs::{TickElem, PAIRWISE_OPERATION};
+use pragma::operations::time_series::structs::{TickElem};
 
 use cubit::f128::types::fixed::{
     HALF_u128, MAX_u128, ONE_u128, Fixed, FixedInto, FixedTrait, FixedAdd, FixedDiv, FixedMul,
@@ -86,9 +86,9 @@ fn variance(tick_arr: Span<TickElem>) -> u128 {
     let mean_ = mean(tick_arr);
     let tick_arr_len = tick_arr.len();
     let mean_arr = fill_1d(tick_arr_len, mean_);
-    let diff_arr = pairwise_1D(Operations::SUBTRACTION(()), arr_len, arr_.span(), mean_arr.span());
+    let diff_arr = pairwise_1D_sub(arr_len, arr_.span(), mean_arr.span());
 
-    let diff_squared = pairwise_1D(Operations::MULTIPLICATION(()), arr_len, diff_arr, diff_arr);
+    let diff_squared = pairwise_1D_mul(arr_len, diff_arr, diff_arr);
 
     let sum_ = sum_array(diff_squared);
 
@@ -188,46 +188,51 @@ fn twap(arr: Span<TickElem>) -> u128 {
 }
 
 /// Computes a result array given two arrays and one operation
-/// e.g : [1, 2, 3] + [1, 2, 3] = [2, 4, 6]
-fn pairwise_1D(operation: Operations, x_len: u32, x: Span<Fixed>, y: Span<Fixed>) -> Span<Fixed> {
+/// e.g : [1, 2, 3] - [1, 2, 3] = [0,0, 0]
+fn pairwise_1D_sub(x_len: u32, x: Span<Fixed>, y: Span<Fixed>) -> Span<Fixed> {
     //We assume, for simplicity, that the input arrays (x & y) are arrays of positive elements
     let mut cur_idx: u32 = 0;
     let mut output = ArrayTrait::<Fixed>::new();
-    match operation {
-        Operations::SUBTRACTION(()) => {
-            loop {
-                if (cur_idx >= x_len) {
-                    break ();
-                }
-                let x1 = *x.get(cur_idx).unwrap().unbox();
-                let y1 = *y.get(cur_idx).unwrap().unbox();
-                if x1 < y1 {
-                    output.append(FixedTrait::new(mag: y1.mag - x1.mag, sign: true));
-                } else {
-                    output.append(FixedTrait::new(mag: x1.mag - y1.mag, sign: false));
-                }
 
-                cur_idx = cur_idx + 1;
-            };
-        },
-        Operations::MULTIPLICATION(()) => {
-            loop {
-                if (cur_idx >= x_len) {
-                    break ();
-                }
-                let x1 = *x.get(cur_idx).unwrap().unbox();
-                let y1 = *y.get(cur_idx).unwrap().unbox();
-                if x1.sign == y1.sign {
-                    output.append(FixedTrait::new(mag: x1.mag * y1.mag, sign: false));
-                } else {
-                    output.append(FixedTrait::new(mag: x1.mag * y1.mag, sign: true));
-                }
-                cur_idx = cur_idx + 1;
-            };
-        },
-    }
+    loop {
+        if (cur_idx >= x_len) {
+            break ();
+        }
+        let x1 = *x.get(cur_idx).unwrap().unbox();
+        let y1 = *y.get(cur_idx).unwrap().unbox();
+        if x1 < y1 {
+            output.append(FixedTrait::new(mag: y1.mag - x1.mag, sign: true));
+        } else {
+            output.append(FixedTrait::new(mag: x1.mag - y1.mag, sign: false));
+        }
+
+        cur_idx = cur_idx + 1;
+    };
     output.span()
 }
+
+/// Computes a result array given two arrays and one operation
+/// e.g : [1, 2, 3] * [1, 2, 3] = [2, 4, 9]
+fn pairwise_1D_mul(x_len: u32, x: Span<Fixed>, y: Span<Fixed>) -> Span<Fixed> {
+    //We assume, for simplicity, that the input arrays (x & y) are arrays of positive
+    let mut cur_idx: u32 = 0;
+    let mut output = ArrayTrait::<Fixed>::new();
+    loop {
+        if (cur_idx >= x_len) {
+            break ();
+        }
+        let x1 = *x.get(cur_idx).unwrap().unbox();
+        let y1 = *y.get(cur_idx).unwrap().unbox();
+        if x1.sign == y1.sign {
+            output.append(FixedTrait::new(mag: x1.mag * y1.mag, sign: false));
+        } else {
+            output.append(FixedTrait::new(mag: x1.mag * y1.mag, sign: true));
+        }
+        cur_idx = cur_idx + 1;
+    };
+    output.span()
+}
+
 
 /// Fills an array with one `value`
 fn fill_1d(arr_len: u32, value: u128) -> Array<Fixed> {
@@ -277,7 +282,7 @@ fn test_utils() {
     //pairwise_1D
     let x = fill_1d(3, 1);
     let y = fill_1d(3, 2);
-    let z = pairwise_1D(Operations::SUBTRACTION(()), 3, x.span(), y.span());
+    let z = pairwise_1D_sub(3, x.span(), y.span());
     assert(*z.at(0).mag == 1, 'wrong value');
     assert(*z.at(0).sign == true, 'wrong value');
     assert(*z.at(1).mag == 1, 'wrong value');
@@ -293,7 +298,7 @@ fn test_utils() {
     //pairwise_1D
     let x = fill_1d(3, 3);
     let y = fill_1d(3, 2);
-    let z = pairwise_1D(Operations::SUBTRACTION(()), 3, x.span(), y.span());
+    let z = pairwise_1D_sub(3, x.span(), y.span());
     assert(*z.at(0).mag == 1, 'wrong value');
     assert(*z.at(0).sign == false, 'wrong value');
     assert(*z.at(1).mag == 1, 'wrong value');
