@@ -96,6 +96,7 @@ trait IOracleABI<TContractState> {
     fn set_checkpoints(
         ref self: TContractState, data_types: Span<DataType>, aggregation_mode: AggregationMode
     );
+    fn remove_source(ref self: TContractState, source: felt252, data_type: DataType) -> bool;
     fn set_sources_threshold(ref self: TContractState, threshold: u32);
     fn upgrade(ref self: TContractState, impl_hash: ClassHash);
 }
@@ -192,7 +193,6 @@ mod Oracle {
 
     use cmp::{max, min};
     use option::OptionTrait;
-    use debug::PrintTrait;
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 600; // 10 minutes
     const FORWARD_TIMESTAMP_BUFFER: u64 = 120; // 2 minutes
 
@@ -258,6 +258,12 @@ mod Oracle {
             let state = E3LegacyHash::hash(state, e3);
             E4LegacyHash::hash(state, e4)
         }
+    }
+
+
+    fn clean<T>(ref self: List<T>) {
+        self.len = 0;
+        Store::write(self.address_domain, self.base, self.len);
     }
 
 
@@ -1589,6 +1595,138 @@ mod Oracle {
             return ();
         }
 
+        // @notice remove a source for a given data type(DataType)
+        // @dev can be called only by the admin
+        // @dev need to also call remove_source_for_all_publishers on the publisher registry contract
+        // @param source: the source to be removed
+        // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID))
+        fn remove_source(ref self: ContractState, source: felt252, data_type: DataType) -> bool {
+            OracleInternal::assert_only_admin();
+            match data_type {
+                DataType::SpotEntry(pair_id) => {
+                    let sources_len = self.oracle_sources_len_storage.read((pair_id, SPOT, 0));
+                    let mut cur_idx = 0;
+                    let is_in_storage: bool = loop {
+                        if (cur_idx == sources_len) {
+                            break false;
+                        }
+                        let cur_source = self
+                            .oracle_sources_storage
+                            .read((pair_id, SPOT, cur_idx, 0));
+                        if (source == cur_source) {
+                            break true;
+                        }
+                        cur_idx += 1;
+                    };
+                    if (!is_in_storage) {
+                        assert(false, 'Source not found');
+                        return false;
+                    }
+                    if (cur_idx == sources_len - 1) {
+                        self.oracle_sources_len_storage.write((pair_id, SPOT, 0), sources_len - 1);
+                        self.oracle_sources_storage.write((pair_id, SPOT, sources_len - 1, 0), 0);
+                    } else {
+                        let last_source = self
+                            .oracle_sources_storage
+                            .read((pair_id, SPOT, sources_len - 1, 0));
+                        self.oracle_sources_storage.write((pair_id, SPOT, cur_idx, 0), last_source);
+                        self.oracle_sources_storage.write((pair_id, SPOT, sources_len - 1, 0), 0);
+                        self.oracle_sources_len_storage.write((pair_id, SPOT, 0), sources_len - 1);
+                    }
+                    let mut publishers_list = self
+                        .oracle_list_of_publishers_for_sources_storage
+                        .read((source, SPOT, pair_id));
+                    publishers_list.clean();
+                    return true;
+                },
+                DataType::FutureEntry((
+                    pair_id, expiration_timestamp
+                )) => {
+                    let sources_len = self
+                        .oracle_sources_len_storage
+                        .read((pair_id, FUTURE, expiration_timestamp));
+                    let mut cur_idx = 0;
+                    let is_in_storage: bool = loop {
+                        if (cur_idx == sources_len) {
+                            break false;
+                        }
+                        let cur_source = self
+                            .oracle_sources_storage
+                            .read((pair_id, SPOT, cur_idx, 0));
+                        if (source == cur_source) {
+                            break true;
+                        }
+                        cur_idx += 1;
+                    };
+                    if (!is_in_storage) {
+                        assert(false, 'Source not found');
+                        return false;
+                    }
+                    if (cur_idx == sources_len - 1) {
+                        self
+                            .oracle_sources_len_storage
+                            .write((pair_id, FUTURE, expiration_timestamp), sources_len - 1);
+                        self
+                            .oracle_sources_storage
+                            .write((pair_id, FUTURE, sources_len - 1, expiration_timestamp), 0);
+                    } else {
+                        let last_source = self
+                            .oracle_sources_storage
+                            .read((pair_id, FUTURE, sources_len - 1, expiration_timestamp));
+                        self
+                            .oracle_sources_storage
+                            .write((pair_id, FUTURE, cur_idx, expiration_timestamp), last_source);
+                        self
+                            .oracle_sources_storage
+                            .write((pair_id, FUTURE, sources_len - 1, expiration_timestamp), 0);
+                        self
+                            .oracle_sources_len_storage
+                            .write((pair_id, FUTURE, expiration_timestamp), sources_len - 1);
+                    }
+                    let mut publishers_list = self
+                        .oracle_list_of_publishers_for_sources_storage
+                        .read((source, FUTURE, pair_id));
+                    publishers_list.clean();
+                    return true;
+                },
+                DataType::GenericEntry(key) => {
+                    let sources_len = self.oracle_sources_len_storage.read((key, GENERIC, 0));
+                    let mut cur_idx = 0;
+                    let is_in_storage: bool = loop {
+                        if (cur_idx == sources_len) {
+                            break false;
+                        }
+                        let cur_source = self
+                            .oracle_sources_storage
+                            .read((key, GENERIC, cur_idx, 0));
+                        if (source == cur_source) {
+                            break true;
+                        }
+                        cur_idx += 1;
+                    };
+                    if (!is_in_storage) {
+                        assert(false, 'Source not found');
+                        return false;
+                    }
+                    if (cur_idx == sources_len - 1) {
+                        self.oracle_sources_len_storage.write((key, GENERIC, 0), sources_len - 1);
+                        self.oracle_sources_storage.write((key, GENERIC, sources_len - 1, 0), 0);
+                    } else {
+                        let last_source = self
+                            .oracle_sources_storage
+                            .read((key, GENERIC, sources_len - 1, 0));
+                        self.oracle_sources_storage.write((key, GENERIC, cur_idx, 0), last_source);
+                        self.oracle_sources_storage.write((key, GENERIC, sources_len - 1, 0), 0);
+                        self.oracle_sources_len_storage.write((key, GENERIC, 0), sources_len - 1);
+                    }
+                    let mut publishers_list = self
+                        .oracle_list_of_publishers_for_sources_storage
+                        .read((source, GENERIC, key));
+                    publishers_list.clean();
+                    return true;
+                }
+            }
+        }
 
         // @notice set a new checkpoint for a given data type and and aggregation mode
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))

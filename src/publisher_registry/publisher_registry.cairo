@@ -15,6 +15,8 @@ trait IPublisherRegistryABI<TContractState> {
         ref self: TContractState, publisher: felt252, sources: Span<felt252>
     );
     fn remove_source_for_publisher(ref self: TContractState, publisher: felt252, source: felt252);
+    fn remove_source_for_all_publishers(ref self: TContractState, source: felt252);
+
     fn can_publish_source(self: @TContractState, publisher: felt252, source: felt252) -> bool;
     fn get_publisher_address(self: @TContractState, publisher: felt252) -> ContractAddress;
     fn set_admin_address(ref self: TContractState, new_admin_address: ContractAddress);
@@ -36,7 +38,6 @@ mod PublisherRegistry {
     use traits::TryInto;
     use pragma::admin::admin::Ownable;
     use super::IPublisherRegistryABI;
-    use debug::PrintTrait;
 
     #[storage]
     struct Storage {
@@ -85,13 +86,20 @@ mod PublisherRegistry {
     }
 
     #[derive(Drop, starknet::Event)]
+    struct DeletedSource {
+        source: felt252,
+    }
+
+    #[derive(Drop, starknet::Event)]
     #[event]
     enum Event {
         RegisteredPublisher: RegisteredPublisher,
         UpdatedPublisherAddress: UpdatedPublisherAddress,
         RemovedPublisher: RemovedPublisher,
-        TransferOwnership: TransferOwnership
+        TransferOwnership: TransferOwnership,
+        DeletedSource: DeletedSource
     }
+
 
     #[external(v0)]
     impl PublisherRegistryImpl of IPublisherRegistryABI<ContractState> {
@@ -233,6 +241,7 @@ mod PublisherRegistry {
         }
 
         // @notice remove a source for a given publisher
+        // @dev can be called only by the admin
         // @param  the publisher for which a source needs to be removed 
         // @param source : the source that needs to be removed for the publisher
         fn remove_source_for_publisher(
@@ -260,6 +269,28 @@ mod PublisherRegistry {
                 self.publishers_sources.write((publisher, cur_idx - 1), 0);
                 self.publishers_sources.write((publisher, source_idx), last_source);
             }
+            self.emit(Event::DeletedSource(DeletedSource { source, }));
+        }
+
+        // @notice remove a given source for all the publishers
+        // @dev can be called only by admin
+        // @param source the source to consider
+        fn remove_source_for_all_publishers(ref self: ContractState, source: felt252) {
+            let mut publishers = IPublisherRegistryABI::get_all_publishers(@self);
+            assert_only_admin();
+            loop {
+                match publishers.pop_front() {
+                    Option::Some(publisher) => {
+                        IPublisherRegistryABI::remove_source_for_publisher(
+                            ref self, publisher, source
+                        );
+                    },
+                    Option::None(_) => {
+                        break ();
+                    }
+                };
+            };
+            self.emit(Event::DeletedSource(DeletedSource { source, }));
         }
 
         // @notice checks whether a publisher can publish for a certain source or not 
@@ -352,6 +383,7 @@ mod PublisherRegistry {
         let caller = get_caller_address();
         assert(caller == admin, 'Admin: unauthorized');
     }
+
 
     // @notice retrieve all the publishers 
     // @dev recursive function 

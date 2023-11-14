@@ -1,6 +1,5 @@
 use alexandria_math::pow;
 use traits::Into;
-use debug::PrintTrait;
 
 
 const MAX_POWER: u128 = 10000000000000000000000000000000;

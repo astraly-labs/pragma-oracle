@@ -16,7 +16,6 @@ use pragma::publisher_registry::publisher_registry::{
     IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
 };
 use pragma::publisher_registry::publisher_registry::PublisherRegistry;
-use debug::PrintTrait;
 use starknet::ClassHash;
 use starknet::SyscallResultTrait;
 use starknet::testing::{set_contract_address, set_block_timestamp, set_chain_id,};
@@ -135,7 +134,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         );
     pairs.append(Pair { id: 6, quote_currency_id: 'hop', base_currency_id: USD_CURRENCY_ID, });
     let admin = contract_address_const::<0x123456789>();
-
+    set_contract_address(admin);
     set_block_timestamp(BLOCK_TIMESTAMP);
     set_chain_id(CHAIN_ID);
     let now = 100000;
@@ -149,7 +148,6 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
     let mut publisher_registry = IPublisherRegistryABIDispatcher {
         contract_address: publisher_registry_address
     };
-    set_contract_address(admin);
     //Deploy the oracle
     let mut oracle_calldata = ArrayTrait::<felt252>::new();
     admin.serialize(ref oracle_calldata);
@@ -762,7 +760,6 @@ fn test_get_data_with_usd_hop() {
     assert(entry_2.decimals == 6, 'wrong decimals-usdfhop');
 }
 
-
 #[test]
 #[available_gas(2000000000)]
 fn test_get_data_with_usd_hop_diff() {
@@ -774,7 +771,6 @@ fn test_get_data_with_usd_hop_diff() {
     assert(entry.price == 400000, 'wrong price for hop');
     assert(entry.decimals == 6, 'wrong decimals for hop');
 }
-
 
 #[test]
 #[should_panic]
@@ -863,7 +859,6 @@ fn test_get_last_checkpoint_before_should_fail_if_timestamp_too_old() {
         .get_last_checkpoint_before(DataType::SpotEntry(6), 111, AggregationMode::Median(()));
 }
 
-
 #[test]
 #[should_panic(expected: ('Currency id cannot be 0', 'ENTRYPOINT_FAILED'))]
 #[available_gas(2000000000)]
@@ -896,7 +891,6 @@ fn test_add_pair_should_panic_if_base_currency_do_not_corresponds() {
         )
 }
 
-
 #[test]
 #[should_panic(expected: ('No quote currency registered', 'ENTRYPOINT_FAILED'))]
 #[available_gas(2000000000)]
@@ -905,7 +899,6 @@ fn test_add_pair_should_panic_if_quote_currency_do_not_corresponds() {
     oracle
         .add_pair(Pair { id: 10, quote_currency_id: 123123132, base_currency_id: USD_CURRENCY_ID, })
 }
-
 
 #[test]
 #[available_gas(2000000000)]
@@ -1212,7 +1205,6 @@ fn test_get_data_entry_for_publishers() {
     }
 }
 
-
 #[test]
 #[available_gas(20000000000000)]
 fn test_transfer_ownership() {
@@ -1275,4 +1267,44 @@ fn test_get_all_sources() {
     assert(future_sources.len() == 2, 'wrong number of sources(F)');
     assert(*future_sources.at(0) == 1, 'wrong source(F)');
     assert(*future_sources.at(1) == 2, 'wrong source(F)');
+}
+
+#[test]
+#[available_gas(2000000000)]
+fn test_remove_source() {
+    let (publisher_registry, oracle) = setup();
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+    publisher_registry.add_source_for_publisher(1, 3);
+    let now = 100000;
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 3, publisher: 1 },
+                    pair_id: 2,
+                    price: 7 * 1000000,
+                    volume: 150
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: now - 10000, source: 3, publisher: 1 },
+                    pair_id: 2,
+                    price: 7 * 1000000,
+                    volume: 150,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
+    let sources = array![3];
+    let entry = oracle
+        .get_data_for_sources(DataType::SpotEntry(2), AggregationMode::Median(()), sources.span());
+    assert(entry.price == (7000000), 'wrong price');
+    assert(entry.num_sources_aggregated == 1, 'wrong number of sources');
+    let boolean: bool = oracle.remove_source(3, DataType::SpotEntry(2));
+    assert(boolean == true, 'operation failed');
 }

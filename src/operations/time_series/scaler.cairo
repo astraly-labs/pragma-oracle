@@ -5,7 +5,6 @@ use zeroable::Zeroable;
 use traits::Into;
 use option::OptionTrait;
 use box::BoxTrait;
-use debug::PrintTrait;
 
 use cubit::f128::types::fixed::{FixedTrait, Fixed, FixedPrint, ONE_u128};
 

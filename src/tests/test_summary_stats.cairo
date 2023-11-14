@@ -22,7 +22,6 @@ use pragma::compute_engines::summary_stats::summary_stats::{
 };
 use starknet::contract_address::contract_address_const;
 use pragma::publisher_registry::publisher_registry::PublisherRegistry;
-use debug::PrintTrait;
 use starknet::ClassHash;
 use starknet::SyscallResultTrait;
 use starknet::testing::{

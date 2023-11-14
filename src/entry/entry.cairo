@@ -157,8 +157,6 @@ mod Entry {
 //-----------------------------------------------
 // Tests
 
-use debug::PrintTrait;
-
 #[test]
 #[available_gas(100000000)]
 fn test_aggregate_entries_median() {

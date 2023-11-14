@@ -10,7 +10,6 @@ use starknet::syscalls::deploy_syscall;
 use option::OptionTrait;
 use starknet::SyscallResultTrait;
 use serde::Serde;
-use debug::PrintTrait;
 use result::ResultTrait;
 use traits::{Into, TryInto};
 use starknet::info;
