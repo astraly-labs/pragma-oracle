@@ -32,9 +32,7 @@ trait IYieldCurveABI<TContractState> {
     fn get_yield_points(self: @TContractState, decimals: u32) -> Span<YieldPoint>;
     fn get_admin_address(self: @TContractState,) -> ContractAddress;
     fn get_oracle_address(self: @TContractState,) -> ContractAddress;
-    fn get_future_spot_pragma_source_key(
-        self: @TContractState, pair_id: felt252, future_expiry_timestamp: u64
-    ) -> felt252;
+    fn get_future_spot_pragma_source_key(self: @TContractState,) -> felt252;
     fn get_pair_id(self: @TContractState, idx: u64) -> felt252;
     fn get_pair_id_is_active(self: @TContractState, pair_id: felt252) -> bool;
     fn get_pair_ids(self: @TContractState,) -> Span<felt252>;
@@ -185,9 +183,7 @@ mod YieldCurve {
         // @param pair_id: the pair id associated with the pair considered
         // @param future_expiry_timestamp: the expiry timestamp (Pragma key) associated with the futures data to be considered
         // @return Pragma key for the source used to bootstrap the yield curve
-        fn get_future_spot_pragma_source_key(
-            self: @ContractState, pair_id: felt252, future_expiry_timestamp: u64
-        ) -> felt252 {
+        fn get_future_spot_pragma_source_key(self: @ContractState,) -> felt252 {
             let future_spot_pragma_source_key = self.future_spot_pragma_source_key_storage.read();
             return future_spot_pragma_source_key;
         }
