@@ -108,7 +108,7 @@ mod YieldCurve {
     struct Storage {
         oracle_address_storage: ContractAddress,
         future_spot_pragma_source_key_storage: felt252,
-        pair_id_len_storage: u32,
+        pair_id_len_storage: u64,
         pair_id_storage: LegacyMap::<u64, felt252>,
         pair_id_is_active_storage: LegacyMap::<felt252, bool>,
         future_expiry_timestamp_len_storage: LegacyMap<felt252, u64>,
@@ -214,7 +214,7 @@ mod YieldCurve {
             }
             let mut cur_idx = 0;
             loop {
-                if (cur_idx == total_pair_ids_len.into()) {
+                if (cur_idx == total_pair_ids_len) {
                     break ();
                 }
                 let pair_id = self.pair_id_storage.read(cur_idx);
@@ -402,6 +402,7 @@ mod YieldCurve {
         // @param is_active: whether the new key should be active immediately or not
         fn add_pair_id(ref self: ContractState, pair_id: felt252, is_active: bool) {
             assert_only_admin();
+            assert(!is_pair_id_stored(@self, pair_id), 'pair_id already stored');
             let total_pair_ids_len = self.pair_id_len_storage.read();
             let new_total_pair_ids_len = total_pair_ids_len + 1;
             self.pair_id_len_storage.write(new_total_pair_ids_len);
@@ -417,6 +418,7 @@ mod YieldCurve {
         // @param is_active: new status of the spot key
         fn set_pair_id_is_active(ref self: ContractState, pair_id: felt252, is_active: bool) {
             assert_only_admin();
+            assert(is_pair_id_stored(@self, pair_id), 'pair_id not stored');
             self.pair_id_is_active_storage.write(pair_id, is_active);
             return ();
         }
@@ -504,6 +506,7 @@ mod YieldCurve {
         // @param is_active: whether the new key should be active immediately or not
         fn add_on_key(ref self: ContractState, on_key: felt252, is_active: bool) {
             assert_only_admin();
+            assert(!is_on_key_stored(@self, on_key), 'on_key already stored');
             let on_key_len = self.on_key_len_storage.read();
             self.on_key_storage.write(on_key_len, on_key);
             self.on_key_is_active_storage.write(on_key, is_active);
@@ -517,6 +520,7 @@ mod YieldCurve {
         // @param is_active: new is_active of the overnight rate key
         fn set_on_key_is_active(ref self: ContractState, on_key: felt252, is_active: bool) {
             assert_only_admin();
+            assert(is_on_key_stored(@self, on_key), 'on_key not stored');
             self.on_key_is_active_storage.write(on_key, is_active);
             return ();
         }
@@ -746,6 +750,49 @@ mod YieldCurve {
             cur_idx = cur_idx + 1;
         };
     }
+
+    // @notice check if a pair_id is stored in the contract
+    // @param pair_id: pair id to check
+    // @return boolean: whether the pair_id is stored or not
+    fn is_pair_id_stored(self: @ContractState, pair_id: felt252) -> bool {
+        let mut cur_idx = 0;
+        let pair_id_len = self.pair_id_len_storage.read();
+        let mut boolean = false;
+        loop {
+            if (cur_idx == pair_id_len) {
+                break ();
+            }
+            let stored_pair_id = self.pair_id_storage.read(cur_idx);
+            if (stored_pair_id == pair_id) {
+                boolean = true;
+                break ();
+            }
+            cur_idx = cur_idx + 1;
+        };
+        boolean
+    }
+
+    // @notice check if a on_key is stored in the contract
+    // @param on_key: pair id to check
+    // @return boolean: whether the on_key is stored or not
+    fn is_on_key_stored(self: @ContractState, on_key: felt252) -> bool {
+        let mut cur_idx = 0;
+        let on_keys_len = self.on_key_len_storage.read();
+        let mut boolean = false;
+        loop {
+            if (cur_idx == on_keys_len) {
+                break ();
+            }
+            let stored_on_key = self.on_key_storage.read(cur_idx);
+            if (stored_on_key == on_key) {
+                boolean = true;
+                break ();
+            }
+            cur_idx = cur_idx + 1;
+        };
+        boolean
+    }
+
 
     // @notice given a future and spot entry, calculate the yield point
     // @param future_entry: the most recent future price datapoint
