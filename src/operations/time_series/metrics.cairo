@@ -84,8 +84,7 @@ fn variance(tick_arr: Span<TickElem>) -> u128 {
     let arr_len = arr_.len();
     let mean_ = mean(tick_arr);
     let tick_arr_len = tick_arr.len();
-    let mean_arr = fill_1d(tick_arr_len, mean_);
-    let diff_arr = pairwise_1D_sub(arr_len, arr_.span(), mean_arr.span());
+    let diff_arr = pairwise_1D_sub(arr_len, arr_.span(), FixedTrait::new(mag: mean_, sign: false));
 
     let diff_squared = pairwise_1D_mul(arr_len, diff_arr, diff_arr);
 
@@ -189,8 +188,8 @@ fn twap(arr: Span<TickElem>) -> u128 {
 }
 
 /// Computes a result array given two arrays and one operation
-/// e.g : [1, 2, 3] - [1, 2, 3] = [0,0, 0]
-fn pairwise_1D_sub(x_len: u32, x: Span<Fixed>, y: Span<Fixed>) -> Span<Fixed> {
+/// e.g : [1, 2, 3] - 1 = [0,1, 2]
+fn pairwise_1D_sub(x_len: u32, x: Span<Fixed>, y: Fixed) -> Span<Fixed> {
     //We assume, for simplicity, that the input arrays (x & y) are arrays of positive elements
     let mut cur_idx: u32 = 0;
     let mut output = ArrayTrait::<Fixed>::new();
@@ -200,11 +199,10 @@ fn pairwise_1D_sub(x_len: u32, x: Span<Fixed>, y: Span<Fixed>) -> Span<Fixed> {
             break ();
         }
         let x1 = *x.get(cur_idx).unwrap().unbox();
-        let y1 = *y.get(cur_idx).unwrap().unbox();
-        if x1 < y1 {
-            output.append(FixedTrait::new(mag: y1.mag - x1.mag, sign: true));
+        if x1 < y {
+            output.append(FixedTrait::new(mag: y.mag - x1.mag, sign: true));
         } else {
-            output.append(FixedTrait::new(mag: x1.mag - y1.mag, sign: false));
+            output.append(FixedTrait::new(mag: x1.mag - y.mag, sign: false));
         }
 
         cur_idx = cur_idx + 1;
@@ -282,8 +280,7 @@ fn test_utils() {
 
     //pairwise_1D
     let x = fill_1d(3, 1);
-    let y = fill_1d(3, 2);
-    let z = pairwise_1D_sub(3, x.span(), y.span());
+    let z = pairwise_1D_sub(3, x.span(), FixedTrait::new(mag: 2, sign: false));
     assert(*z.at(0).mag == 1, 'wrong value');
     assert(*z.at(0).sign == true, 'wrong value');
     assert(*z.at(1).mag == 1, 'wrong value');
@@ -299,11 +296,11 @@ fn test_utils() {
     //pairwise_1D
     let x = fill_1d(3, 3);
     let y = fill_1d(3, 2);
-    let z = pairwise_1D_sub(3, x.span(), y.span());
-    assert(*z.at(0).mag == 1, 'wrong value');
+    let z = pairwise_1D_mul(3, x.span(), y.span());
+    assert(*z.at(0).mag == 6, 'wrong value');
     assert(*z.at(0).sign == false, 'wrong value');
-    assert(*z.at(1).mag == 1, 'wrong value');
-    assert(*z.at(2).mag == 1, 'wrong value');
+    assert(*z.at(1).mag == 6, 'wrong value');
+    assert(*z.at(2).mag == 6, 'wrong value');
 }
 
 #[test]
