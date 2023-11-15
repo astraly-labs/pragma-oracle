@@ -45,7 +45,6 @@ trait IRandomness<TContractState> {
         callback_address: ContractAddress,
         callback_gas_limit: u64,
         random_words: Span<felt252>,
-        block_hash: felt252,
         proof: Span<felt252>,
     );
     fn get_pending_requests(
@@ -226,7 +225,6 @@ mod Randomness {
             callback_address: ContractAddress,
             callback_gas_limit: u64,
             random_words: Span<felt252>,
-            block_hash: felt252,
             proof: Span<felt252>,
         ) {
             assert_only_admin();
