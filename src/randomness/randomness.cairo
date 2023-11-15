@@ -133,7 +133,7 @@ mod Randomness {
         ) {
             assert_only_admin();
             let status = self.request_status.read((requestor_address, request_id));
-            //The management is handled by the admin contract, he cannot change the status of a fullfilled or cancelled request
+            //The management is handled by the admin contract, he cannot change the status of a fulfilled or cancelled request
             assert(status != RequestStatus::FULFILLED(()), 'request already fulfilled');
             assert(status != RequestStatus::CANCELLED(()), 'request already cancelled');
             self.request_status.write((requestor_address, request_id), status);
