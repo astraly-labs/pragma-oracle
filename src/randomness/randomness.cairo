@@ -6,8 +6,6 @@ enum RequestStatus {
     RECEIVED: (),
     FULFILLED: (),
     CANCELLED: (),
-    EXCESSIVE_GAS_NEEDED: (),
-    ERRORED: (),
 }
 
 #[starknet::interface]
@@ -134,6 +132,10 @@ mod Randomness {
             status: RequestStatus
         ) {
             assert_only_admin();
+            let status = self.request_status.read((requestor_address, request_id));
+            //The management is handled by the admin contract, he cannot change the status of a fullfilled or cancelled request
+            assert(status != RequestStatus::FULFILLED(()), 'request already fulfilled');
+            assert(status != RequestStatus::CANCELLED(()), 'request already cancelled');
             self.request_status.write((requestor_address, request_id), status);
             return ();
         }
@@ -204,6 +206,8 @@ mod Randomness {
             let stored_hash_ = self.request_hash.read((caller_address, request_id));
             assert(_hashed_value == stored_hash_, 'invalid request configuration');
             assert(requestor_address == caller_address, 'invalid request owner');
+            let status = self.request_status.read((requestor_address, request_id));
+            assert(status != RequestStatus::FULFILLED(()), 'request already fulfilled');
             self
                 .request_status
                 .write((requestor_address, request_id), RequestStatus::CANCELLED(()));
@@ -239,7 +243,9 @@ mod Randomness {
             proof: Span<felt252>,
         ) {
             assert_only_admin();
-
+            let status = self.request_status.read((requestor_address, request_id));
+            assert(status != RequestStatus::FULFILLED(()), 'request already fulfilled');
+            assert(status != RequestStatus::CANCELLED(()), 'request already cancelled');
             let _hashed_value = hash_request(
                 request_id,
                 requestor_address,
