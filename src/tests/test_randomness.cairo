@@ -4,7 +4,9 @@ use starknet::testing;
 use pragma::randomness::example_randomness::{
     ExampleRandomness, IExampleRandomnessDispatcher, IExampleRandomnessDispatcherTrait
 };
-use pragma::randomness::randomness::{Randomness, IRandomnessDispatcher, IRandomnessDispatcherTrait,RequestStatus};
+use pragma::randomness::randomness::{
+    Randomness, IRandomnessDispatcher, IRandomnessDispatcherTrait, RequestStatus
+};
 use starknet::contract_address::contract_address_const;
 use starknet::syscalls::deploy_syscall;
 use option::OptionTrait;
@@ -152,22 +154,17 @@ fn test_randomness_cancellation() {
     let res = example_randomness.get_last_random();
     assert(res == 0, 'wrong random');
     testing::set_block_number(3);
-    randomness.cancel_random_request(
-        0,
-        requestor_address,
-        seed,
-        1,
-        callback_address,
-        callback_gas_limit,
-        1,
-    );
-    let request_status = randomness.get_request_status(requestor_address,0);
+    randomness
+        .cancel_random_request(
+            0, requestor_address, seed, 1, callback_address, callback_gas_limit, 1,
+        );
+    let request_status = randomness.get_request_status(requestor_address, 0);
     assert(request_status == RequestStatus::CANCELLED, 'wrong request status');
 }
 
 #[test]
 #[available_gas(20000000000)]
-fn test_randomness_id_incrementation() { 
+fn test_randomness_id_incrementation() {
     let requestor_address = contract_address_const::<0x1234>();
     testing::set_contract_address(requestor_address);
     let (randomness, example_randomness, randomness_address, example_randomness_address) = setup();
@@ -197,18 +194,13 @@ fn test_randomness_id_incrementation() {
     let proof = array![100, 200, 300];
     let minimum_block_number = 2;
     testing::set_block_number(3);
-    randomness.cancel_random_request(
-        0,
-        requestor_address,
-        seed,
-        1,
-        callback_address,
-        callback_gas_limit,
-        1,
-    );
-    let request_status = randomness.get_request_status(requestor_address,0);
+    randomness
+        .cancel_random_request(
+            0, requestor_address, seed, 1, callback_address, callback_gas_limit, 1,
+        );
+    let request_status = randomness.get_request_status(requestor_address, 0);
     assert(request_status == RequestStatus::CANCELLED, 'wrong request status');
     let random_id = randomness
         .request_random(seed, callback_address, callback_gas_limit, publish_delay, num_words);
-    assert(random_id ==1, 'wrong id ');
+    assert(random_id == 1, 'wrong id ');
 }
