@@ -205,6 +205,9 @@ mod Randomness {
             assert(_hashed_value == stored_hash_, 'invalid request configuration');
             assert(requestor_address == caller_address, 'invalid request owner');
             self
+                .request_status
+                .write((requestor_address, request_id), RequestStatus::CANCELLED(()));
+            self
                 .emit(
                     Event::RandomnessStatusChange(
                         RandomnessStatusChange {
@@ -214,6 +217,8 @@ mod Randomness {
                         }
                     )
                 );
+            self.request_id.write(caller_address, request_id + 1); // increment request id even if it was cancelled 
+
             return ();
         }
 
