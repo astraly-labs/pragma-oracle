@@ -165,7 +165,7 @@ fn test_randomness_cancellation() {
 #[test]
 #[should_panic(expected: ('request already fulfilled', 'ENTRYPOINT_FAILED'))]
 #[available_gas(100000000000)]
-fn test_cancel_random_request_should_fail_if_fullfilled() {
+fn test_cancel_random_request_should_fail_if_fulflled() {
     let requestor_address = contract_address_const::<0x1234>();
     testing::set_contract_address(requestor_address);
     let (randomness, example_randomness, randomness_address, example_randomness_address) = setup();
