@@ -115,7 +115,6 @@ mod SummaryStats {
             num_samples: u64,
             aggregation_mode: AggregationMode,
         ) -> (u128, u32) {
-            assert(start_tick < end_tick, 'start_tick must be < end_tick');
             let oracle_address = self.oracle_address.read();
 
             assert(num_samples > 0, 'num_samples must be > 0');
@@ -135,6 +134,7 @@ mod SummaryStats {
                     .get_last_checkpoint_before(data_type, end_tick, aggregation_mode);
                 end_index = _end_idx;
             }
+            assert(start_index < end_index, 'start_tick must be < end_tick');
             assert(start_index != latest_checkpoint_index, 'Not enough data');
             let mut tick_arr = ArrayTrait::<TickElem>::new();
             let skip_frequency = calculate_skip_frequency(end_index - start_index, num_samples);
