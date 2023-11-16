@@ -824,19 +824,25 @@ mod Oracle {
                 self, quote_data_type, aggregation_mode, sources
             );
 
-            let decimals = IOracleABI::get_decimals(self, base_data_type);
-
-            let normalised_basePPR_price = normalize_to_decimals(
-                basePPR.price, IOracleABI::get_decimals(self, base_data_type), decimals
-            );
-            let normalised_quotePPR_price = normalize_to_decimals(
-                quotePPR.price, IOracleABI::get_decimals(self, quote_data_type), decimals
-            );
-            let rebased_value = convert_via_usd(
-                normalised_basePPR_price, normalised_quotePPR_price, decimals
-            );
-
-            let rebased_value = convert_via_usd(basePPR.price, quotePPR.price, decimals);
+            let quote_decimals = IOracleABI::get_decimals(self, quote_data_type);
+            let base_decimals = IOracleABI::get_decimals(self, base_data_type);
+            let (rebased_value, decimals) = if (base_decimals < quote_decimals) {
+                let normalised_basePPR_price = normalize_to_decimals(
+                    basePPR.price, IOracleABI::get_decimals(self, base_data_type), quote_decimals
+                );
+                (
+                    convert_via_usd(normalised_basePPR_price, quotePPR.price, quote_decimals),
+                    quote_decimals
+                )
+            } else {
+                let normalised_quotePPR_price = normalize_to_decimals(
+                    quotePPR.price, IOracleABI::get_decimals(self, quote_data_type), base_decimals
+                );
+                (
+                    convert_via_usd(basePPR.price, normalised_quotePPR_price, base_decimals),
+                    base_decimals
+                )
+            };
 
             let last_updated_timestamp = max(
                 quotePPR.last_updated_timestamp, basePPR.last_updated_timestamp
