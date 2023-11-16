@@ -17,10 +17,10 @@ Overview
 - <a href="/src/account">Account contract</a> mostly use for testing purposes and as a reference.
 - <a href="/src/admin">Admin contract</a> will be replaced by Argent's multisig as it gets released.
 - <a href="/src/entry">Entry & Data Structures</a> defines data structures used within the protocol along with generic aggregations methods. It is designed from the ground up to ensure that adding new entry types is done seamlessly without involving any breaking changes.
-- <a href="/src/admin">Operations</a> defines a few utilities libraries (time series, sorting, bits manipulation) that will be used for different aggregation methods and optimizing storage operations.
-- <a href="/src/admin">Oracle</a> is the main entrypoint of the protocol. It is the contract that end developers will interact with to fetch any kind of data. It's been thought and built for retro-compatibility and heavily leverages unique aspects of Cairo, notably enums, traits and generics.
-- <a href="/src/admin">Publisher Registry</a> handles the registration of different publishers along with the sources they are allowed to push data from.
-- <a href="/src/admin">Summary Stats</a> acts as a proxy contract for more sophisticated kind of data aggregation such as *volatility* and *mean*.
+- <a href="/src/operations">Operations</a> defines a few utilities libraries (time series, sorting, bits manipulation) that will be used for different aggregation methods and optimizing storage operations.
+- <a href="/src/oracle">Oracle</a> is the main entrypoint of the protocol. It is the contract that end developers will interact with to fetch any kind of data. It's been thought and built for retro-compatibility and heavily leverages unique aspects of Cairo, notably enums, traits and generics.
+- <a href="/src/publisher_registry">Publisher Registry</a> handles the registration of different publishers along with the sources they are allowed to push data from.
+- <a href="/src/compute_engines">Summary Stats</a> acts as a proxy contract for more sophisticated kind of data aggregation such as *volatility* and *mean*.
 
 ## Testing
 
@@ -31,7 +31,13 @@ A few key testing features are missing such as *fuzzing* and proper hooks, mocki
 Documentation
 ---
 
-More extensive documentation can be found on our [official website](https://docs.pragmaoracle.com/).
+More extensive documentation can be found on our [official website](https://docs.pragma.build/).
+
+Audit
+---
+
+Pragma Starknet has been peer-reviewed by many other key-projects in the industries.
+It has also been audited by Nethermind, you can find the full report under the <a href='/audits'>audits</a> folder.
 
 
 Deployment addresses
@@ -40,9 +46,9 @@ Deployment addresses
 This repo will gradually replace the previous Pragma implementation in Cairo 0 which you can find [here](https://github.com/Astraly-Labs/pragma-contracts).
 
 **Starknet Testnet**
-- Oracle : [0x620a609f88f612eb5773a6f4084f7b33be06a6fed7943445aebce80d6a146ba](https://goerli.voyager.online/contract/0x620a609f88f612eb5773a6f4084f7b33be06a6fed7943445aebce80d6a146ba)
-- Publisher Registry : [0x427f6944917381070c8828c311978c391614be2939ca94f34fb91f294dd502b](https://goerli.voyager.online/contract/0x427f6944917381070c8828c311978c391614be2939ca94f34fb91f294dd502b)
-- Summary Stats : [0x6421fdd068d0dc56b7f5edc956833ca0ba66b2d5f9a8fea40932f226668b5c4](https://goerli.voyager.online/contract/0x6421fdd068d0dc56b7f5edc956833ca0ba66b2d5f9a8fea40932f226668b5c4)
+- Oracle : [0x06df335982dddce41008e4c03f2546fa27276567b5274c7d0c1262f3c2b5d167](https://goerli.voyager.online/contract/0x06df335982dddce41008e4c03f2546fa27276567b5274c7d0c1262f3c2b5d167)
+- Publisher Registry : [0x552e96b3a9078a453ab7012ed76325bedef7b0cc5647a8fafe985e658e31d86](https://goerli.voyager.online/contract/0x552e96b3a9078a453ab7012ed76325bedef7b0cc5647a8fafe985e658e31d86)
+- Summary Stats : [0x3bcd9362bfe80456a7ee66f5a569457cb21adc3f82129420fa12453abb7f353](https://goerli.voyager.online/contract/0x3bcd9362bfe80456a7ee66f5a569457cb21adc3f82129420fa12453abb7f353)
 
 **Starknet Mainnet**
 
@@ -88,7 +94,7 @@ Once the contracts are declared/deployed you'll find them under the `deployments
 Questions and feedback
 ---
 
-For any question or feedback you can send an email to <matthias@pragmaoracle.com>
+For any question or feedback you can send an email to <matthias@pragma.build>
 
 License
 ---
