@@ -117,7 +117,6 @@ fn test_randomness() {
             callback_address,
             callback_gas_limit,
             random_words.span(),
-            block_hash,
             proof.span()
         );
     let res = example_randomness.get_last_random();
