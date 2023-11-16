@@ -211,6 +211,9 @@ mod Randomness {
                 .request_status
                 .write((requestor_address, request_id), RequestStatus::CANCELLED(()));
             self
+                .request_status
+                .write((requestor_address, request_id), RequestStatus::CANCELLED(()));
+            self
                 .emit(
                     Event::RandomnessStatusChange(
                         RandomnessStatusChange {
@@ -220,12 +223,6 @@ mod Randomness {
                         }
                     )
                 );
-            self
-                .request_id
-                .write(
-                    caller_address, request_id + 1
-                ); // increment request id even if it was cancelled 
-
             return ();
         }
 
