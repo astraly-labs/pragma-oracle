@@ -194,7 +194,6 @@ fn test_cancel_random_request_should_fail_if_fulflled() {
             callback_address,
             callback_gas_limit,
             random_words.span(),
-            block_hash,
             proof.span()
         );
     let res = example_randomness.get_last_random();
@@ -241,7 +240,6 @@ fn test_submit_random_should_fail_if_request_cancelled() {
             callback_address,
             callback_gas_limit,
             random_words.span(),
-            block_hash,
             proof.span()
         );
 }
