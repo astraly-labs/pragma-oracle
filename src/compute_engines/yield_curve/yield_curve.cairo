@@ -569,7 +569,7 @@ mod YieldCurve {
                 continue;
             } else {
                 let shifted_on_value = change_decimals(
-                    self, output.price, output.decimals, output_decimals
+                    output.price, output.decimals, output_decimals
                 );
                 yield_points
                     .append(
@@ -848,9 +848,7 @@ mod YieldCurve {
     }
 
 
-    fn change_decimals(
-        self: @ContractState, value: u128, old_decimals: u32, new_decimals: u32
-    ) -> u128 {
+    fn change_decimals(value: u128, old_decimals: u32, new_decimals: u32) -> u128 {
         if (old_decimals <= new_decimals) {
             // Multiply on_entry by 10 ^ (new_decimals - old_decimals)
             // which is guaranteed to be an integer > 0 by the if statement
