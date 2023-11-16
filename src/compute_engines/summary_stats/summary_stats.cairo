@@ -43,7 +43,6 @@ mod SummaryStats {
     use pragma::operations::time_series::metrics::{volatility, mean, twap};
     use pragma::operations::time_series::scaler::scale_data;
     use super::{FixedTrait, ONE_u128, ISummaryStatsABI};
-    const SCALED_ARR_SIZE: u32 = 30;
     #[storage]
     struct Storage {
         oracle_address: ContractAddress,
