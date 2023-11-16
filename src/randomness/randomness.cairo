@@ -43,7 +43,6 @@ trait IRandomness<TContractState> {
         callback_address: ContractAddress,
         callback_gas_limit: u64,
         random_words: Span<felt252>,
-        block_hash: felt252,
         proof: Span<felt252>,
     );
     fn get_pending_requests(
@@ -212,6 +211,9 @@ mod Randomness {
                 .request_status
                 .write((requestor_address, request_id), RequestStatus::CANCELLED(()));
             self
+                .request_status
+                .write((requestor_address, request_id), RequestStatus::CANCELLED(()));
+            self
                 .emit(
                     Event::RandomnessStatusChange(
                         RandomnessStatusChange {
@@ -221,12 +223,6 @@ mod Randomness {
                         }
                     )
                 );
-            self
-                .request_id
-                .write(
-                    caller_address, request_id + 1
-                ); // increment request id even if it was cancelled 
-
             return ();
         }
 
@@ -239,7 +235,6 @@ mod Randomness {
             callback_address: ContractAddress,
             callback_gas_limit: u64,
             random_words: Span<felt252>,
-            block_hash: felt252,
             proof: Span<felt252>,
         ) {
             assert_only_admin();

@@ -15,6 +15,7 @@ use serde::Serde;
 use result::ResultTrait;
 use traits::{Into, TryInto};
 use starknet::info;
+use debug::PrintTrait;
 
 fn pop_log<T, impl TDrop: Drop<T>, impl TEvent: starknet::Event<T>>(
     address: ContractAddress
@@ -117,7 +118,6 @@ fn test_randomness() {
             callback_address,
             callback_gas_limit,
             random_words.span(),
-            block_hash,
             proof.span()
         );
     let res = example_randomness.get_last_random();
@@ -246,6 +246,7 @@ fn test_submit_random_should_fail_if_request_cancelled() {
         );
 }
 
+
 #[test]
 #[available_gas(20000000000)]
 fn test_randomness_id_incrementation() {
@@ -288,4 +289,3 @@ fn test_randomness_id_incrementation() {
         .request_random(seed, callback_address, callback_gas_limit, publish_delay, num_words);
     assert(random_id == 1, 'wrong id ');
 }
-
