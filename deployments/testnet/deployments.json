@@ -10,5 +10,9 @@
   "pragma_SummaryStats": {
     "address": "0x3bcd9362bfe80456a7ee66f5a569457cb21adc3f82129420fa12453abb7f353",
     "tx": "0x2e038814f09400b33222e875acd42ca9943f78b312274ada9d298a9142a681"
+  },
+  "pragma_Randomness": {
+    "address": "0x1a1909967088cbdd5a8a48cf64c46ad9904cef6b4e38c68a15b0ea9636d48f4",
+    "tx": "0x73e2b6049ecc4867dbaef10236ce778880baa223270ac0f6a1c458f87946000"
   }
 }
