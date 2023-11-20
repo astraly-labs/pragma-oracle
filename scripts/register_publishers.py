@@ -50,7 +50,7 @@ DEX_SOURCES = [
     "10KSWAP",
 ]
 
-network = "testnet"
+network = "mainnet"
 
 # TODO: load data from JSON/YAML
 """
@@ -95,6 +95,21 @@ if network == "testnet":
         0x5b1400d876caaa7ba7858df28faa73a16318ab8551397d83016fb33cb590b28,
         0x052D8E9778d026588A51595E30B0f45609B4F771eEcF0E335CdeFeD1D84A9d89,
         0x0271e25bf6ef39b48ab319456c7db88767f0b38d53e1285c5b3e901c60cd878c
+    ]
+    admin_address = 0x02356B628D108863BAF8644C945D97BAD70190AF5957031F4852D00D0F690A77
+
+"""
+MAINNET
+"""
+if network == "mainnet":
+    publishers = [
+        "PRAGMA",
+    ]
+    publishers_sources = [
+        THIRD_PARTY_SOURCES,
+    ]
+    publisher_address = [
+        0x06707675cd7dD9256667eCa8284e46F4546711ee0054Bc2dd02f0Ce572056CF4,
     ]
     admin_address = 0x02356B628D108863BAF8644C945D97BAD70190AF5957031F4852D00D0F690A77
 
