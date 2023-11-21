@@ -94,6 +94,7 @@ COMPILED_CONTRACTS = [
     {"contract_name": "pragma_PublisherRegistry", "is_account_contract": False},
     {"contract_name": "pragma_SummaryStats", "is_account_contract": False},
     {"contract_name": "pragma_Randomness", "is_account_contract": False},
+    {"contract_name": "pragma_ExampleRandomness", "is_account_contract": False},
     {"contract_name": "pragma_YieldCurve", "is_account_contract": False},
 ]
 

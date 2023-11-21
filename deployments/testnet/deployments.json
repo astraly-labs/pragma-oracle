@@ -14,5 +14,9 @@
   "pragma_Randomness": {
     "address": "0x1a1909967088cbdd5a8a48cf64c46ad9904cef6b4e38c68a15b0ea9636d48f4",
     "tx": "0x73e2b6049ecc4867dbaef10236ce778880baa223270ac0f6a1c458f87946000"
+  },
+  "pragma_ExampleRandomness": {
+    "address": "0x3a020caecb6c1b1253a075fc62ad5ff542e22cde4f64a7034fdec45bdfb4794",
+    "tx": "0x5d0e2e1d70dd4bc1cb3adb72b8914869d8160153dcf0e9ca6f28a92bf2cb2cf"
   }
 }
