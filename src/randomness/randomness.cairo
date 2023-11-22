@@ -83,8 +83,9 @@ mod Randomness {
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
     use openzeppelin::security::reentrancyguard::ReentrancyGuard;
     use array::{ArrayTrait, SpanTrait};
+    use debug::PrintTrait;
     use traits::{TryInto, Into};
-    const MAX_PREMIUM_FEE: u128 = 1; // To be changed to 1$
+    const MAX_PREMIUM_FEE: u128 = 100000000; // 1 dollar with 8n decimals
 
     #[storage]
     struct Storage {
@@ -147,6 +148,7 @@ mod Randomness {
         Ownable::InternalImpl::initializer(ref state, admin_address);
         self.public_key.write(public_key);
         self.payment_token.write(token_contract);
+        self.oracle_address.write(oracle_address);
         return ();
     }
 
@@ -198,13 +200,14 @@ mod Randomness {
             let token_address = self.payment_token.read();
             let token_dispatcher = IERC20Dispatcher { contract_address: token_address };
             // get the balance of the caller
-            let user_balance = token_dispatcher.balance_of(token_address);
+            let user_balance = token_dispatcher.balance_of(caller_address);
             // compute the premium fee
-            let premium_fee = compute_premium_fee(@self, caller_address);
+            let premium_fee = compute_premium_fee(@self, caller_address); // * 10^8
             let oracle_dispatcher = IOracleABIDispatcher {
                 contract_address: self.oracle_address.read()
             };
-            let response = oracle_dispatcher.get_data_median(DataType::SpotEntry('ETH/USD'));
+            let response = oracle_dispatcher.get_data_median(DataType::SpotEntry('ETH/USD')); 
+
             // Convert the premium fee in dollar to wei
             let wei_premium_fee = dollar_to_wei(premium_fee, response.price);
             //Check if the balance is greater than premium fee 
@@ -474,7 +477,7 @@ mod Randomness {
     }
 
     fn dollar_to_wei(usd: u128, price: u128) -> u128 {
-        (usd * 1000000000000000000 * 100000000) / price
+        (usd * 1000000000000000000) / price
     }
 
     fn amount_to_wei(amount: u256, price: u128) -> u256 {
