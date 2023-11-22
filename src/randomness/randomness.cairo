@@ -1,4 +1,4 @@
-use starknet::ContractAddress;
+use starknet::{ContractAddress, ClassHash};
 
 #[derive(Serde, Drop, Copy, PartialEq, starknet::Store)]
 enum RequestStatus {
@@ -54,12 +54,14 @@ trait IRandomness<TContractState> {
     ) -> RequestStatus;
     fn requestor_current_index(self: @TContractState, requestor_address: ContractAddress) -> u64;
     fn get_public_key(self: @TContractState, requestor_address: ContractAddress) -> felt252;
+    fn upgrade(ref self: TContractState, impl_hash: ClassHash);
 }
 
 
 #[starknet::contract]
 mod Randomness {
-    use super::{ContractAddress, IRandomness, RequestStatus};
+    use super::{ContractAddress, IRandomness, RequestStatus, ClassHash};
+    use pragma::upgradeable::upgradeable::Upgradeable;
     use starknet::{get_caller_address};
     use starknet::info::{get_block_number};
     use pragma::randomness::example_randomness::{
@@ -76,6 +78,8 @@ mod Randomness {
         request_id: LegacyMap::<ContractAddress, u64>,
         request_hash: LegacyMap::<(ContractAddress, u64), felt252>,
         request_status: LegacyMap::<(ContractAddress, u64), RequestStatus>,
+        // A legacy map to store the tier subscription for e given contract
+        tier_subscription: LegacyMap::<ContractAddress, u64>,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -317,6 +321,13 @@ mod Randomness {
         fn get_public_key(self: @ContractState, requestor_address: ContractAddress) -> felt252 {
             let pub_key_ = self.public_key.read();
             return pub_key_;
+        }
+
+
+        fn upgrade(ref self: ContractState, impl_hash: ClassHash) {
+            assert_only_admin();
+            let mut upstate: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
+            Upgradeable::InternalImpl::upgrade(ref upstate, impl_hash);
         }
     }
 
