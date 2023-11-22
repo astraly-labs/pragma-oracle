@@ -22,7 +22,7 @@ trait IRandomness<TContractState> {
         ref self: TContractState,
         seed: u64,
         callback_address: ContractAddress,
-        callback_gas_limit: u64,
+        callback_fee_limit: u128,
         publish_delay: u64,
         num_words: u64
     ) -> u64;
@@ -33,7 +33,7 @@ trait IRandomness<TContractState> {
         seed: u64,
         minimum_block_number: u64,
         callback_address: ContractAddress,
-        callback_gas_limit: u64,
+        callback_fee_limit: u128,
         num_words: u64
     );
     fn submit_random(
@@ -43,7 +43,8 @@ trait IRandomness<TContractState> {
         seed: u64,
         minimum_block_number: u64,
         callback_address: ContractAddress,
-        callback_gas_limit: u64,
+        callback_fee_limit: u128,
+        callback_fee: u128,
         random_words: Span<felt252>,
         proof: Span<felt252>,
     );
@@ -59,6 +60,10 @@ trait IRandomness<TContractState> {
     fn get_payment_token(self: @TContractState) -> ContractAddress;
     fn set_payment_token(ref self: TContractState, token_contract: ContractAddress);
     fn upgrade(ref self: TContractState, impl_hash: ClassHash);
+    fn refund_operation(ref self: TContractState, caller_address: ContractAddress, request_id: u64);
+    fn get_total_fees(
+        self: @TContractState, caller_address: ContractAddress, request_id: u64
+    ) -> u256;
 }
 
 
@@ -71,16 +76,23 @@ mod Randomness {
     use pragma::randomness::example_randomness::{
         IExampleRandomnessDispatcher, IExampleRandomnessDispatcherTrait
     };
+    use pragma::entry::structs::DataType;
+    use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
     use pragma::admin::admin::Ownable;
     use poseidon::poseidon_hash_span;
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use openzeppelin::security::reentrancyguard::ReentrancyGuard;
     use array::{ArrayTrait, SpanTrait};
     use traits::{TryInto, Into};
-    const MAX_PREMIUM_FEE: u128 = 1000000000000000000;
+    const MAX_PREMIUM_FEE: u128 = 1; // To be changed to 1$
+
     #[storage]
     struct Storage {
         public_key: felt252,
         payment_token: ContractAddress,
+        //TODO: Handle fee/payment in future version
+        oracle_address: ContractAddress,
+        total_fees: LegacyMap::<(ContractAddress, u64), u256>,
         request_id: LegacyMap::<ContractAddress, u64>,
         request_hash: LegacyMap::<(ContractAddress, u64), felt252>,
         request_status: LegacyMap::<(ContractAddress, u64), RequestStatus>,
@@ -94,7 +106,7 @@ mod Randomness {
         seed: u64,
         minimum_block_number: u64,
         callback_address: ContractAddress,
-        callback_gas_limit: u64,
+        callback_fee_limit: u128,
         num_words: u64,
     }
 
@@ -128,7 +140,8 @@ mod Randomness {
         ref self: ContractState,
         admin_address: ContractAddress,
         public_key: felt252,
-        token_contract: ContractAddress
+        token_contract: ContractAddress,
+        oracle_address: ContractAddress,
     ) {
         let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
         Ownable::InternalImpl::initializer(ref state, admin_address);
@@ -158,11 +171,14 @@ mod Randomness {
             ref self: ContractState,
             seed: u64,
             callback_address: ContractAddress,
-            callback_gas_limit: u64,
+            callback_fee_limit: u128, //the max amount the user can pay for the callback
             publish_delay: u64,
             num_words: u64
         ) -> u64 {
+            let mut state = ReentrancyGuard::unsafe_new_contract_state();
+            ReentrancyGuard::InternalImpl::start(ref state);
             let caller_address = get_caller_address();
+            let contract_address = starknet::info::get_contract_address();
             let current_block = get_block_number();
             let request_id = self.request_id.read(caller_address);
             assert(num_words == 1, 'no more than one word');
@@ -173,7 +189,7 @@ mod Randomness {
                 seed,
                 minimum_block_number,
                 callback_address,
-                callback_gas_limit,
+                callback_fee_limit,
                 num_words,
             );
             // get the current number of request for the caller
@@ -185,16 +201,18 @@ mod Randomness {
             let user_balance = token_dispatcher.balance_of(token_address);
             // compute the premium fee
             let premium_fee = compute_premium_fee(@self, caller_address);
-            //Check if the balance is greater than premium fee + callback_gas_limit * gas_price
-            assert(
-                user_balance >= premium_fee.into(), 'insufficient balance'
-            ); //TODO: add the callback_gas_limit * gas_price
+            let oracle_dispatcher = IOracleABIDispatcher {
+                contract_address: self.oracle_address.read()
+            };
+            let response = oracle_dispatcher.get_data_median(DataType::SpotEntry('ETH/USD'));
+            // Convert the premium fee in dollar to wei
+            let wei_premium_fee = dollar_to_wei(premium_fee, response.price);
+            //Check if the balance is greater than premium fee 
+            let total_fee: u256 = wei_premium_fee.into() + callback_fee_limit.into();
+            assert(user_balance >= total_fee, 'insufficient balance');
             // transfer the premium fee to the contract
-            token_dispatcher
-                .transfer_from(
-                    caller_address, token_address, premium_fee.into(),
-                ); //TODO: add the callback_gas_limit * gas_price
             self.request_hash.write((caller_address, request_id), hash_);
+            token_dispatcher.transfer_from(caller_address, contract_address, total_fee,);
             self
                 .emit(
                     Event::RandomnessRequest(
@@ -204,7 +222,7 @@ mod Randomness {
                             seed,
                             minimum_block_number,
                             callback_address,
-                            callback_gas_limit,
+                            callback_fee_limit,
                             num_words
                         }
                     )
@@ -212,6 +230,8 @@ mod Randomness {
             self.number_of_request.write(caller_address, request_id + 1);
             self.request_status.write((caller_address, request_id), RequestStatus::RECEIVED(()));
             self.request_id.write(caller_address, request_id + 1);
+            self.total_fees.write((caller_address, request_id), total_fee);
+            ReentrancyGuard::InternalImpl::end(ref state);
             return (request_id);
         }
 
@@ -222,9 +242,11 @@ mod Randomness {
             seed: u64,
             minimum_block_number: u64,
             callback_address: ContractAddress,
-            callback_gas_limit: u64,
+            callback_fee_limit: u128,
             num_words: u64,
         ) {
+            let mut state = ReentrancyGuard::unsafe_new_contract_state();
+            ReentrancyGuard::InternalImpl::start(ref state);
             let caller_address = get_caller_address();
             let _hashed_value = hash_request(
                 request_id,
@@ -232,14 +254,23 @@ mod Randomness {
                 seed,
                 minimum_block_number,
                 callback_address,
-                callback_gas_limit,
+                callback_fee_limit,
                 num_words,
             );
             let stored_hash_ = self.request_hash.read((caller_address, request_id));
             assert(_hashed_value == stored_hash_, 'invalid request configuration');
             assert(requestor_address == caller_address, 'invalid request owner');
             let status = self.request_status.read((requestor_address, request_id));
+
             assert(status != RequestStatus::FULFILLED(()), 'request already fulfilled');
+            assert(status != RequestStatus::CANCELLED(()), 'request already cancelled');
+
+            let token_address = self.payment_token.read();
+            let token_dispatcher = IERC20Dispatcher { contract_address: token_address };
+            let total_fee = self.total_fees.read((requestor_address, request_id));
+            self.total_fees.write((requestor_address, request_id), 0);
+            token_dispatcher.transfer(requestor_address, total_fee);
+
             self
                 .request_status
                 .write((requestor_address, request_id), RequestStatus::CANCELLED(()));
@@ -256,6 +287,7 @@ mod Randomness {
                         }
                     )
                 );
+            ReentrancyGuard::InternalImpl::end(ref state);
             return ();
         }
 
@@ -266,10 +298,13 @@ mod Randomness {
             seed: u64,
             minimum_block_number: u64,
             callback_address: ContractAddress,
-            callback_gas_limit: u64,
+            callback_fee_limit: u128,
+            callback_fee: u128, //the actual fee estimated off chain
             random_words: Span<felt252>,
             proof: Span<felt252>,
         ) {
+            let mut state = ReentrancyGuard::unsafe_new_contract_state();
+            ReentrancyGuard::InternalImpl::start(ref state);
             assert_only_admin();
             let status = self.request_status.read((requestor_address, request_id));
             assert(status != RequestStatus::FULFILLED(()), 'request already fulfilled');
@@ -280,7 +315,7 @@ mod Randomness {
                 seed,
                 minimum_block_number,
                 callback_address,
-                callback_gas_limit,
+                callback_fee_limit,
                 random_words.len().into(),
             );
             let stored_hash_ = self.request_hash.read((requestor_address, request_id));
@@ -291,6 +326,11 @@ mod Randomness {
             };
             example_randomness_dispatcher
                 .receive_random_words(requestor_address, request_id, random_words);
+
+            // pay callback_fee_limit - callback_fee
+            let token_address = self.payment_token.read();
+            let token_dispatcher = IERC20Dispatcher { contract_address: token_address };
+            token_dispatcher.transfer(callback_address, (callback_fee_limit - callback_fee).into());
             self
                 .request_status
                 .write((requestor_address, request_id), RequestStatus::FULFILLED(()));
@@ -318,9 +358,26 @@ mod Randomness {
                         }
                     )
                 );
+            ReentrancyGuard::InternalImpl::end(ref state);
             return ();
         }
 
+        fn refund_operation(
+            ref self: ContractState, caller_address: ContractAddress, request_id: u64
+        ) {
+            let mut state = ReentrancyGuard::unsafe_new_contract_state();
+            ReentrancyGuard::InternalImpl::start(ref state);
+            let total_fees = self.total_fees.read((caller_address, request_id));
+            assert(total_fees != 0, 'no due amount');
+            let status = self.request_status.read((caller_address, request_id));
+            assert(status == RequestStatus::OUT_OF_GAS(()), 'request not out of gas');
+            let token_address = self.payment_token.read();
+            let token_dispatcher = IERC20Dispatcher { contract_address: token_address };
+            self.total_fees.write((caller_address, request_id), 0);
+            token_dispatcher.transfer(caller_address, total_fees);
+            ReentrancyGuard::InternalImpl::end(ref state);
+            return ();
+        }
 
         fn get_pending_requests(
             self: @ContractState, requestor_address: ContractAddress, offset: u64, max_len: u64
@@ -366,6 +423,12 @@ mod Randomness {
             let mut upstate: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
             Upgradeable::InternalImpl::upgrade(ref upstate, impl_hash);
         }
+
+        fn get_total_fees(
+            self: @ContractState, caller_address: ContractAddress, request_id: u64
+        ) -> u256 {
+            self.total_fees.read((caller_address, request_id))
+        }
     }
 
     fn hash_request(
@@ -374,7 +437,7 @@ mod Randomness {
         seed: u64,
         minimum_block_number: u64,
         callback_address: ContractAddress,
-        callback_gas_limit: u64,
+        callback_fee_limit: u128,
         num_words: u64,
     ) -> felt252 {
         let input = array![
@@ -383,7 +446,7 @@ mod Randomness {
             seed.into(),
             minimum_block_number.into(),
             callback_address.into(),
-            callback_gas_limit.into(),
+            callback_fee_limit.into(),
             num_words.into()
         ];
         let hash_ = poseidon_hash_span(input.span());
@@ -408,6 +471,14 @@ mod Randomness {
         } else {
             MAX_PREMIUM_FEE / 10
         }
+    }
+
+    fn dollar_to_wei(usd: u128, price: u128) -> u128 {
+        (usd * 1000000000000000000 * 100000000) / price
+    }
+
+    fn amount_to_wei(amount: u256, price: u128) -> u256 {
+        amount * 1000000000000000000 * price.into() / 100000000
     }
 
     fn allocate_requests(
