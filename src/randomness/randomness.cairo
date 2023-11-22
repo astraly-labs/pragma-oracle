@@ -6,7 +6,9 @@ enum RequestStatus {
     RECEIVED: (),
     FULFILLED: (),
     CANCELLED: (),
+    OUT_OF_GAS: (),
 }
+
 
 #[starknet::interface]
 trait IRandomness<TContractState> {
@@ -54,6 +56,8 @@ trait IRandomness<TContractState> {
     ) -> RequestStatus;
     fn requestor_current_index(self: @TContractState, requestor_address: ContractAddress) -> u64;
     fn get_public_key(self: @TContractState, requestor_address: ContractAddress) -> felt252;
+    fn get_payment_token(self: @TContractState) -> ContractAddress;
+    fn set_payment_token(ref self: TContractState, token_contract: ContractAddress);
     fn upgrade(ref self: TContractState, impl_hash: ClassHash);
 }
 
@@ -69,17 +73,18 @@ mod Randomness {
     };
     use pragma::admin::admin::Ownable;
     use poseidon::poseidon_hash_span;
-
+    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
     use array::{ArrayTrait, SpanTrait};
     use traits::{TryInto, Into};
+    const MAX_PREMIUM_FEE: u128 = 1000000000000000000;
     #[storage]
     struct Storage {
         public_key: felt252,
+        payment_token: ContractAddress,
         request_id: LegacyMap::<ContractAddress, u64>,
         request_hash: LegacyMap::<(ContractAddress, u64), felt252>,
         request_status: LegacyMap::<(ContractAddress, u64), RequestStatus>,
-        // A legacy map to store the tier subscription for e given contract
-        tier_subscription: LegacyMap::<ContractAddress, u64>,
+        number_of_request: LegacyMap::<ContractAddress, u64>,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -119,10 +124,16 @@ mod Randomness {
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, admin_address: ContractAddress, public_key: felt252) {
+    fn constructor(
+        ref self: ContractState,
+        admin_address: ContractAddress,
+        public_key: felt252,
+        token_contract: ContractAddress
+    ) {
         let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
         Ownable::InternalImpl::initializer(ref state, admin_address);
         self.public_key.write(public_key);
+        self.payment_token.write(token_contract);
         return ();
     }
 
@@ -165,7 +176,24 @@ mod Randomness {
                 callback_gas_limit,
                 num_words,
             );
-            // hash request
+            // get the current number of request for the caller
+            let request_number = self.number_of_request.read(caller_address);
+            // get the contract dispatcher
+            let token_address = self.payment_token.read();
+            let token_dispatcher = IERC20Dispatcher { contract_address: token_address };
+            // get the balance of the caller
+            let user_balance = token_dispatcher.balance_of(token_address);
+            // compute the premium fee
+            let premium_fee = compute_premium_fee(@self, caller_address);
+            //Check if the balance is greater than premium fee + callback_gas_limit * gas_price
+            assert(
+                user_balance >= premium_fee.into(), 'insufficient balance'
+            ); //TODO: add the callback_gas_limit * gas_price
+            // transfer the premium fee to the contract
+            token_dispatcher
+                .transfer_from(
+                    caller_address, token_address, premium_fee.into(),
+                ); //TODO: add the callback_gas_limit * gas_price
             self.request_hash.write((caller_address, request_id), hash_);
             self
                 .emit(
@@ -181,6 +209,7 @@ mod Randomness {
                         }
                     )
                 );
+            self.number_of_request.write(caller_address, request_id + 1);
             self.request_status.write((caller_address, request_id), RequestStatus::RECEIVED(()));
             self.request_id.write(caller_address, request_id + 1);
             return (request_id);
@@ -323,6 +352,14 @@ mod Randomness {
             return pub_key_;
         }
 
+        fn get_payment_token(self: @ContractState) -> ContractAddress {
+            self.payment_token.read()
+        }
+        fn set_payment_token(ref self: ContractState, token_contract: ContractAddress) {
+            assert_only_admin();
+            self.payment_token.write(token_contract);
+            return ();
+        }
 
         fn upgrade(ref self: ContractState, impl_hash: ClassHash) {
             assert_only_admin();
@@ -358,6 +395,19 @@ mod Randomness {
         let admin = Ownable::OwnableImpl::owner(@state);
         let caller = get_caller_address();
         assert(caller == admin, 'Admin: unauthorized');
+    }
+
+    fn compute_premium_fee(self: @ContractState, caller_address: ContractAddress) -> u128 {
+        let request_number = self.number_of_request.read(caller_address);
+        if (request_number < 10) {
+            MAX_PREMIUM_FEE
+        } else if (request_number < 30) {
+            MAX_PREMIUM_FEE / 2
+        } else if (request_number < 100) {
+            MAX_PREMIUM_FEE / 4
+        } else {
+            MAX_PREMIUM_FEE / 10
+        }
     }
 
     fn allocate_requests(
