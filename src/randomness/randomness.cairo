@@ -64,6 +64,9 @@ trait IRandomness<TContractState> {
     fn get_total_fees(
         self: @TContractState, caller_address: ContractAddress, request_id: u64
     ) -> u256;
+    fn get_out_of_gas_requests(
+        self: @TContractState, requestor_address: ContractAddress,
+    ) -> Span<u64>;
 }
 
 
@@ -85,7 +88,6 @@ mod Randomness {
     };
     use openzeppelin::security::reentrancyguard::ReentrancyGuard;
     use array::{ArrayTrait, SpanTrait};
-    use debug::PrintTrait;
     use traits::{TryInto, Into};
     const MAX_PREMIUM_FEE: u128 = 100000000; // 1$ with 8 decimals
 
@@ -99,7 +101,7 @@ mod Randomness {
         request_id: LegacyMap::<ContractAddress, u64>,
         request_hash: LegacyMap::<(ContractAddress, u64), felt252>,
         request_status: LegacyMap::<(ContractAddress, u64), RequestStatus>,
-        number_of_request: LegacyMap::<ContractAddress, u64>,
+        number_of_request: LegacyMap::<ContractAddress, u64>,  //no need, we can use request_id 
     }
 
     #[derive(Drop, starknet::Event)]
@@ -434,6 +436,23 @@ mod Randomness {
             self: @ContractState, caller_address: ContractAddress, request_id: u64
         ) -> u256 {
             self.total_fees.read((caller_address, request_id))
+        }
+
+        fn get_out_of_gas_requests(self: @ContractState, requestor_address: ContractAddress) -> Span<u64> { 
+            let mut requests = ArrayTrait::<u64>::new();
+            let max_index = self.request_id.read(requestor_address);
+            let mut cur_idx = 0;
+            loop{
+                if (cur_idx == max_index) {
+                    break();
+                }
+                let status_ = self.request_status.read((requestor_address, cur_idx));
+                if (status_ == RequestStatus::OUT_OF_GAS(())) {
+                    requests.append(cur_idx);
+                }
+                cur_idx = cur_idx + 1;
+            };
+            return requests.span();
         }
     }
 

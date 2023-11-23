@@ -21,7 +21,6 @@ use serde::Serde;
 use result::ResultTrait;
 use traits::{Into, TryInto};
 use starknet::info;
-use debug::PrintTrait;
 const INITIAL_SUPPLY: u128 = 100000000000000000000000000;
 const CHAIN_ID: felt252 = 'SN_MAIN';
 const BLOCK_TIMESTAMP: u64 = 103374042;
