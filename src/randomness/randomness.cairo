@@ -101,7 +101,7 @@ mod Randomness {
         request_id: LegacyMap::<ContractAddress, u64>,
         request_hash: LegacyMap::<(ContractAddress, u64), felt252>,
         request_status: LegacyMap::<(ContractAddress, u64), RequestStatus>,
-        number_of_request: LegacyMap::<ContractAddress, u64>,  //no need, we can use request_id 
+        number_of_request: LegacyMap::<ContractAddress, u64>, //no need, we can use request_id 
     }
 
     #[derive(Drop, starknet::Event)]
@@ -438,13 +438,15 @@ mod Randomness {
             self.total_fees.read((caller_address, request_id))
         }
 
-        fn get_out_of_gas_requests(self: @ContractState, requestor_address: ContractAddress) -> Span<u64> { 
+        fn get_out_of_gas_requests(
+            self: @ContractState, requestor_address: ContractAddress
+        ) -> Span<u64> {
             let mut requests = ArrayTrait::<u64>::new();
             let max_index = self.request_id.read(requestor_address);
             let mut cur_idx = 0;
-            loop{
+            loop {
                 if (cur_idx == max_index) {
-                    break();
+                    break ();
                 }
                 let status_ = self.request_status.read((requestor_address, cur_idx));
                 if (status_ == RequestStatus::OUT_OF_GAS(())) {
