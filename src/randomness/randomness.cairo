@@ -548,10 +548,6 @@ mod Randomness {
         (usd * pow(10, decimals.into()) * 1000000000000000000) / price
     }
 
-    fn amount_to_wei(amount: u256, price: u128) -> u256 {
-        amount * 1000000000000000000 * price.into() / 100000000
-    }
-
     fn allocate_requests(
         self: @ContractState,
         cur_idx: u64,
