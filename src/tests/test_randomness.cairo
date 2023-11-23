@@ -503,8 +503,6 @@ fn test_out_of_gas_refund_check() {
     assert(refund_user_balance == initial_supply, 'wrong refund user balance');
 }
 
-//NOTICE: THE REFUND PROCESS CAN BE CHALLENGING IF THE USER IS SENDING LOTS OF REQUESTS AND CANNOT FIND THE REQUEST ID THAT FAILED
-//TODO: add a function that loop on the number of requests to return the list of request ids that failed and the total debt
 
 #[test]
 #[should_panic(expected: ('no due amount', 'ENTRYPOINT_FAILED'))]
