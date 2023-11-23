@@ -447,5 +447,3 @@ fn test_randomness_id_incrementation() {
     assert(random_id == 1, 'wrong id ');
 }
 
-
-#[test]
