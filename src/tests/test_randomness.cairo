@@ -19,6 +19,7 @@ use option::OptionTrait;
 use starknet::SyscallResultTrait;
 use serde::Serde;
 use result::ResultTrait;
+use debug::PrintTrait;
 use traits::{Into, TryInto};
 use starknet::info;
 const INITIAL_SUPPLY: u128 = 100000000000000000000000000;
@@ -376,7 +377,7 @@ fn test_cancel_random_request_should_fail_if_fulflled() {
 }
 
 #[test]
-#[should_panic(expected: ('request already cancelled', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('request not received', 'ENTRYPOINT_FAILED'))]
 #[available_gas(100000000000)]
 fn test_submit_random_should_fail_if_request_cancelled() {
     let (randomness, example_randomness, randomness_address, example_randomness_address, token_1) =
@@ -505,7 +506,7 @@ fn test_out_of_gas_refund_check() {
 
 
 #[test]
-#[should_panic(expected: ('no due amount', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('no fees to refund', 'ENTRYPOINT_FAILED'))]
 #[available_gas(2000000000000)]
 fn test_refund_fails_if_id_not_valid_id() {
     let (randomness, example_randomness, randomness_address, example_randomness_address, token_1) =
@@ -577,4 +578,89 @@ fn test_fetch_multiple_out_of_gas_id() {
     let out_of_gas_id = randomness.get_out_of_gas_requests(example_randomness_address);
     assert(*out_of_gas_id.at(0) == request_id_1, 'wrong out of gas id');
     assert(*out_of_gas_id.at(1) == request_id_2, 'wrong out of gas id');
+}
+
+
+#[test]
+#[available_gas(2000000000000000)]
+fn test_withdraw_funds() {
+    let admin = contract_address_const::<0x1234>();
+    let (randomness, example_randomness, randomness_address, example_randomness_address, token_1) =
+        setup();
+    starknet::testing::set_contract_address(example_randomness_address);
+    let initial_supply = u256 { high: 0, low: INITIAL_SUPPLY / 20 };
+    let initial_user_balance = token_1.balance_of(example_randomness_address);
+    assert(initial_user_balance == initial_supply, 'wrong initial user balance');
+    let seed = 1;
+    let callback_fee_limit = 900000000;
+    let premium_fee = (MAX_PREMIUM_FEE * 1000000000000000000) / ETH_USD_PRICE;
+    let callback_address = example_randomness_address;
+    let publish_delay = 1;
+    let num_words = 1;
+    let block_number = info::get_block_number();
+    let request_id = randomness
+        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words);
+    randomness_request_event_handler(
+        randomness_address,
+        0,
+        example_randomness_address,
+        seed,
+        1,
+        callback_address,
+        callback_fee_limit,
+        num_words
+    );
+    let request_user_balance = token_1.balance_of(example_randomness_address);
+    assert(
+        request_user_balance == initial_supply - callback_fee_limit.into() - premium_fee.into(),
+        'wrong request user balance'
+    );
+    assert(
+        randomness.get_total_fees(example_randomness_address, 0) == callback_fee_limit.into()
+            + premium_fee.into(),
+        'wrong total fees(1)'
+    );
+    let mut random_words = ArrayTrait::<felt252>::new();
+    let res = example_randomness.get_last_random();
+    assert(res == 0, 'wrong random');
+    let random_words = array![10000];
+    let block_hash = 123456789;
+    let proof = array![100, 200, 300];
+    let minimum_block_number = 2;
+    let callback_fee = 1000000;
+    testing::set_block_number(4);
+    testing::set_contract_address(admin);
+    randomness
+        .submit_random(
+            0,
+            example_randomness_address,
+            seed,
+            1,
+            callback_address,
+            callback_fee_limit,
+            callback_fee,
+            random_words.span(),
+            proof.span()
+        );
+    assert(
+        randomness.get_total_fees(example_randomness_address, 0) == callback_fee_limit.into()
+            + premium_fee.into(),
+        'wrong total fees(2)'
+    );
+    let final_user_balance = token_1.balance_of(example_randomness_address);
+    assert(
+        final_user_balance == initial_supply - callback_fee.into() - premium_fee.into(),
+        'wrong final user balance'
+    );
+    let res = example_randomness.get_last_random();
+    assert(res == 10000, 'wrong random');
+    testing::set_contract_address(admin);
+    assert(randomness.get_contract_balance() == premium_fee.into(), 'wrong contract balance');
+    let initial_admin_balance = token_1.balance_of(admin);
+    randomness.withdraw_funds(admin);
+    assert(randomness.get_contract_balance() == 0.into(), 'wrong contract balance');
+    assert(
+        token_1.balance_of(admin) == initial_admin_balance + premium_fee.into(),
+        'wrong admin balance'
+    );
 }

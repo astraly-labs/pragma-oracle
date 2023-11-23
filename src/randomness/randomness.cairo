@@ -7,6 +7,7 @@ enum RequestStatus {
     FULFILLED: (),
     CANCELLED: (),
     OUT_OF_GAS: (),
+    REFUNDED: (),
 }
 
 
@@ -67,6 +68,8 @@ trait IRandomness<TContractState> {
     fn get_out_of_gas_requests(
         self: @TContractState, requestor_address: ContractAddress,
     ) -> Span<u64>;
+    fn withdraw_funds(ref self: TContractState, receiver_address: ContractAddress);
+    fn get_contract_balance(self: @TContractState) -> u256;
 }
 
 
@@ -95,12 +98,29 @@ mod Randomness {
     struct Storage {
         public_key: felt252,
         payment_token: ContractAddress,
-        //TODO: Handle fee/payment in future version
         oracle_address: ContractAddress,
+        contract_balance: u256,
         total_fees: LegacyMap::<(ContractAddress, u64), u256>,
         request_id: LegacyMap::<ContractAddress, u64>,
         request_hash: LegacyMap::<(ContractAddress, u64), felt252>,
         request_status: LegacyMap::<(ContractAddress, u64), RequestStatus>,
+    }
+
+    mod Errors {
+        const REQUEST_ALREADY_FULFILLED: felt252 = 'request already fulfilled';
+        const REQUEST_ALREADY_CANCELLED: felt252 = 'request already cancelled';
+        const INSUFFICIENT_BALANCE: felt252 = 'insufficient balance';
+        const INSUFFICIENT_ALLOWANCE: felt252 = 'insufficient allowance';
+        const ONE_WORD: felt252 = 'no more than one word';
+        const RANDOMNESS_HASH_MISMATCH: felt252 = 'randomness hash mismatch';
+        const NO_AVAILABLE_FEES: felt252 = 'no fees to refund';
+        const REQUEST_NOT_OUT_OF_GAS: felt252 = 'request not out of gas';
+        const UNAUTHORIZED: felt252 = 'Admin: unauthorized';
+        const INVALID_REQUEST_CONFIGURATION: felt252 = 'invalid request configuration';
+        const INVALID_REQUEST_OWNER: felt252 = 'invalid request owner';
+        const INSUFFICIENT_CONTRACT_BALANCE: felt252 = 'insufficient contract balance';
+        const INVALID_RECEIVER_ADDRESS: felt252 = 'invalid receiver address';
+        const REQUEST_NOT_RECEIVED: felt252 = 'request not received';
     }
 
     #[derive(Drop, starknet::Event)]
@@ -166,8 +186,8 @@ mod Randomness {
             assert_only_admin();
             let status = self.request_status.read((requestor_address, request_id));
             //The management is handled by the admin contract, he cannot change the status of a fulfilled or cancelled request
-            assert(status != RequestStatus::FULFILLED(()), 'request already fulfilled');
-            assert(status != RequestStatus::CANCELLED(()), 'request already cancelled');
+            assert(status != RequestStatus::FULFILLED(()), Errors::REQUEST_ALREADY_FULFILLED);
+            assert(status != RequestStatus::CANCELLED(()), Errors::REQUEST_ALREADY_CANCELLED);
             self.request_status.write((requestor_address, request_id), new_status);
             return ();
         }
@@ -186,7 +206,7 @@ mod Randomness {
             let contract_address = starknet::info::get_contract_address();
             let current_block = get_block_number();
             let request_id = self.request_id.read(caller_address);
-            assert(num_words == 1, 'no more than one word');
+            assert(num_words == 1, Errors::ONE_WORD);
             let minimum_block_number = current_block + publish_delay;
             let hash_ = hash_request(
                 request_id,
@@ -215,12 +235,12 @@ mod Randomness {
             let wei_premium_fee = dollar_to_wei(premium_fee, response.price);
             // Check if the balance is greater than premium fee 
             let total_fee: u256 = wei_premium_fee.into() + callback_fee_limit.into();
-            assert(user_balance >= total_fee, 'insufficient balance');
+            assert(user_balance >= total_fee, Errors::INSUFFICIENT_BALANCE);
             // transfer the premium fee to the contract
             self.request_hash.write((caller_address, request_id), hash_);
             assert(
                 token_dispatcher.allowance(caller_address, contract_address) >= total_fee,
-                'insufficient allowance'
+                Errors::INSUFFICIENT_ALLOWANCE
             );
             token_dispatcher.transferFrom(caller_address, contract_address, total_fee);
             self
@@ -267,12 +287,12 @@ mod Randomness {
                 num_words,
             );
             let stored_hash_ = self.request_hash.read((caller_address, request_id));
-            assert(_hashed_value == stored_hash_, 'invalid request configuration');
-            assert(requestor_address == caller_address, 'invalid request owner');
+            assert(_hashed_value == stored_hash_, Errors::INVALID_REQUEST_CONFIGURATION);
+            assert(requestor_address == caller_address, Errors::INVALID_REQUEST_OWNER);
             let status = self.request_status.read((requestor_address, request_id));
 
-            assert(status != RequestStatus::FULFILLED(()), 'request already fulfilled');
-            assert(status != RequestStatus::CANCELLED(()), 'request already cancelled');
+            assert(status != RequestStatus::FULFILLED(()), Errors::REQUEST_ALREADY_FULFILLED);
+            assert(status != RequestStatus::CANCELLED(()), Errors::REQUEST_ALREADY_CANCELLED);
 
             let token_address = self.payment_token.read();
             let token_dispatcher = ERC20CamelABIDispatcher { contract_address: token_address };
@@ -316,8 +336,7 @@ mod Randomness {
             ReentrancyGuard::InternalImpl::start(ref state);
             assert_only_admin();
             let status = self.request_status.read((requestor_address, request_id));
-            assert(status != RequestStatus::FULFILLED(()), 'request already fulfilled');
-            assert(status != RequestStatus::CANCELLED(()), 'request already cancelled');
+            assert(status == RequestStatus::RECEIVED(()), Errors::REQUEST_NOT_RECEIVED);
             let _hashed_value = hash_request(
                 request_id,
                 requestor_address,
@@ -328,7 +347,7 @@ mod Randomness {
                 random_words.len().into(),
             );
             let stored_hash_ = self.request_hash.read((requestor_address, request_id));
-            assert(stored_hash_ == _hashed_value, 'Randomness hash mismatch');
+            assert(stored_hash_ == _hashed_value, Errors::RANDOMNESS_HASH_MISMATCH);
 
             let example_randomness_dispatcher = IExampleRandomnessDispatcher {
                 contract_address: callback_address
@@ -340,6 +359,7 @@ mod Randomness {
             let token_address = self.payment_token.read();
             let token_dispatcher = ERC20CamelABIDispatcher { contract_address: token_address };
             token_dispatcher.transfer(callback_address, (callback_fee_limit - callback_fee).into());
+
             self
                 .request_status
                 .write((requestor_address, request_id), RequestStatus::FULFILLED(()));
@@ -367,6 +387,10 @@ mod Randomness {
                         }
                     )
                 );
+            let total_fees = self.total_fees.read((requestor_address, request_id));
+            let actual_balance = self.contract_balance.read();
+
+            self.contract_balance.write(actual_balance + (total_fees - callback_fee_limit.into()));
             ReentrancyGuard::InternalImpl::end(ref state);
             return ();
         }
@@ -377,12 +401,13 @@ mod Randomness {
             let mut state = ReentrancyGuard::unsafe_new_contract_state();
             ReentrancyGuard::InternalImpl::start(ref state);
             let total_fees = self.total_fees.read((caller_address, request_id));
-            assert(total_fees != 0, 'no due amount');
+            assert(total_fees != 0, Errors::NO_AVAILABLE_FEES);
             let status = self.request_status.read((caller_address, request_id));
-            assert(status == RequestStatus::OUT_OF_GAS(()), 'request not out of gas');
+            assert(status == RequestStatus::OUT_OF_GAS(()), Errors::REQUEST_NOT_OUT_OF_GAS);
             let token_address = self.payment_token.read();
             let token_dispatcher = ERC20CamelABIDispatcher { contract_address: token_address };
             self.total_fees.write((caller_address, request_id), 0);
+            self.request_status.write((caller_address, request_id), RequestStatus::REFUNDED(()));
             token_dispatcher.transfer(caller_address, total_fees);
             ReentrancyGuard::InternalImpl::end(ref state);
             return ();
@@ -457,6 +482,23 @@ mod Randomness {
             };
             return requests.span();
         }
+
+        fn withdraw_funds(ref self: ContractState, receiver_address: ContractAddress) {
+            assert_only_admin();
+            assert(self.contract_balance.read() > 0, Errors::INSUFFICIENT_CONTRACT_BALANCE);
+            assert(!receiver_address.is_zero(), Errors::INVALID_RECEIVER_ADDRESS);
+            let token_address = self.payment_token.read();
+            let token_dispatcher = ERC20CamelABIDispatcher { contract_address: token_address };
+            let balance = self.contract_balance.read();
+            self.contract_balance.write(0);
+            token_dispatcher.transfer(receiver_address, balance);
+            return ();
+        }
+
+        fn get_contract_balance(self: @ContractState) -> u256 {
+            assert_only_admin();
+            self.contract_balance.read()
+        }
     }
 
     fn hash_request(
@@ -485,7 +527,7 @@ mod Randomness {
         let state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
         let admin = Ownable::OwnableImpl::owner(@state);
         let caller = get_caller_address();
-        assert(caller == admin, 'Admin: unauthorized');
+        assert(caller == admin, Errors::UNAUTHORIZED);
     }
 
     fn compute_premium_fee(self: @ContractState, caller_address: ContractAddress) -> u128 {
