@@ -82,6 +82,7 @@ mod Randomness {
     use pragma::randomness::example_randomness::{
         IExampleRandomnessDispatcher, IExampleRandomnessDispatcherTrait
     };
+    use alexandria_math::pow;
     use pragma::entry::structs::DataType;
     use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
     use pragma::admin::admin::Ownable;
@@ -92,7 +93,7 @@ mod Randomness {
     use openzeppelin::security::reentrancyguard::ReentrancyGuard;
     use array::{ArrayTrait, SpanTrait};
     use traits::{TryInto, Into};
-    const MAX_PREMIUM_FEE: u128 = 100000000; // 1$ with 8 decimals
+    const MAX_PREMIUM_FEE: u128 = 1; // 1$ with 8 decimals
 
     #[storage]
     struct Storage {
@@ -232,7 +233,7 @@ mod Randomness {
             let response = oracle_dispatcher.get_data_median(DataType::SpotEntry('ETH/USD'));
 
             // Convert the premium fee in dollar to wei
-            let wei_premium_fee = dollar_to_wei(premium_fee, response.price);
+            let wei_premium_fee = dollar_to_wei(premium_fee, response.price, response.decimals);
             // Check if the balance is greater than premium fee 
             let total_fee: u256 = wei_premium_fee.into() + callback_fee_limit.into();
             assert(user_balance >= total_fee, Errors::INSUFFICIENT_BALANCE);
@@ -543,8 +544,8 @@ mod Randomness {
         }
     }
 
-    fn dollar_to_wei(usd: u128, price: u128) -> u128 {
-        (usd * 1000000000000000000) / price
+    fn dollar_to_wei(usd: u128, price: u128, decimals: u32) -> u128 {
+        (usd * pow(10, decimals.into()) * 1000000000000000000) / price
     }
 
     fn amount_to_wei(amount: u256, price: u128) -> u256 {
