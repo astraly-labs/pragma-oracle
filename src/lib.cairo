@@ -18,6 +18,7 @@ mod operations {
 }
 mod oracle {
     mod oracle;
+    mod mock_oracle;
 }
 mod publisher_registry {
     mod publisher_registry;

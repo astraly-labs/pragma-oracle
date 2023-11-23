@@ -80,12 +80,13 @@ mod Randomness {
     use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
     use pragma::admin::admin::Ownable;
     use poseidon::poseidon_hash_span;
-    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use openzeppelin::token::erc20::interface::{
+        ERC20CamelABIDispatcher, ERC20CamelABIDispatcherTrait
+    };
     use openzeppelin::security::reentrancyguard::ReentrancyGuard;
     use array::{ArrayTrait, SpanTrait};
-    use debug::PrintTrait;
     use traits::{TryInto, Into};
-    const MAX_PREMIUM_FEE: u128 = 100000000; // 1 dollar with 8n decimals
+    const MAX_PREMIUM_FEE: u128 = 100000000; // 1$ with 8 decimals
 
     #[storage]
     struct Storage {
@@ -141,13 +142,13 @@ mod Randomness {
         ref self: ContractState,
         admin_address: ContractAddress,
         public_key: felt252,
-        token_contract: ContractAddress,
+        payment_token_address: ContractAddress,
         oracle_address: ContractAddress,
     ) {
         let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
         Ownable::InternalImpl::initializer(ref state, admin_address);
         self.public_key.write(public_key);
-        self.payment_token.write(token_contract);
+        self.payment_token.write(payment_token_address);
         self.oracle_address.write(oracle_address);
         return ();
     }
@@ -194,15 +195,15 @@ mod Randomness {
                 callback_fee_limit,
                 num_words,
             );
-            // get the current number of request for the caller
+            // get the current number of requests for the caller
             let request_number = self.number_of_request.read(caller_address);
             // get the contract dispatcher
             let token_address = self.payment_token.read();
-            let token_dispatcher = IERC20Dispatcher { contract_address: token_address };
+            let token_dispatcher = ERC20CamelABIDispatcher { contract_address: token_address };
             // get the balance of the caller
-            let user_balance = token_dispatcher.balance_of(caller_address);
+            let user_balance = token_dispatcher.balanceOf(callback_address);
             // compute the premium fee
-            let premium_fee = compute_premium_fee(@self, caller_address); // * 10^8
+            let premium_fee = compute_premium_fee(@self, caller_address);
             let oracle_dispatcher = IOracleABIDispatcher {
                 contract_address: self.oracle_address.read()
             };
@@ -210,12 +211,12 @@ mod Randomness {
 
             // Convert the premium fee in dollar to wei
             let wei_premium_fee = dollar_to_wei(premium_fee, response.price);
-            //Check if the balance is greater than premium fee 
+            // Check if the balance is greater than premium fee 
             let total_fee: u256 = wei_premium_fee.into() + callback_fee_limit.into();
             assert(user_balance >= total_fee, 'insufficient balance');
             // transfer the premium fee to the contract
             self.request_hash.write((caller_address, request_id), hash_);
-            token_dispatcher.transfer_from(caller_address, contract_address, total_fee,);
+            token_dispatcher.transferFrom(caller_address, contract_address, total_fee);
             self
                 .emit(
                     Event::RandomnessRequest(
@@ -269,7 +270,7 @@ mod Randomness {
             assert(status != RequestStatus::CANCELLED(()), 'request already cancelled');
 
             let token_address = self.payment_token.read();
-            let token_dispatcher = IERC20Dispatcher { contract_address: token_address };
+            let token_dispatcher = ERC20CamelABIDispatcher { contract_address: token_address };
             let total_fee = self.total_fees.read((requestor_address, request_id));
             self.total_fees.write((requestor_address, request_id), 0);
             token_dispatcher.transfer(requestor_address, total_fee);
@@ -332,7 +333,7 @@ mod Randomness {
 
             // pay callback_fee_limit - callback_fee
             let token_address = self.payment_token.read();
-            let token_dispatcher = IERC20Dispatcher { contract_address: token_address };
+            let token_dispatcher = ERC20CamelABIDispatcher { contract_address: token_address };
             token_dispatcher.transfer(callback_address, (callback_fee_limit - callback_fee).into());
             self
                 .request_status
@@ -375,7 +376,7 @@ mod Randomness {
             let status = self.request_status.read((caller_address, request_id));
             assert(status == RequestStatus::OUT_OF_GAS(()), 'request not out of gas');
             let token_address = self.payment_token.read();
-            let token_dispatcher = IERC20Dispatcher { contract_address: token_address };
+            let token_dispatcher = ERC20CamelABIDispatcher { contract_address: token_address };
             self.total_fees.write((caller_address, request_id), 0);
             token_dispatcher.transfer(caller_address, total_fees);
             ReentrancyGuard::InternalImpl::end(ref state);
