@@ -534,3 +534,47 @@ fn test_refund_fails_if_no_due_amount() {
     randomness.refund_operation(example_randomness_address, request_id);
 }
 
+#[test]
+#[available_gas(2000000000000000)]
+fn test_fetch_multiple_out_of_gas_id() {
+    let (randomness, example_randomness, randomness_address, example_randomness_address, token_1) =
+        setup();
+    let admin_address = contract_address_const::<0x1234>();
+    let initial_supply = u256 { high: 0, low: INITIAL_SUPPLY / 20 };
+    let initial_user_balance = token_1.balance_of(example_randomness_address);
+    assert(initial_user_balance == initial_supply, 'wrong initial user balance');
+    testing::set_contract_address(example_randomness_address);
+
+    let seed = 1;
+    let callback_fee_limit = 90000000000;
+    let premium_fee = (MAX_PREMIUM_FEE * 1000000000000000000) / ETH_USD_PRICE;
+    let callback_address = example_randomness_address;
+    let publish_delay = 1;
+    let num_words = 1;
+    let block_number = info::get_block_number();
+    let request_id_1 = randomness
+        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words);
+    let request_id_2 = randomness
+        .request_random(seed+ 1, callback_address, callback_fee_limit, publish_delay, num_words);
+    testing::set_contract_address(admin_address);
+    randomness.update_status(example_randomness_address, request_id_1, RequestStatus::OUT_OF_GAS(()));
+    randomness.update_status(example_randomness_address, request_id_2, RequestStatus::OUT_OF_GAS(()));
+    assert(
+        randomness
+            .get_request_status(
+                example_randomness_address, request_id_1
+            ) == RequestStatus::OUT_OF_GAS(()),
+        'wrong request status'
+    );
+    assert(
+        randomness
+            .get_request_status(
+                example_randomness_address, request_id_2
+            ) == RequestStatus::OUT_OF_GAS(()),
+        'wrong request status'
+    );
+    testing::set_contract_address(example_randomness_address);
+    let out_of_gas_id = randomness.get_out_of_gas_requests(example_randomness_address);
+    assert(*out_of_gas_id.at(0) == request_id_1, 'wrong out of gas id');
+    assert(*out_of_gas_id.at(1) == request_id_2, 'wrong out of gas id');
+ }

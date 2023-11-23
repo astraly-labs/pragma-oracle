@@ -101,7 +101,6 @@ mod Randomness {
         request_id: LegacyMap::<ContractAddress, u64>,
         request_hash: LegacyMap::<(ContractAddress, u64), felt252>,
         request_status: LegacyMap::<(ContractAddress, u64), RequestStatus>,
-        number_of_request: LegacyMap::<ContractAddress, u64>, //no need, we can use request_id 
     }
 
     #[derive(Drop, starknet::Event)]
@@ -199,7 +198,7 @@ mod Randomness {
                 num_words,
             );
             // get the current number of requests for the caller
-            let request_number = self.number_of_request.read(caller_address);
+            let request_number = self.request_id.read(caller_address);
             // get the contract dispatcher
             let token_address = self.payment_token.read();
             let token_dispatcher = ERC20CamelABIDispatcher { contract_address: token_address };
@@ -219,7 +218,7 @@ mod Randomness {
             assert(user_balance >= total_fee, 'insufficient balance');
             // transfer the premium fee to the contract
             self.request_hash.write((caller_address, request_id), hash_);
-            token_dispatcher.allowance(callback_address, contract_address);
+            assert(token_dispatcher.allowance(caller_address, contract_address)>=total_fee, 'insufficient allowance');
             token_dispatcher.transferFrom(caller_address, contract_address, total_fee);
             self
                 .emit(
@@ -235,7 +234,6 @@ mod Randomness {
                         }
                     )
                 );
-            self.number_of_request.write(caller_address, request_id + 1);
             self.request_status.write((caller_address, request_id), RequestStatus::RECEIVED(()));
             self.request_id.write(caller_address, request_id + 1);
             self.total_fees.write((caller_address, request_id), total_fee);
@@ -488,7 +486,7 @@ mod Randomness {
     }
 
     fn compute_premium_fee(self: @ContractState, caller_address: ContractAddress) -> u128 {
-        let request_number = self.number_of_request.read(caller_address);
+        let request_number = self.request_id.read(caller_address);
         if (request_number < 10) {
             MAX_PREMIUM_FEE
         } else if (request_number < 30) {
