@@ -38,7 +38,11 @@ fn pop_log<T, impl TDrop: Drop<T>, impl TEvent: starknet::Event<T>>(
 
 
 fn setup() -> (
-    IRandomnessDispatcher, IExampleRandomnessDispatcher, ContractAddress, ContractAddress
+    IRandomnessDispatcher,
+    IExampleRandomnessDispatcher,
+    ContractAddress,
+    ContractAddress,
+    IERC20Dispatcher
 ) {
     let admin_address = contract_address_const::<0x1234>();
     starknet::testing::set_contract_address(admin_address);
@@ -151,11 +155,19 @@ fn setup() -> (
     let example_randomness_dispatcher = IExampleRandomnessDispatcher {
         contract_address: example_randomness_contract
     };
+    token_1.transfer(example_randomness_contract, u256 { high: 0, low: INITIAL_SUPPLY / 20 });
+    token_1.balance_of(example_randomness_contract);
+    assert(
+        token_1
+            .balance_of(example_randomness_contract) == u256 { high: 0, low: INITIAL_SUPPLY / 20 },
+        'wrong initial balance'
+    );
     return (
         randomness_dispatcher,
         example_randomness_dispatcher,
         randomness_contract,
-        example_randomness_contract
+        example_randomness_contract,
+        token_1
     );
 }
 
@@ -183,9 +195,12 @@ fn randomness_request_event_handler(
 #[available_gas(100000000000)]
 fn test_randomness() {
     let admin = contract_address_const::<0x1234>();
-    let requestor_address = contract_address_const::<0x1234>();
-    starknet::testing::set_contract_address(admin);
-    let (randomness, example_randomness, randomness_address, example_randomness_address) = setup();
+    let (randomness, example_randomness, randomness_address, example_randomness_address, token_1) =
+        setup();
+    starknet::testing::set_contract_address(example_randomness_address);
+    let initial_supply = u256 { high: 0, low: INITIAL_SUPPLY / 20 };
+    let initial_user_balance = token_1.balance_of(example_randomness_address);
+    assert(initial_user_balance == initial_supply, 'wrong initial user balance');
     let seed = 1;
     let callback_fee_limit = 900000000;
     let callback_address = example_randomness_address;
@@ -197,60 +212,92 @@ fn test_randomness() {
     randomness_request_event_handler(
         randomness_address,
         0,
-        requestor_address,
+        example_randomness_address,
         seed,
         1,
         callback_address,
         callback_fee_limit,
         num_words
     );
-let mut random_words = ArrayTrait::<felt252>::new();
-let res = example_randomness.get_last_random();
-assert(res == 0, 'wrong random');
-let random_words = array![10000];
-let block_hash = 123456789;
-let proof = array![100, 200, 300];
-let minimum_block_number = 2;
-let callback_fee = 1000000;
-testing::set_block_number(4);
-randomness
-    .submit_random(
-        0,
-        requestor_address,
-        seed,
-        1,
-        callback_address,
-        callback_fee_limit,
-        callback_fee,
-        random_words.span(),
-        proof.span()
+    let request_user_balance = token_1.balance_of(example_randomness_address);
+    assert(
+        request_user_balance == initial_supply - callback_fee_limit.into(),
+        'wrong request user balance'
     );
-let res = example_randomness.get_last_random();
-assert(res == 10000, 'wrong random');
+    assert(
+        randomness.get_total_fees(example_randomness_address, 0) == callback_fee_limit.into(),
+        'wrong total fees'
+    );
+    let mut random_words = ArrayTrait::<felt252>::new();
+    let res = example_randomness.get_last_random();
+    assert(res == 0, 'wrong random');
+    let random_words = array![10000];
+    let block_hash = 123456789;
+    let proof = array![100, 200, 300];
+    let minimum_block_number = 2;
+    let callback_fee = 1000000;
+    testing::set_block_number(4);
+    randomness
+        .submit_random(
+            0,
+            example_randomness_address,
+            seed,
+            1,
+            callback_address,
+            callback_fee_limit,
+            callback_fee,
+            random_words.span(),
+            proof.span()
+        );
+    assert(
+        randomness.get_total_fees(example_randomness_address, 0) == callback_fee_limit.into(),
+        'wrong total fees'
+    );
+    let final_user_balance = token_1.balance_of(example_randomness_address);
+    assert(final_user_balance == initial_supply - callback_fee.into(), 'wrong user balance');
+    let res = example_randomness.get_last_random();
+    assert(res == 10000, 'wrong random');
 }
+
+
 #[test]
 #[available_gas(20000000000)]
 fn test_randomness_cancellation() {
-    let requestor_address = contract_address_const::<0x1234>();
-    testing::set_contract_address(requestor_address);
-    let (randomness, example_randomness, randomness_address, example_randomness_address) = setup();
+    let (randomness, example_randomness, randomness_address, example_randomness_address, token_1) =
+        setup();
+    testing::set_contract_address(example_randomness_address);
+    let initial_supply = u256 { high: 0, low: INITIAL_SUPPLY / 20 };
+    let initial_user_balance = token_1.balance_of(example_randomness_address);
+    assert(initial_user_balance == initial_supply, 'wrong initial user balance');
+    assert(
+        randomness.get_total_fees(example_randomness_address, 0) == 0.into(), 'wrong total fees'
+    );
     let seed = 1;
-    let callback_gas_limit = 0;
+    let callback_fee_limit = 900000000;
     let callback_address = example_randomness_address;
     let publish_delay = 1;
     let num_words = 1;
     let block_number = info::get_block_number();
     let request_id = randomness
-        .request_random(seed, callback_address, callback_gas_limit, publish_delay, num_words);
+        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words);
     randomness_request_event_handler(
         randomness_address,
         0,
-        requestor_address,
+        example_randomness_address,
         seed,
         1,
         callback_address,
-        callback_gas_limit,
+        callback_fee_limit,
         num_words
+    );
+    assert(
+        randomness.get_total_fees(example_randomness_address, 0) == callback_fee_limit.into(),
+        'wrong total fees'
+    );
+    let request_user_balance = token_1.balance_of(example_randomness_address);
+    assert(
+        request_user_balance == initial_supply - callback_fee_limit.into(),
+        'wrong request user balance'
     );
     let mut random_words = ArrayTrait::<felt252>::new();
     let res = example_randomness.get_last_random();
@@ -258,9 +305,14 @@ fn test_randomness_cancellation() {
     testing::set_block_number(3);
     randomness
         .cancel_random_request(
-            0, requestor_address, seed, 1, callback_address, callback_gas_limit, 1,
+            0, example_randomness_address, seed, 1, callback_address, callback_fee_limit, 1,
         );
-    let request_status = randomness.get_request_status(requestor_address, 0);
+    let request_user_balance = token_1.balance_of(example_randomness_address);
+    assert(request_user_balance == initial_supply, 'wrong request user balance');
+    assert(
+        randomness.get_total_fees(example_randomness_address, 0) == 0.into(), 'wrong total fees'
+    );
+    let request_status = randomness.get_request_status(example_randomness_address, 0);
     assert(request_status == RequestStatus::CANCELLED, 'wrong request status');
 }
 
@@ -268,9 +320,9 @@ fn test_randomness_cancellation() {
 #[should_panic(expected: ('request already fulfilled', 'ENTRYPOINT_FAILED'))]
 #[available_gas(100000000000)]
 fn test_cancel_random_request_should_fail_if_fulflled() {
-    let requestor_address = contract_address_const::<0x1234>();
-    testing::set_contract_address(requestor_address);
-    let (randomness, example_randomness, randomness_address, example_randomness_address) = setup();
+    let (randomness, example_randomness, randomness_address, example_randomness_address, token_1) =
+        setup();
+    testing::set_contract_address(example_randomness_address);
     let seed = 1;
     let callback_fee_limit = 90000000000;
     let callback_address = example_randomness_address;
@@ -291,7 +343,7 @@ fn test_cancel_random_request_should_fail_if_fulflled() {
     randomness
         .submit_random(
             0,
-            requestor_address,
+            example_randomness_address,
             seed,
             1,
             callback_address,
@@ -304,7 +356,7 @@ fn test_cancel_random_request_should_fail_if_fulflled() {
     assert(res == 10000, 'wrong random');
     randomness
         .cancel_random_request(
-            0, requestor_address, seed, 1, callback_address, callback_fee_limit, 1,
+            0, example_randomness_address, seed, 1, callback_address, callback_fee_limit, 1,
         );
 }
 
@@ -314,7 +366,8 @@ fn test_cancel_random_request_should_fail_if_fulflled() {
 fn test_submit_random_should_fail_if_request_cancelled() {
     let requestor_address = contract_address_const::<0x1234>();
     testing::set_contract_address(requestor_address);
-    let (randomness, example_randomness, randomness_address, example_randomness_address) = setup();
+    let (randomness, example_randomness, randomness_address, example_randomness_address, token_1) =
+        setup();
     let seed = 1;
     let callback_gas_limit = 0;
     let callback_address = example_randomness_address;
@@ -355,7 +408,8 @@ fn test_submit_random_should_fail_if_request_cancelled() {
 fn test_randomness_id_incrementation() {
     let requestor_address = contract_address_const::<0x1234>();
     testing::set_contract_address(requestor_address);
-    let (randomness, example_randomness, randomness_address, example_randomness_address) = setup();
+    let (randomness, example_randomness, randomness_address, example_randomness_address, token_1) =
+        setup();
     let seed = 1;
     let callback_gas_limit = 0;
     let callback_address = example_randomness_address;
@@ -394,3 +448,4 @@ fn test_randomness_id_incrementation() {
 }
 
 
+#[test]

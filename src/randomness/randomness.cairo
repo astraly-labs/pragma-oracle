@@ -206,7 +206,7 @@ mod Randomness {
             let oracle_dispatcher = IOracleABIDispatcher {
                 contract_address: self.oracle_address.read()
             };
-            let response = oracle_dispatcher.get_data_median(DataType::SpotEntry('ETH/USD')); 
+            let response = oracle_dispatcher.get_data_median(DataType::SpotEntry('ETH/USD'));
 
             // Convert the premium fee in dollar to wei
             let wei_premium_fee = dollar_to_wei(premium_fee, response.price);
