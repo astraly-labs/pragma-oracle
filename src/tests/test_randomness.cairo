@@ -664,3 +664,19 @@ fn test_withdraw_funds() {
         'wrong admin balance'
     );
 }
+
+
+#[test]
+#[available_gas(2000000000000000)]
+fn test_admin_address() {
+    let (randomness, example_randomness, randomness_address, example_randomness_address, token_1) =
+        setup();
+    let admin = contract_address_const::<0x1234>();
+    let current_admin = randomness.get_admin_address();
+    assert(current_admin == admin, 'wrong admin address');
+    let new_admin = contract_address_const::<0x1235>();
+    testing::set_contract_address(admin);
+    randomness.set_admin_address(new_admin);
+    let updated_admin = randomness.get_admin_address();
+    assert(updated_admin == new_admin, 'wrong admin address');
+}

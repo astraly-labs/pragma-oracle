@@ -70,6 +70,9 @@ trait IRandomness<TContractState> {
     ) -> Span<u64>;
     fn withdraw_funds(ref self: TContractState, receiver_address: ContractAddress);
     fn get_contract_balance(self: @TContractState) -> u256;
+    fn compute_premium_fee(self: @TContractState, caller_address: ContractAddress) -> u128;
+    fn get_admin_address(self: @TContractState,) -> ContractAddress;
+    fn set_admin_address(ref self: TContractState, new_admin_address: ContractAddress);
 }
 
 
@@ -100,7 +103,7 @@ mod Randomness {
         public_key: felt252,
         payment_token: ContractAddress,
         oracle_address: ContractAddress,
-        contract_balance: u256,
+        admin_fees: u256,
         total_fees: LegacyMap::<(ContractAddress, u64), u256>,
         request_id: LegacyMap::<ContractAddress, u64>,
         request_hash: LegacyMap::<(ContractAddress, u64), felt252>,
@@ -122,6 +125,8 @@ mod Randomness {
         const INSUFFICIENT_CONTRACT_BALANCE: felt252 = 'insufficient contract balance';
         const INVALID_RECEIVER_ADDRESS: felt252 = 'invalid receiver address';
         const REQUEST_NOT_RECEIVED: felt252 = 'request not received';
+        const SAME_ADMIN_ADDRESS: felt252 = 'Same admin address';
+        const ADMIN_ADDRESS_CANNOT_BE_ZERO: felt252 = 'Admin address cannot be zero';
     }
 
     #[derive(Drop, starknet::Event)]
@@ -151,13 +156,27 @@ mod Randomness {
         request_id: u64,
         status: RequestStatus
     }
+    #[derive(Drop, starknet::Event)]
+    struct ChangedAdmin {
+        new_admin: ContractAddress
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct RefundOperation {
+        caller_address: ContractAddress,
+        request_id: u64,
+        total_fees: u256
+    }
+
 
     #[derive(Drop, starknet::Event)]
     #[event]
     enum Event {
         RandomnessRequest: RandomnessRequest,
         RandomnessProof: RandomnessProof,
-        RandomnessStatusChange: RandomnessStatusChange
+        RandomnessStatusChange: RandomnessStatusChange,
+        ChangedAdmin: ChangedAdmin,
+        RefundOperation: RefundOperation
     }
 
     #[constructor]
@@ -226,7 +245,7 @@ mod Randomness {
             // get the balance of the caller
             let user_balance = token_dispatcher.balanceOf(caller_address);
             // compute the premium fee
-            let premium_fee = compute_premium_fee(@self, caller_address);
+            let premium_fee = IRandomnessImpl::compute_premium_fee(@self, caller_address);
             let oracle_dispatcher = IOracleABIDispatcher {
                 contract_address: self.oracle_address.read()
             };
@@ -389,9 +408,8 @@ mod Randomness {
                     )
                 );
             let total_fees = self.total_fees.read((requestor_address, request_id));
-            let actual_balance = self.contract_balance.read();
-
-            self.contract_balance.write(actual_balance + (total_fees - callback_fee_limit.into()));
+            let actual_balance = self.admin_fees.read();
+            self.admin_fees.write(actual_balance + (total_fees - callback_fee_limit.into()));
             ReentrancyGuard::InternalImpl::end(ref state);
             return ();
         }
@@ -410,6 +428,16 @@ mod Randomness {
             self.total_fees.write((caller_address, request_id), 0);
             self.request_status.write((caller_address, request_id), RequestStatus::REFUNDED(()));
             token_dispatcher.transfer(caller_address, total_fees);
+            self
+                .emit(
+                    Event::RefundOperation(
+                        RefundOperation {
+                            caller_address: caller_address,
+                            request_id: request_id,
+                            total_fees: total_fees
+                        }
+                    )
+                );
             ReentrancyGuard::InternalImpl::end(ref state);
             return ();
         }
@@ -486,19 +514,46 @@ mod Randomness {
 
         fn withdraw_funds(ref self: ContractState, receiver_address: ContractAddress) {
             assert_only_admin();
-            assert(self.contract_balance.read() > 0, Errors::INSUFFICIENT_CONTRACT_BALANCE);
+            assert(self.admin_fees.read() > 0, Errors::INSUFFICIENT_CONTRACT_BALANCE);
             assert(!receiver_address.is_zero(), Errors::INVALID_RECEIVER_ADDRESS);
             let token_address = self.payment_token.read();
             let token_dispatcher = ERC20CamelABIDispatcher { contract_address: token_address };
-            let balance = self.contract_balance.read();
-            self.contract_balance.write(0);
+            let balance = self.admin_fees.read();
+            self.admin_fees.write(0);
             token_dispatcher.transfer(receiver_address, balance);
             return ();
         }
 
         fn get_contract_balance(self: @ContractState) -> u256 {
             assert_only_admin();
-            self.contract_balance.read()
+            self.admin_fees.read()
+        }
+
+        fn compute_premium_fee(self: @ContractState, caller_address: ContractAddress) -> u128 {
+            let request_number = self.request_id.read(caller_address);
+            if (request_number < 10) {
+                MAX_PREMIUM_FEE
+            } else if (request_number < 30) {
+                MAX_PREMIUM_FEE / 2
+            } else if (request_number < 100) {
+                MAX_PREMIUM_FEE / 4
+            } else {
+                MAX_PREMIUM_FEE / 10
+            }
+        }
+
+        fn get_admin_address(self: @ContractState) -> ContractAddress {
+            let state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+            Ownable::OwnableImpl::owner(@state)
+        }
+
+        fn set_admin_address(ref self: ContractState, new_admin_address: ContractAddress) {
+            let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+            Ownable::InternalImpl::assert_only_owner(@state);
+            let old_admin = Ownable::OwnableImpl::owner(@state);
+            assert(new_admin_address != old_admin, Errors::SAME_ADMIN_ADDRESS);
+            assert(!new_admin_address.is_zero(), Errors::ADMIN_ADDRESS_CANNOT_BE_ZERO);
+            Ownable::OwnableImpl::transfer_ownership(ref state, new_admin_address);
         }
     }
 
@@ -529,19 +584,6 @@ mod Randomness {
         let admin = Ownable::OwnableImpl::owner(@state);
         let caller = get_caller_address();
         assert(caller == admin, Errors::UNAUTHORIZED);
-    }
-
-    fn compute_premium_fee(self: @ContractState, caller_address: ContractAddress) -> u128 {
-        let request_number = self.request_id.read(caller_address);
-        if (request_number < 10) {
-            MAX_PREMIUM_FEE
-        } else if (request_number < 30) {
-            MAX_PREMIUM_FEE / 2
-        } else if (request_number < 100) {
-            MAX_PREMIUM_FEE / 4
-        } else {
-            MAX_PREMIUM_FEE / 10
-        }
     }
 
     fn dollar_to_wei(usd: u128, price: u128, decimals: u32) -> u128 {
