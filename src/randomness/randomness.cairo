@@ -16,7 +16,7 @@ trait IRandomness<TContractState> {
         ref self: TContractState,
         requestor_address: ContractAddress,
         request_id: u64,
-        status: RequestStatus
+        new_status: RequestStatus
     );
     fn request_random(
         ref self: TContractState,
@@ -85,6 +85,7 @@ mod Randomness {
     };
     use openzeppelin::security::reentrancyguard::ReentrancyGuard;
     use array::{ArrayTrait, SpanTrait};
+    use debug::PrintTrait;
     use traits::{TryInto, Into};
     const MAX_PREMIUM_FEE: u128 = 100000000; // 1$ with 8 decimals
 
@@ -159,14 +160,14 @@ mod Randomness {
             ref self: ContractState,
             requestor_address: ContractAddress,
             request_id: u64,
-            status: RequestStatus
+            new_status: RequestStatus
         ) {
             assert_only_admin();
             let status = self.request_status.read((requestor_address, request_id));
             //The management is handled by the admin contract, he cannot change the status of a fulfilled or cancelled request
             assert(status != RequestStatus::FULFILLED(()), 'request already fulfilled');
             assert(status != RequestStatus::CANCELLED(()), 'request already cancelled');
-            self.request_status.write((requestor_address, request_id), status);
+            self.request_status.write((requestor_address, request_id), new_status);
             return ();
         }
 
@@ -201,7 +202,7 @@ mod Randomness {
             let token_address = self.payment_token.read();
             let token_dispatcher = ERC20CamelABIDispatcher { contract_address: token_address };
             // get the balance of the caller
-            let user_balance = token_dispatcher.balanceOf(callback_address);
+            let user_balance = token_dispatcher.balanceOf(caller_address);
             // compute the premium fee
             let premium_fee = compute_premium_fee(@self, caller_address);
             let oracle_dispatcher = IOracleABIDispatcher {
@@ -216,6 +217,7 @@ mod Randomness {
             assert(user_balance >= total_fee, 'insufficient balance');
             // transfer the premium fee to the contract
             self.request_hash.write((caller_address, request_id), hash_);
+            token_dispatcher.allowance(callback_address, contract_address);
             token_dispatcher.transferFrom(caller_address, contract_address, total_fee);
             self
                 .emit(
