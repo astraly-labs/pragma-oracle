@@ -555,10 +555,12 @@ fn test_fetch_multiple_out_of_gas_id() {
     let request_id_1 = randomness
         .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words);
     let request_id_2 = randomness
-        .request_random(seed+ 1, callback_address, callback_fee_limit, publish_delay, num_words);
+        .request_random(seed + 1, callback_address, callback_fee_limit, publish_delay, num_words);
     testing::set_contract_address(admin_address);
-    randomness.update_status(example_randomness_address, request_id_1, RequestStatus::OUT_OF_GAS(()));
-    randomness.update_status(example_randomness_address, request_id_2, RequestStatus::OUT_OF_GAS(()));
+    randomness
+        .update_status(example_randomness_address, request_id_1, RequestStatus::OUT_OF_GAS(()));
+    randomness
+        .update_status(example_randomness_address, request_id_2, RequestStatus::OUT_OF_GAS(()));
     assert(
         randomness
             .get_request_status(
@@ -577,4 +579,4 @@ fn test_fetch_multiple_out_of_gas_id() {
     let out_of_gas_id = randomness.get_out_of_gas_requests(example_randomness_address);
     assert(*out_of_gas_id.at(0) == request_id_1, 'wrong out of gas id');
     assert(*out_of_gas_id.at(1) == request_id_2, 'wrong out of gas id');
- }
+}

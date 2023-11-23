@@ -218,7 +218,10 @@ mod Randomness {
             assert(user_balance >= total_fee, 'insufficient balance');
             // transfer the premium fee to the contract
             self.request_hash.write((caller_address, request_id), hash_);
-            assert(token_dispatcher.allowance(caller_address, contract_address)>=total_fee, 'insufficient allowance');
+            assert(
+                token_dispatcher.allowance(caller_address, contract_address) >= total_fee,
+                'insufficient allowance'
+            );
             token_dispatcher.transferFrom(caller_address, contract_address, total_fee);
             self
                 .emit(
