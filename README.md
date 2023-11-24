@@ -50,7 +50,7 @@ This repo will gradually replace the previous Pragma implementation in Cairo 0 w
 - Oracle : [0x06df335982dddce41008e4c03f2546fa27276567b5274c7d0c1262f3c2b5d167](https://goerli.voyager.online/contract/0x06df335982dddce41008e4c03f2546fa27276567b5274c7d0c1262f3c2b5d167)
 - Publisher Registry : [0x552e96b3a9078a453ab7012ed76325bedef7b0cc5647a8fafe985e658e31d86](https://goerli.voyager.online/contract/0x552e96b3a9078a453ab7012ed76325bedef7b0cc5647a8fafe985e658e31d86)
 - Summary Stats : [0x3bcd9362bfe80456a7ee66f5a569457cb21adc3f82129420fa12453abb7f353](https://goerli.voyager.online/contract/0x3bcd9362bfe80456a7ee66f5a569457cb21adc3f82129420fa12453abb7f353)
-- VRF : [0x1a1909967088cbdd5a8a48cf64c46ad9904cef6b4e38c68a15b0ea9636d48f4](https://goerli.voyager.online/contract/0x01a1909967088cbdd5a8a48cf64c46ad9904cef6b4e38c68a15b0ea9636d48f4)
+- VRF : [0x693d551265f0be7ccb3c869c64b5920929caaf486497788d43cb37dd17d6be6](https://goerli.voyager.online/contract/0x693d551265f0be7ccb3c869c64b5920929caaf486497788d43cb37dd17d6be6)
 
 **Starknet Mainnet**
 - Oracle : [0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b](https://voyager.online/contract/0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b)
