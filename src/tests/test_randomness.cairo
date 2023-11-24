@@ -191,7 +191,7 @@ fn randomness_request_event_handler(
     assert(event.seed == seed, 'wrong `seed`');
     assert(event.minimum_block_number == minimum_block_number, 'wrong `block_number`');
     assert(event.callback_address == callback_address, 'wrong `callback_address`');
-    assert(event.callback_fee_limit == callback_fee_limit, 'wrong `callback_gas_limit`');
+    assert(event.callback_fee_limit == callback_fee_limit, 'wrong `callback_fee_limit`');
     assert(event.num_words == num_words, 'wrong `num_words`');
 }
 
@@ -428,13 +428,13 @@ fn test_randomness_id_incrementation() {
         setup();
     testing::set_contract_address(example_randomness_address);
     let seed = 1;
-    let callback_gas_limit = 0;
+    let callback_fee_limit = 0;
     let callback_address = example_randomness_address;
     let publish_delay = 1;
     let num_words = 1;
     let block_number = info::get_block_number();
     let request_id = randomness
-        .request_random(seed, callback_address, callback_gas_limit, publish_delay, num_words);
+        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words);
     randomness_request_event_handler(
         randomness_address,
         0,
@@ -442,7 +442,7 @@ fn test_randomness_id_incrementation() {
         seed,
         1,
         callback_address,
-        callback_gas_limit,
+        callback_fee_limit,
         num_words
     );
     let mut random_words = ArrayTrait::<felt252>::new();
@@ -455,12 +455,12 @@ fn test_randomness_id_incrementation() {
     testing::set_block_number(3);
     randomness
         .cancel_random_request(
-            0, example_randomness_address, seed, 1, callback_address, callback_gas_limit, 1,
+            0, example_randomness_address, seed, 1, callback_address, callback_fee_limit, 1,
         );
     let request_status = randomness.get_request_status(example_randomness_address, 0);
     assert(request_status == RequestStatus::CANCELLED, 'wrong request status');
     let random_id = randomness
-        .request_random(seed, callback_address, callback_gas_limit, publish_delay, num_words);
+        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words);
     assert(random_id == 1, 'wrong id ');
 }
 

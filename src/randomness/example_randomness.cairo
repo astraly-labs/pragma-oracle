@@ -7,7 +7,7 @@ trait IExampleRandomness<TContractState> {
         ref self: TContractState,
         seed: u64,
         callback_address: ContractAddress,
-        callback_gas_limit: u128,
+        callback_fee_limit: u128,
         publish_delay: u64,
         num_words: u64
     );
@@ -49,7 +49,7 @@ mod ExampleRandomness {
             ref self: ContractState,
             seed: u64,
             callback_address: ContractAddress,
-            callback_gas_limit: u128,
+            callback_fee_limit: u128,
             publish_delay: u64,
             num_words: u64
         ) {
@@ -59,7 +59,7 @@ mod ExampleRandomness {
             };
             let request_id = randomness_dispatcher
                 .request_random(
-                    seed, callback_address, callback_gas_limit, publish_delay, num_words
+                    seed, callback_address, callback_fee_limit, publish_delay, num_words
                 );
 
             let current_block_number = get_block_number();
