@@ -21,6 +21,7 @@ Overview
 - <a href="/src/oracle">Oracle</a> is the main entrypoint of the protocol. It is the contract that end developers will interact with to fetch any kind of data. It's been thought and built for retro-compatibility and heavily leverages unique aspects of Cairo, notably enums, traits and generics.
 - <a href="/src/publisher_registry">Publisher Registry</a> handles the registration of different publishers along with the sources they are allowed to push data from.
 - <a href="/src/compute_engines">Summary Stats</a> acts as a proxy contract for more sophisticated kind of data aggregation such as *volatility* and *mean*.
+- <a href="/src/randomness">Randomness</a> is the VRF requestor implementation, also includes an example on how to request random words.
 
 ## Testing
 
@@ -49,10 +50,13 @@ This repo will gradually replace the previous Pragma implementation in Cairo 0 w
 - Oracle : [0x06df335982dddce41008e4c03f2546fa27276567b5274c7d0c1262f3c2b5d167](https://goerli.voyager.online/contract/0x06df335982dddce41008e4c03f2546fa27276567b5274c7d0c1262f3c2b5d167)
 - Publisher Registry : [0x552e96b3a9078a453ab7012ed76325bedef7b0cc5647a8fafe985e658e31d86](https://goerli.voyager.online/contract/0x552e96b3a9078a453ab7012ed76325bedef7b0cc5647a8fafe985e658e31d86)
 - Summary Stats : [0x3bcd9362bfe80456a7ee66f5a569457cb21adc3f82129420fa12453abb7f353](https://goerli.voyager.online/contract/0x3bcd9362bfe80456a7ee66f5a569457cb21adc3f82129420fa12453abb7f353)
+- VRF : [0x1a1909967088cbdd5a8a48cf64c46ad9904cef6b4e38c68a15b0ea9636d48f4](https://goerli.voyager.online/contract/0x01a1909967088cbdd5a8a48cf64c46ad9904cef6b4e38c68a15b0ea9636d48f4)
 
 **Starknet Mainnet**
-
-🔜
+- Oracle : [0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b](https://voyager.online/contract/0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b)
+- Publisher Registry : [0x24a55b928496ef83468fdb9a5430fe031ac386b8f62f5c2eb7dd20ef7237415](https://voyager.online/contract/0x24a55b928496ef83468fdb9a5430fe031ac386b8f62f5c2eb7dd20ef7237415)
+- Summary Stats : [0x49eefafae944d07744d07cc72a5bf14728a6fb463c3eae5bca13552f5d455fd](https://voyager.online/contract/0x49eefafae944d07744d07cc72a5bf14728a6fb463c3eae5bca13552f5d455fd)
+- VRF : 🔜
 
 Local Deployment
 ---

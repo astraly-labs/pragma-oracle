@@ -50,7 +50,7 @@ DEX_SOURCES = [
     "10KSWAP",
 ]
 
-network = "testnet"
+network = "mainnet"
 
 # TODO: load data from JSON/YAML
 """
@@ -95,6 +95,30 @@ if network == "testnet":
         0x5b1400d876caaa7ba7858df28faa73a16318ab8551397d83016fb33cb590b28,
         0x052D8E9778d026588A51595E30B0f45609B4F771eEcF0E335CdeFeD1D84A9d89,
         0x0271e25bf6ef39b48ab319456c7db88767f0b38d53e1285c5b3e901c60cd878c
+    ]
+    admin_address = 0x02356B628D108863BAF8644C945D97BAD70190AF5957031F4852D00D0F690A77
+
+"""
+MAINNET
+"""
+if network == "mainnet":
+    publishers = [
+        "PRAGMA",
+        "FOURLEAF",
+        "SPACESHARD",
+        "SKYNET_TRADING"
+    ]
+    publishers_sources = [
+        THIRD_PARTY_SOURCES,
+        ["FOURLEAF"],
+        THIRD_PARTY_SOURCES,
+        ["SKYNET_TRADING"]
+    ]
+    publisher_address = [
+        0x06707675cd7dD9256667eCa8284e46F4546711ee0054Bc2dd02f0Ce572056CF4,
+        0x073335cc71c93fe46c04c14e09e7cde7ca7f6147bb36c72dee7968ec3abaf70d,
+        0x035dd30e84f7d61586c6b152524f3f2519dfc11b4dcb9998176b1de9cff9a6ea,
+        0x0155e28e1947350dac90112f3129b74e3a58d38132c8c26f8552002d78c3656e
     ]
     admin_address = 0x02356B628D108863BAF8644C945D97BAD70190AF5957031F4852D00D0F690A77
 

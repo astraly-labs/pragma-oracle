@@ -7,7 +7,7 @@ trait IExampleRandomness<TContractState> {
         ref self: TContractState,
         seed: u64,
         callback_address: ContractAddress,
-        callback_gas_limit: u64,
+        callback_gas_limit: u128,
         publish_delay: u64,
         num_words: u64
     );
@@ -49,7 +49,7 @@ mod ExampleRandomness {
             ref self: ContractState,
             seed: u64,
             callback_address: ContractAddress,
-            callback_gas_limit: u64,
+            callback_gas_limit: u128,
             publish_delay: u64,
             num_words: u64
         ) {
