@@ -224,7 +224,7 @@ mod Oracle {
         oracle_list_of_publishers_for_sources_storage: LegacyMap::<(felt252, felt252, felt252),
         List<felt252>>,
         //oracle_data_entry_storage len , legacyMap between pair_id, (SPOT/FUTURES/OPTIONS/GENERIC), expiration_timestamp and the length
-        oracle_data_len_all_sources: LegacyMap::<(felt252, felt252, u64), u64>,
+        oracle_data_len_all_sources: LegacyMap::<(felt252, felt252, u64), bool>,
         //oracle_checkpoints, legacyMap between, (pair_id, (SPOT/FUTURES/OPTIONS), index, expiration_timestamp (0 for SPOT), aggregation_mode) associated to a checkpoint
         oracle_checkpoints: LegacyMap::<(felt252, felt252, u64, u64, u8), Checkpoint>,
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
@@ -1225,9 +1225,11 @@ mod Oracle {
                     let storage_len = self
                         .oracle_data_len_all_sources
                         .read((spot_entry.pair_id, SPOT, 0));
-                    self
+                    if (!storage_len) { 
+                        self
                         .oracle_data_len_all_sources
-                        .write((spot_entry.pair_id, SPOT, 0), storage_len + 1);
+                        .write((spot_entry.pair_id, SPOT, 0), true);
+                    }
                 },
                 PossibleEntries::Future(future_entry) => {
                     validate_sender_for_source(@self, future_entry);
@@ -1356,12 +1358,14 @@ mod Oracle {
                     let storage_len = self
                         .oracle_data_len_all_sources
                         .read((future_entry.pair_id, FUTURE, future_entry.expiration_timestamp));
-                    self
+                    if (!storage_len) { 
+                        self
                         .oracle_data_len_all_sources
                         .write(
                             (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp),
-                            storage_len + 1
+                           true
                         );
+                    }
                 },
                 PossibleEntries::Generic(generic_entry) => {
                     validate_sender_for_source(@self, generic_entry);
@@ -1456,9 +1460,11 @@ mod Oracle {
                     let storage_len = self
                         .oracle_data_len_all_sources
                         .read((generic_entry.key, GENERIC, 0));
-                    self
+                    if (!storage_len) { 
+                        self
                         .oracle_data_len_all_sources
-                        .write((generic_entry.key, GENERIC, 0), storage_len + 1);
+                        .write((generic_entry.key, GENERIC, 0), true);
+                    }
                 }
             }
 
@@ -2012,7 +2018,7 @@ mod Oracle {
     ) -> u64 {
         let mut cur_idx = 0;
         let mut latest_timestamp = 0;
-        let (storage_len, type_of_data, pair_id) = match data_type {
+        let (storage_bool, type_of_data, pair_id) = match data_type {
             DataType::SpotEntry(pair_id) => {
                 (self.oracle_data_len_all_sources.read((pair_id, SPOT, 0)), SPOT, pair_id)
             },
@@ -2030,7 +2036,7 @@ mod Oracle {
             }
         };
 
-        if (storage_len == 0) {
+        if (!storage_bool) {
             return 0;
         } else {
             loop {
