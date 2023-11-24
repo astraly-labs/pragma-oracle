@@ -1225,10 +1225,8 @@ mod Oracle {
                     let storage_len = self
                         .oracle_data_len_all_sources
                         .read((spot_entry.pair_id, SPOT, 0));
-                    if (!storage_len) { 
-                        self
-                        .oracle_data_len_all_sources
-                        .write((spot_entry.pair_id, SPOT, 0), true);
+                    if (!storage_len) {
+                        self.oracle_data_len_all_sources.write((spot_entry.pair_id, SPOT, 0), true);
                     }
                 },
                 PossibleEntries::Future(future_entry) => {
@@ -1358,13 +1356,13 @@ mod Oracle {
                     let storage_len = self
                         .oracle_data_len_all_sources
                         .read((future_entry.pair_id, FUTURE, future_entry.expiration_timestamp));
-                    if (!storage_len) { 
+                    if (!storage_len) {
                         self
-                        .oracle_data_len_all_sources
-                        .write(
-                            (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp),
-                           true
-                        );
+                            .oracle_data_len_all_sources
+                            .write(
+                                (future_entry.pair_id, FUTURE, future_entry.expiration_timestamp),
+                                true
+                            );
                     }
                 },
                 PossibleEntries::Generic(generic_entry) => {
@@ -1460,10 +1458,10 @@ mod Oracle {
                     let storage_len = self
                         .oracle_data_len_all_sources
                         .read((generic_entry.key, GENERIC, 0));
-                    if (!storage_len) { 
+                    if (!storage_len) {
                         self
-                        .oracle_data_len_all_sources
-                        .write((generic_entry.key, GENERIC, 0), true);
+                            .oracle_data_len_all_sources
+                            .write((generic_entry.key, GENERIC, 0), true);
                     }
                 }
             }
