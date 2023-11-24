@@ -78,7 +78,6 @@ GATEWAY_CLIENT = GatewayClient(
     }
 )
 
-
 BUILD_DIR = Path("target/dev")
 BUILD_DIR.mkdir(exist_ok=True, parents=True)
 
