@@ -19,7 +19,6 @@ use option::OptionTrait;
 use starknet::SyscallResultTrait;
 use serde::Serde;
 use result::ResultTrait;
-use debug::PrintTrait;
 use traits::{Into, TryInto};
 use starknet::info;
 const INITIAL_SUPPLY: u128 = 100000000000000000000000000;
