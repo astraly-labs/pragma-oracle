@@ -193,7 +193,7 @@ mod Oracle {
 
     use cmp::{max, min};
     use option::OptionTrait;
-    const BACKWARD_TIMESTAMP_BUFFER: u64 = 600; // 10 minutes
+    const BACKWARD_TIMESTAMP_BUFFER: u64 = 3600; // 1 hour
     const FORWARD_TIMESTAMP_BUFFER: u64 = 120; // 2 minutes
 
 
