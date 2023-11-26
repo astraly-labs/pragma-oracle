@@ -1310,7 +1310,7 @@ fn test_remove_source() {
 
 #[test]
 #[available_gas(20000000000)]
-fn test_handle_bug() {
+fn test_publishing_data_for_less_sources_than_initially_planned() {
     let (publisher_registry, oracle) = setup();
     let now = 100000;
     let admin = contract_address_const::<0x123456789>();
