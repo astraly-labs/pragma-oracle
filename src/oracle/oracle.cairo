@@ -188,7 +188,6 @@ mod Oracle {
     use pragma::publisher_registry::publisher_registry::{
         IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
     };
-
     use starknet::{get_block_timestamp, Felt252TryIntoContractAddress};
 
     use cmp::{max, min};
@@ -538,12 +537,7 @@ mod Oracle {
                     expiration_timestamp: Option::Some(0),
                 };
             }
-            let mut data_sources = if (sources.len() == 0) {
-                IOracleABI::get_all_sources(self, data_type)
-            } else {
-                sources
-            };
-
+            let mut data_sources = get_sources_from_entries(entries);
             // TODO: Return only array instead of `ArrayEntry`
             let filtered_entries: ArrayEntry = filter_data_array(data_type, entries);
 
@@ -567,7 +561,6 @@ mod Oracle {
                                 response_array.append(response);
                                 cur_idx += 1;
                             };
-
                             let price = Entry::aggregate_entries::<PragmaPricesResponse>(
                                 response_array.span(), aggregation_mode
                             );
@@ -2253,7 +2246,8 @@ mod Oracle {
         impl THasBaseEntry: HasBaseEntry<T>,
         impl TDrop: Drop<T>,
         impl TDestruct: Destruct<T>,
-        impl TCopy: Copy<T>
+        impl TCopy: Copy<T>,
+        impl THasPrice: HasPrice<T>
     >(
         self: @ContractState,
         array: Span<T>,
@@ -2270,7 +2264,8 @@ mod Oracle {
             }
             let entry = *array.at(cur_idx);
             if (publishers.contains(entry.get_base_entry().publisher)
-                && (entry.get_base_entry().source == source)) {
+                && (entry.get_base_entry().source == source))
+                && entry.get_price() != 0 {
                 publisher_filtered_array.append(entry);
             }
             cur_idx = cur_idx + 1;
@@ -2448,6 +2443,40 @@ mod Oracle {
     fn set_sources_threshold(ref self: ContractState, threshold: u32) {
         self.oracle_sources_threshold_storage.write(threshold);
         return ();
+    }
+
+
+    // @notice retrieve a list of sources from a span of entries
+    // @param entries: a span of entries to consider
+    // @returns a span of sources
+    fn get_sources_from_entries(entries: Span<PossibleEntries>) -> Span<felt252> {
+        let mut data_sources = ArrayTrait::<felt252>::new();
+        let mut cur_idx = 0;
+        loop {
+            if (cur_idx == entries.len()) {
+                break ();
+            }
+            let entry = *entries.at(cur_idx);
+            match entry {
+                PossibleEntries::Spot(spot_entry) => {
+                    if (!data_sources.span().contains(spot_entry.get_base_entry().source)) {
+                        data_sources.append(spot_entry.get_base_entry().source);
+                    }
+                },
+                PossibleEntries::Future(future_entry) => {
+                    if (!data_sources.span().contains(future_entry.get_base_entry().source)) {
+                        data_sources.append(future_entry.get_base_entry().source);
+                    }
+                },
+                PossibleEntries::Generic(generic_entry) => {
+                    if (!data_sources.span().contains(generic_entry.get_base_entry().source)) {
+                        data_sources.append(generic_entry.get_base_entry().source);
+                    }
+                }
+            }
+            cur_idx += 1;
+        };
+        return data_sources.span();
     }
 
     // @notice find the checkpoint whose timestamp is immediately before the given timestamp

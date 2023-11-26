@@ -1080,7 +1080,6 @@ fn test_multiple_publishers_price() {
     let entry = oracle.get_data(DataType::FutureEntry((5, 11111110)), AggregationMode::Median(()));
     assert(entry.price == (5 * 1000000), 'wrong price');
 }
-
 #[test]
 #[available_gas(2000000000)]
 fn test_get_data_entry_for_publishers() {
@@ -1308,3 +1307,32 @@ fn test_remove_source() {
     let boolean: bool = oracle.remove_source(3, DataType::SpotEntry(2));
     assert(boolean == true, 'operation failed');
 }
+
+#[test]
+#[available_gas(20000000000)]
+fn test_handle_bug() {
+    let (publisher_registry, oracle) = setup();
+    let now = 100000;
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+    publisher_registry.add_source_for_publisher(1, 3);
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now + 9000, source: 3, publisher: 1 },
+                    pair_id: 2,
+                    price: 7 * 1000000,
+                    volume: 150,
+                }
+            )
+        );
+    let data_sources = oracle.get_all_sources(DataType::SpotEntry(2));
+    assert(data_sources.len() == 3, 'wrong number of sources');
+    set_block_timestamp(now + 10000);
+    let entries = oracle.get_data_entries(DataType::SpotEntry(2));
+    assert(entries.len() == 1, 'wrong number of entries');
+    let data = oracle.get_data(DataType::SpotEntry(2), AggregationMode::Median(()));
+    assert(data.price == 7000000, 'wrong price');
+}
+
