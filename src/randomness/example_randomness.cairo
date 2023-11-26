@@ -7,7 +7,7 @@ trait IExampleRandomness<TContractState> {
         ref self: TContractState,
         seed: u64,
         callback_address: ContractAddress,
-        callback_gas_limit: u128,
+        callback_fee_limit: u128,
         publish_delay: u64,
         num_words: u64
     );
@@ -25,7 +25,9 @@ mod ExampleRandomness {
     use starknet::info::{get_block_number, get_caller_address, get_contract_address};
     use pragma::randomness::randomness::{IRandomnessDispatcher, IRandomnessDispatcherTrait};
     use array::{ArrayTrait, SpanTrait};
+    use openzeppelin::token::erc20::{ERC20, interface::{IERC20Dispatcher, IERC20DispatcherTrait}};
     use traits::{TryInto, Into};
+
     #[storage]
     struct Storage {
         randomness_contract_address: ContractAddress,
@@ -49,17 +51,28 @@ mod ExampleRandomness {
             ref self: ContractState,
             seed: u64,
             callback_address: ContractAddress,
-            callback_gas_limit: u128,
+            callback_fee_limit: u128,
             publish_delay: u64,
             num_words: u64
         ) {
             let randomness_contract_address = self.randomness_contract_address.read();
+
+            // Approve the randomness contract to transfer the callback fee
+            // You would need to send some ETH to this contract first to cover the fees
+            let eth_dispatcher = IERC20Dispatcher {
+                contract_address: 0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 // ETH Contract Address
+                    .try_into()
+                    .unwrap()
+            };
+            eth_dispatcher.approve(randomness_contract_address, callback_fee_limit.into());
+
+            // Request the randomness
             let randomness_dispatcher = IRandomnessDispatcher {
                 contract_address: randomness_contract_address
             };
             let request_id = randomness_dispatcher
                 .request_random(
-                    seed, callback_address, callback_gas_limit, publish_delay, num_words
+                    seed, callback_address, callback_fee_limit, publish_delay, num_words
                 );
 
             let current_block_number = get_block_number();
