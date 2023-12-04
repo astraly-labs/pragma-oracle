@@ -20,22 +20,17 @@ ETH_TOKEN_ADDRESS = 0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E0
 NETWORKS = {
     "mainnet": {
         "name": "mainnet",
-        "feeder_gateway_url": "https://alpha-mainnet.starknet.io/feeder_gateway",
-        "gateway_url": "https://alpha-mainnet.starknet.io/gateway",
+        "rpc_url": f"https://starknet-mainnet.infura.io/v3/{os.getenv('RPC_KEY')}",
     },
     "testnet": {
         "name": "testnet",
         "explorer_url": "https://testnet.starkscan.co",
         "rpc_url": f"https://starknet-goerli.infura.io/v3/{os.getenv('INFURA_KEY')}",
-        "feeder_gateway_url": "https://alpha4.starknet.io/feeder_gateway",
-        "gateway_url": "https://alpha4.starknet.io/gateway",
     },
     "devnet": {
         "name": "devnet",
         "explorer_url": "https://devnet.starkscan.co",
         "rpc_url": "http://127.0.0.1:5050/rpc",
-        "feeder_gateway_url": "http://localhost:5050/feeder_gateway",
-        "gateway_url": "http://localhost:5050/gateway",
     },
     # "katana": {
     #     "name": "katana",
