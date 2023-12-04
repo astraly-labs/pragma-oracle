@@ -96,7 +96,7 @@ mod Randomness {
     use openzeppelin::security::reentrancyguard::ReentrancyGuard;
     use array::{ArrayTrait, SpanTrait};
     use traits::{TryInto, Into};
-    const MAX_PREMIUM_FEE: u128 = 1; // 1$ with 8 decimals
+    const MAX_PREMIUM_FEE: u128 = 100000000; // 1$ with 8 decimals
 
     #[storage]
     struct Storage {
@@ -587,7 +587,7 @@ mod Randomness {
     }
 
     fn dollar_to_wei(usd: u128, price: u128, decimals: u32) -> u128 {
-        (usd * pow(10, decimals.into()) * 1000000000000000000) / price
+        (usd * pow(10, decimals.into()) * 1000000000000000000) / (price * 100000000)
     }
 
     fn allocate_requests(
