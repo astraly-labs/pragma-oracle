@@ -24,7 +24,7 @@ from utils.constants import (
     DEPLOYMENTS_DIR,
     ETH_TOKEN_ADDRESS,
     NETWORK,
-    GATEWAY_CLIENT,
+    FULLNODE_CLIENT
     # SOURCE_DIR,
 )
 
@@ -66,7 +66,7 @@ async def get_starknet_account(
 
     return Account(
         address=address,
-        client=GATEWAY_CLIENT,
+        client= FULLNODE_CLIENT,
         chain=NETWORK["chain_id"],
         key_pair=key_pair,
     )
@@ -161,7 +161,7 @@ async def declare_v2(contract_name):
     sierra_class_hash= compute_sierra_class_hash(sierra_class)
     # Check has not been declared before
     try:
-        await GATEWAY_CLIENT.get_class_by_hash(class_hash=sierra_class_hash)
+        await FULLNODE_CLIENT.get_class_by_hash(class_hash=sierra_class_hash)
         logger.info(f"✅ Class already declared, skipping")
         return sierra_class_hash
     except Exception:

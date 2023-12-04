@@ -5,7 +5,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from starknet_py.net.full_node_client import FullNodeClient
-from starknet_py.net.gateway_client import GatewayClient
 from starknet_py.net.models.chains import StarknetChainId
 from pragma.core.types import Currency, Pair
 from typing import List
@@ -71,11 +70,9 @@ else:
     NETWORK["chain_id"] = StarknetChainId.TESTNET
 
 
-GATEWAY_CLIENT = GatewayClient(
-    net={
-        "feeder_gateway_url": NETWORK["feeder_gateway_url"],
-        "gateway_url": NETWORK["gateway_url"],
-    }
+FULLNODE_CLIENT = FullNodeClient(
+        node_url= os.getenv("FORK_RPC_URL"),
+
 )
 
 BUILD_DIR = Path("target/dev")
