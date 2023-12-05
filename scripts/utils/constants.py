@@ -25,7 +25,7 @@ NETWORKS = {
     "testnet": {
         "name": "testnet",
         "explorer_url": "https://testnet.starkscan.co",
-        "rpc_url": f"https://starknet-goerli.infura.io/v3/{os.getenv('INFURA_KEY')}",
+        "rpc_url": f"https://starknet-goerli.infura.io/v3/{os.getenv('RPC_KEY')}",
     },
     "devnet": {
         "name": "devnet",
