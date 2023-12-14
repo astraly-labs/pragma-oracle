@@ -46,7 +46,7 @@ mod ExampleRandomness {
             let last_random = self.last_random_storage.read();
             return last_random;
         }
-
+    
         fn request_my_randomness(
             ref self: ContractState,
             seed: u64,

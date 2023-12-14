@@ -32,6 +32,11 @@ NETWORKS = {
         "explorer_url": "https://devnet.starkscan.co",
         "rpc_url": "http://127.0.0.1:5050/rpc",
     },
+    "sepolia": {
+        "name": "sepolia",
+        "explorer_url": "https://sepolia.starkscan.co/",
+        "rpc_url": "https://starknet-sepolia.public.blastapi.io/rpc/v0_6",
+    }
     # "katana": {
     #     "name": "katana",
     #     "explorer_url": "",
@@ -59,8 +64,8 @@ if NETWORK["private_key"] is None:
     NETWORK["private_key"] = os.getenv("PRIVATE_KEY")
 if NETWORK["name"] == "mainnet":
     NETWORK["chain_id"] = StarknetChainId.MAINNET
-elif NETWORK["name"] == "testnet2":
-    StarknetChainId.TESTNET2
+elif NETWORK["name"] == "sepolia":
+    NETWORK["chain_id"] = 393402133025997798000961
 else:
     NETWORK["chain_id"] = StarknetChainId.TESTNET
 
@@ -81,7 +86,7 @@ DEPLOYMENTS_DIR.mkdir(exist_ok=True, parents=True)
 
 COMPILED_CONTRACTS = [
     {"contract_name": "pragma_Oracle", "is_account_contract": False},
-    {"contract_name": "pragma_Admin", "is_account_contract": False},
+    {"contract_name": "pragma_Ownable", "is_account_contract": False},
     {"contract_name": "pragma_PublisherRegistry", "is_account_contract": False},
     {"contract_name": "pragma_SummaryStats", "is_account_contract": False},
     {"contract_name": "pragma_Randomness", "is_account_contract": False},
