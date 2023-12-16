@@ -245,7 +245,7 @@ mod Randomness {
             let token_dispatcher = ERC20CamelABIDispatcher { contract_address: token_address };
             // get the balance of the caller
             let user_balance = token_dispatcher.balanceOf(caller_address);
-            assert(user_balance > 0, Errors::INSUFFICIENT_BALANCE);
+            assert(user_balance != 0, Errors::INSUFFICIENT_BALANCE);
             // compute the premium fee
             let premium_fee = IRandomnessImpl::compute_premium_fee(@self, caller_address);
             let oracle_dispatcher = IOracleABIDispatcher {
