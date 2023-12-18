@@ -7,20 +7,22 @@ jobs:
     runs-on: ubuntu-latest
     steps: 
       - uses: actions/checkout@v3
+
       # Install Katana
       - name: Install Katana
         run: |
           curl -L https://install.dojoengine.org | bash
 
-      # Modify PATH to include dojoup
-      - name: Add Dojoup to PATH
+      # Debugging: List contents of the installation directory
+      - name: List installation directory
         run: |
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          ls -la $HOME/.local/bin
 
       # Update Dojo
       - name: Update Dojo
-        run: dojoup
-
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          dojoup
       - uses: actions/checkout@v3
       - name: Make script executable
         run: chmod +x scripts/katana.sh
