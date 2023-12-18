@@ -5,8 +5,8 @@ on: pull_request
 permissions:
   contents: read
   secrets: read
-  
-jobs: 
+
+jobs:
   run_scripts: 
     runs-on: ubuntu-latest
     steps: 
