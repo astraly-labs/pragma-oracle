@@ -34,7 +34,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: "3.x"
+        run: |
+          pip3 install poetry
 
-
+      - name: Install dependencies
+        run: |
+          poetry install
+        
       - name: Run Katana and scripts
         run: bash scripts/katana.sh
