@@ -35,6 +35,10 @@ jobs:
       # Install Python dependencies with Poetry
       - name: Install dependencies
         run: poetry install
+
+      # Set up Scarb
+      - uses: software-mansion/setup-scarb@v1
+      - run: scarb build
         
       # Run Katana and scripts
       - name: Run Katana and scripts
