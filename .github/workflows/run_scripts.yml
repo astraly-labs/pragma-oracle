@@ -29,7 +29,7 @@ jobs:
       - name: Set up Python and install Poetry
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x'
+          python-version: '3.9'
       - run: pip3 install poetry
 
       # Install Python dependencies with Poetry
