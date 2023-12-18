@@ -9,13 +9,15 @@ trait IExampleRandomness<TContractState> {
         callback_address: ContractAddress,
         callback_fee_limit: u128,
         publish_delay: u64,
-        num_words: u64
+        num_words: u64,
+        calldata: Array<felt252>
     );
     fn receive_random_words(
         ref self: TContractState,
         requestor_address: ContractAddress,
         request_id: u64,
-        random_words: Span<felt252>
+        random_words: Span<felt252>,
+        calldata: Array<felt252>
     );
 }
 
@@ -53,7 +55,8 @@ mod ExampleRandomness {
             callback_address: ContractAddress,
             callback_fee_limit: u128,
             publish_delay: u64,
-            num_words: u64
+            num_words: u64,
+            calldata: Array<felt252>
         ) {
             let randomness_contract_address = self.randomness_contract_address.read();
 
@@ -76,7 +79,7 @@ mod ExampleRandomness {
             };
             let request_id = randomness_dispatcher
                 .request_random(
-                    seed, callback_address, callback_fee_limit, publish_delay, num_words
+                    seed, callback_address, callback_fee_limit, publish_delay, num_words, calldata
                 );
 
             let current_block_number = get_block_number();
@@ -90,7 +93,8 @@ mod ExampleRandomness {
             ref self: ContractState,
             requestor_address: ContractAddress,
             request_id: u64,
-            random_words: Span<felt252>
+            random_words: Span<felt252>,
+            calldata: Array<felt252>
         ) {
             // Have to make sure that the caller is the Pragma Randomness Oracle contract
             let caller_address = get_caller_address();
