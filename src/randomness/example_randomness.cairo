@@ -18,7 +18,6 @@ trait IExampleRandomness<TContractState> {
         random_words: Span<felt252>
     );
     fn withdraw_funds(ref self: TContractState, receiver: ContractAddress);
-
 }
 
 #[starknet::contract]
@@ -29,7 +28,8 @@ mod ExampleRandomness {
     use array::{ArrayTrait, SpanTrait};
     use openzeppelin::token::erc20::interface::{
         ERC20CamelABIDispatcher, ERC20CamelABIDispatcherTrait
-    };    use traits::{TryInto, Into};
+    };
+    use traits::{TryInto, Into};
 
     #[storage]
     struct Storage {
@@ -64,10 +64,8 @@ mod ExampleRandomness {
                 contract_address: randomness_contract_address
             };
             let caller = get_caller_address();
-            let compute_fees = randomness_dispatcher.compute_premium_fee(
-                caller
-            );
-            
+            let compute_fees = randomness_dispatcher.compute_premium_fee(caller);
+
             // Approve the randomness contract to transfer the callback fee
             // You would need to send some ETH to this contract first to cover the fees
             let eth_dispatcher = ERC20CamelABIDispatcher {
@@ -93,14 +91,14 @@ mod ExampleRandomness {
             return ();
         }
 
-        fn withdraw_funds(ref self: ContractState, receiver: ContractAddress) { 
+        fn withdraw_funds(ref self: ContractState, receiver: ContractAddress) {
             let eth_dispatcher = ERC20CamelABIDispatcher {
                 contract_address: 0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 // ETH Contract Address
                     .try_into()
                     .unwrap()
             };
             let balance = eth_dispatcher.balanceOf(get_contract_address());
-            eth_dispatcher.transfer(receiver,balance);
+            eth_dispatcher.transfer(receiver, balance);
         }
 
 
