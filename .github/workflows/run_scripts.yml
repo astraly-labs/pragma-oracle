@@ -10,11 +10,12 @@ jobs:
       - name: Install Katana
         run: |
           curl -L https://install.dojoengine.org | bash
-          echo "source $HOME/.zshenv" >> $GITHUB_ENV
 
       # Update Dojo
       - name: Update Dojo
-        run: dojoup
+        run: |
+          source $HOME/.bashrc
+          dojoup
 
       - uses: actions/checkout@v3
       - name: Make script executable
@@ -26,6 +27,6 @@ jobs:
         with:
           python-version: "3.x"
 
-          
+
       - name: Run Katana and scripts
         run: bash scripts/katana.sh
