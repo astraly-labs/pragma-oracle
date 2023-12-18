@@ -15,17 +15,17 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-ETH_TOKEN_ADDRESS = 0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7
+ETH_TOKEN_ADDRESS = "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7"
 
 NETWORKS = {
     "mainnet": {
         "name": "mainnet",
-        "rpc_url": f"https://starknet-mainnet.infura.io/v3/{os.getenv('RPC_KEY')}",
+        "rpc_url": f"https://starknet-goerli.g.alchemy.com/v2/{os.getenv('RPC_KEY')}",
     },
     "testnet": {
         "name": "testnet",
         "explorer_url": "https://testnet.starkscan.co",
-        "rpc_url": f"https://starknet-goerli.infura.io/v3/{os.getenv('RPC_KEY')}",
+        "rpc_url": f"https://starknet-goerli.g.alchemy.com/v2/{os.getenv('RPC_KEY')}",
     },
     "devnet": {
         "name": "devnet",
@@ -36,18 +36,16 @@ NETWORKS = {
         "name": "sepolia",
         "explorer_url": "https://sepolia.starkscan.co/",
         "rpc_url": "https://starknet-sepolia.public.blastapi.io/rpc/v0_6",
-    }
-    # "katana": {
-    #     "name": "katana",
-    #     "explorer_url": "",
-    #     "rpc_url": "http://127.0.0.1:5050",
-    #     "devnet": True,
-    #     "check_interval": 0.1,
-    #     "max_wait": 1,
-    # },
+    },
+    "katana": {
+        "name": "katana",
+        "explorer_url": "",
+        "rpc_url": "http://127.0.0.1:5050/rpc",
+    },
 }
 
 NETWORK = NETWORKS[os.getenv("STARKNET_NETWORK", "devnet")]
+print(NETWORK)
 NETWORK["account_address"] = os.environ.get(
     f"{NETWORK['name'].upper()}_ACCOUNT_ADDRESS"
 )
@@ -65,15 +63,17 @@ if NETWORK["private_key"] is None:
 if NETWORK["name"] == "mainnet":
     NETWORK["chain_id"] = StarknetChainId.MAINNET
 elif NETWORK["name"] == "sepolia":
-    NETWORK["chain_id"] = 393402133025997798000961
+    NETWORK["chain_id"] = 393402133025997798000961 #To be replaced with starknet_py upgrade
 else:
     NETWORK["chain_id"] = StarknetChainId.TESTNET
 
 
 FULLNODE_CLIENT = FullNodeClient(
         node_url= os.getenv("FORK_RPC_URL"),
-
 )
+
+
+
 
 BUILD_DIR = Path("target/dev")
 BUILD_DIR.mkdir(exist_ok=True, parents=True)

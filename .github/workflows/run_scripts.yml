@@ -1,0 +1,17 @@
+name: Run scripts
+
+on: pull_request
+
+jobs: 
+  run_scripts: 
+    runs-on: ubuntu-latest
+    steps: 
+      - uses: actions/checkout@v3
+      - name: Make script executable
+        run: chmod +x scripts/katana.sh
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+      - name: Run Katana and scripts
+        run: bash scripts/katana.sh
