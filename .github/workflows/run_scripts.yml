@@ -8,19 +8,19 @@ jobs:
     steps: 
       - uses: actions/checkout@v3
 
-      # Install Rust and Cargo
-      - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
-      # Clone and build Katana
-      - name: Build Katana
+      - name: Install rust
         run: |
-          source $HOME/.cargo/env
-          mkdir -p $HOME/.dojo
-          git clone https://github.com/dojoengine/dojo $HOME/.dojo/dojo
-          cd $HOME/.dojo/dojo
-          cargo install --path ./crates/katana --locked --force
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+      - name: Install dojoup
+        run: |
+          curl -L https://install.dojoengine.org | bash
+      
+      - name: Install dojo
+        run: |-
+          /home/runner/.config/.dojo/bin/dojoup
+          sudo mv /home/runner/.config/.dojo/bin/katana /usr/local/bin/
 
       - name: Make script executable
         run: chmod +x scripts/katana.sh
