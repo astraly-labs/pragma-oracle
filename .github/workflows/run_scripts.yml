@@ -6,12 +6,26 @@ jobs:
   run_scripts: 
     runs-on: ubuntu-latest
     steps: 
+      # Install Katana
+      - name: Install Katana
+        run: |
+          curl -L https://install.dojoengine.org | bash
+          echo "source $HOME/.zshenv" >> $GITHUB_ENV
+
+      # Update Dojo
+      - name: Update Dojo
+        run: dojoup
+
       - uses: actions/checkout@v3
       - name: Make script executable
         run: chmod +x scripts/katana.sh
+
+
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: "3.x"
+
+          
       - name: Run Katana and scripts
         run: bash scripts/katana.sh
