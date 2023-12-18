@@ -8,35 +8,34 @@ jobs:
     steps: 
       - uses: actions/checkout@v3
 
-      - uses: actions/checkout@v3
-
       # Install Rust and Cargo
       - name: Install Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          source $HOME/.cargo/env
 
       # Clone and build Katana
       - name: Build Katana
         run: |
+          source $HOME/.cargo/env
           mkdir -p $HOME/.dojo
           git clone https://github.com/dojoengine/dojo $HOME/.dojo/dojo
           cd $HOME/.dojo/dojo
           cargo install --path ./crates/katana --locked --force
 
-      # Make script executable
-      - uses: actions/checkout@v3
       - name: Make script executable
         run: chmod +x scripts/katana.sh
-
-
-      - name: Set up Python
+        
+      # Set up Python and install Poetry
+      - name: Set up Python and install Poetry
         uses: actions/setup-python@v2
         with:
-          python-version: "3.x"
-        run: |
-          pip3 install poetry
-          poetry install
+          python-version: '3.x'
+      - run: pip3 install poetry
+
+      # Install Python dependencies with Poetry
+      - name: Install dependencies
+        run: poetry install
         
+      # Run Katana and scripts
       - name: Run Katana and scripts
         run: bash scripts/katana.sh
