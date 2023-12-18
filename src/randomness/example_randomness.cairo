@@ -64,7 +64,11 @@ mod ExampleRandomness {
                     .try_into()
                     .unwrap()
             };
-            eth_dispatcher.approve(randomness_contract_address, callback_fee_limit.into());
+            eth_dispatcher
+                .approve(
+                    randomness_contract_address,
+                    (callback_fee_limit + callback_fee_limit / 5).into()
+                );
 
             // Request the randomness
             let randomness_dispatcher = IRandomnessDispatcher {

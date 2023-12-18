@@ -127,6 +127,7 @@ mod Randomness {
         const REQUEST_NOT_RECEIVED: felt252 = 'request not received';
         const SAME_ADMIN_ADDRESS: felt252 = 'Same admin address';
         const ADMIN_ADDRESS_CANNOT_BE_ZERO: felt252 = 'Admin address cannot be zero';
+        const FETCHING_PRICE_ERROR: felt252 = 'Error fetching price';
     }
 
     #[derive(Drop, starknet::Event)]
@@ -244,13 +245,14 @@ mod Randomness {
             let token_dispatcher = ERC20CamelABIDispatcher { contract_address: token_address };
             // get the balance of the caller
             let user_balance = token_dispatcher.balanceOf(caller_address);
+            assert(user_balance != 0, Errors::INSUFFICIENT_BALANCE);
             // compute the premium fee
             let premium_fee = IRandomnessImpl::compute_premium_fee(@self, caller_address);
             let oracle_dispatcher = IOracleABIDispatcher {
                 contract_address: self.oracle_address.read()
             };
             let response = oracle_dispatcher.get_data_median(DataType::SpotEntry('ETH/USD'));
-
+            assert(response.price > 0, Errors::FETCHING_PRICE_ERROR);
             // Convert the premium fee in dollar to wei
             let wei_premium_fee = dollar_to_wei(premium_fee, response.price, response.decimals);
             // Check if the balance is greater than premium fee 
