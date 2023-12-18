@@ -2,6 +2,10 @@ name: Run scripts
 
 on: pull_request
 
+permissions:
+  contents: read
+  secrets: read
+  
 jobs: 
   run_scripts: 
     runs-on: ubuntu-latest
@@ -40,5 +44,5 @@ jobs:
       - name: Run Katana and scripts
         env: 
           KATANA_ACCOUNT_ADDRESS: ${{ secrets.KATANA_ACCOUNT_ADDRESS }}
-          KATANA_PRIVATE_KEY: ${{ secrets.KATANA_ACCOUNT_PRIVATE_KEY }}
+          KATANA_PRIVATE_KEY: ${{ secrets.KATANA_PRIVATE_KEY }}
         run: bash scripts/katana.sh
