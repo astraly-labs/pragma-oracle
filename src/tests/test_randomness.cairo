@@ -209,10 +209,11 @@ fn test_randomness() {
     let premium_fee = (MAX_PREMIUM_FEE * 1000000000000000000) / ETH_USD_PRICE;
     let callback_address = example_randomness_address;
     let publish_delay = 1;
+    let calldata = array!['Pragma1', 'PRA1', 'INITIAL_SUPPLY', '0x1234'];
     let num_words = 1;
     let block_number = info::get_block_number();
     let request_id = randomness
-        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words);
+        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words, calldata.clone());
     randomness_request_event_handler(
         randomness_address,
         0,
@@ -253,7 +254,8 @@ fn test_randomness() {
             callback_fee_limit,
             callback_fee,
             random_words.span(),
-            proof.span()
+            proof.span(), 
+            calldata
         );
     assert(
         randomness.get_total_fees(example_randomness_address, 0) == callback_fee_limit.into()
@@ -286,11 +288,12 @@ fn test_randomness_cancellation() {
     let premium_fee = (MAX_PREMIUM_FEE * 1000000000000000000) / ETH_USD_PRICE;
     let callback_fee_limit = 900000000;
     let callback_address = example_randomness_address;
+    let calldata = array!['Pragma1', 'PRA1', 'INITIAL_SUPPLY', '0x1234'];
     let publish_delay = 1;
     let num_words = 1;
     let block_number = info::get_block_number();
     let request_id = randomness
-        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words);
+        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words, calldata.clone());
     randomness_request_event_handler(
         randomness_address,
         0,
@@ -342,8 +345,10 @@ fn test_cancel_random_request_should_fail_if_fulflled() {
     let publish_delay = 1;
     let num_words = 1;
     let block_number = info::get_block_number();
+        let calldata = array!['Pragma1', 'PRA1', 'INITIAL_SUPPLY', '0x1234'];
+
     let request_id = randomness
-        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words);
+        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words, calldata.clone());
     let mut random_words = ArrayTrait::<felt252>::new();
     let res = example_randomness.get_last_random();
     assert(res == 0, 'wrong random');
@@ -364,7 +369,8 @@ fn test_cancel_random_request_should_fail_if_fulflled() {
             callback_fee_limit,
             callback_fee,
             random_words.span(),
-            proof.span()
+            proof.span(), 
+            calldata
         );
     let res = example_randomness.get_last_random();
     assert(res == 10000, 'wrong random');
@@ -390,8 +396,10 @@ fn test_submit_random_should_fail_if_request_cancelled() {
     let publish_delay = 1;
     let num_words = 1;
     let block_number = info::get_block_number();
+    let calldata = array!['Pragma1', 'PRA1', 'INITIAL_SUPPLY', '0x1234'];
+
     let request_id = randomness
-        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words);
+        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words, calldata.clone());
     let mut random_words = ArrayTrait::<felt252>::new();
     let res = example_randomness.get_last_random();
     assert(res == 0, 'wrong random');
@@ -416,7 +424,8 @@ fn test_submit_random_should_fail_if_request_cancelled() {
             callback_fee_limit,
             callback_fee,
             random_words.span(),
-            proof.span()
+            proof.span(), 
+            calldata
         );
 }
 
@@ -431,9 +440,10 @@ fn test_randomness_id_incrementation() {
     let callback_address = example_randomness_address;
     let publish_delay = 1;
     let num_words = 1;
+    let calldata = array!['Pragma1', 'PRA1', 'INITIAL_SUPPLY', '0x1234'];
     let block_number = info::get_block_number();
     let request_id = randomness
-        .request_random(seed, callback_address, callback_gas_limit, publish_delay, num_words);
+        .request_random(seed, callback_address, callback_gas_limit, publish_delay, num_words, calldata.clone());
     randomness_request_event_handler(
         randomness_address,
         0,
@@ -459,7 +469,7 @@ fn test_randomness_id_incrementation() {
     let request_status = randomness.get_request_status(example_randomness_address, 0);
     assert(request_status == RequestStatus::CANCELLED, 'wrong request status');
     let random_id = randomness
-        .request_random(seed, callback_address, callback_gas_limit, publish_delay, num_words);
+        .request_random(seed, callback_address, callback_gas_limit, publish_delay, num_words, calldata);
     assert(random_id == 1, 'wrong id ');
 }
 
@@ -480,9 +490,10 @@ fn test_out_of_gas_refund_check() {
     let callback_address = example_randomness_address;
     let publish_delay = 1;
     let num_words = 1;
+    let calldata = array!['Pragma1', 'PRA1', 'INITIAL_SUPPLY', '0x1234'];
     let block_number = info::get_block_number();
     let request_id = randomness
-        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words);
+        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words, calldata);
     let request_user_balance = token_1.balance_of(example_randomness_address);
     assert(
         request_user_balance == initial_supply - callback_fee_limit.into() - premium_fee.into(),
@@ -525,10 +536,11 @@ fn test_refund_fails_if_no_due_amount() {
     let callback_fee_limit = 900000000;
     let callback_address = example_randomness_address;
     let publish_delay = 1;
+    let calldata = array!['Pragma1', 'PRA1', 'INITIAL_SUPPLY', '0x1234'];
     let num_words = 1;
     let block_number = info::get_block_number();
     let request_id = randomness
-        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words);
+        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words, calldata);
     randomness.refund_operation(example_randomness_address, request_id);
 }
 
@@ -542,7 +554,7 @@ fn test_fetch_multiple_out_of_gas_id() {
     let initial_user_balance = token_1.balance_of(example_randomness_address);
     assert(initial_user_balance == initial_supply, 'wrong initial user balance');
     testing::set_contract_address(example_randomness_address);
-
+    let calldata = array!['Pragma1', 'PRA1', 'INITIAL_SUPPLY', '0x1234'];
     let seed = 1;
     let callback_fee_limit = 90000000000;
     let premium_fee = (MAX_PREMIUM_FEE * 1000000000000000000) / ETH_USD_PRICE;
@@ -551,9 +563,9 @@ fn test_fetch_multiple_out_of_gas_id() {
     let num_words = 1;
     let block_number = info::get_block_number();
     let request_id_1 = randomness
-        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words);
+        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words, calldata.clone());
     let request_id_2 = randomness
-        .request_random(seed + 1, callback_address, callback_fee_limit, publish_delay, num_words);
+        .request_random(seed + 1, callback_address, callback_fee_limit, publish_delay, num_words, calldata);
     testing::set_contract_address(admin_address);
     randomness
         .update_status(example_randomness_address, request_id_1, RequestStatus::OUT_OF_GAS(()));
@@ -595,10 +607,11 @@ fn test_withdraw_funds() {
     let premium_fee = (MAX_PREMIUM_FEE * 1000000000000000000) / ETH_USD_PRICE;
     let callback_address = example_randomness_address;
     let publish_delay = 1;
+    let calldata = array!['Pragma1', 'PRA1', 'INITIAL_SUPPLY', '0x1234'];
     let num_words = 1;
     let block_number = info::get_block_number();
     let request_id = randomness
-        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words);
+        .request_random(seed, callback_address, callback_fee_limit, publish_delay, num_words, calldata.clone());
     randomness_request_event_handler(
         randomness_address,
         0,
@@ -639,7 +652,8 @@ fn test_withdraw_funds() {
             callback_fee_limit,
             callback_fee,
             random_words.span(),
-            proof.span()
+            proof.span(), 
+            calldata
         );
     assert(
         randomness.get_total_fees(example_randomness_address, 0) == callback_fee_limit.into()

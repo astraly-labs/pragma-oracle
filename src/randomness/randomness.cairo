@@ -25,7 +25,8 @@ trait IRandomness<TContractState> {
         callback_address: ContractAddress,
         callback_fee_limit: u128,
         publish_delay: u64,
-        num_words: u64
+        num_words: u64, 
+        calldata: Array<felt252>
     ) -> u64;
     fn cancel_random_request(
         ref self: TContractState,
@@ -48,6 +49,7 @@ trait IRandomness<TContractState> {
         callback_fee: u128,
         random_words: Span<felt252>,
         proof: Span<felt252>,
+        calldata: Array<felt252>
     );
     fn get_pending_requests(
         self: @TContractState, requestor_address: ContractAddress, offset: u64, max_len: u64
@@ -139,6 +141,7 @@ mod Randomness {
         callback_address: ContractAddress,
         callback_fee_limit: u128,
         num_words: u64,
+        calldata: Array<felt252>,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -148,7 +151,7 @@ mod Randomness {
         seed: u64,
         minimum_block_number: u64,
         random_words: Span<felt252>,
-        proof: Span<felt252>
+        proof: Span<felt252>, 
     }
 
     #[derive(Drop, starknet::Event)]
@@ -219,7 +222,8 @@ mod Randomness {
             callback_address: ContractAddress,
             callback_fee_limit: u128, //the max amount the user can pay for the callback
             publish_delay: u64,
-            num_words: u64
+            num_words: u64, 
+            calldata: Array<felt252>
         ) -> u64 {
             let mut state = ReentrancyGuard::unsafe_new_contract_state();
             ReentrancyGuard::InternalImpl::start(ref state);
@@ -275,7 +279,8 @@ mod Randomness {
                             minimum_block_number,
                             callback_address,
                             callback_fee_limit,
-                            num_words
+                            num_words, 
+                            calldata
                         }
                     )
                 );
@@ -353,6 +358,7 @@ mod Randomness {
             callback_fee: u128, //the actual fee estimated off chain
             random_words: Span<felt252>,
             proof: Span<felt252>,
+            calldata: Array<felt252>
         ) {
             let mut state = ReentrancyGuard::unsafe_new_contract_state();
             ReentrancyGuard::InternalImpl::start(ref state);
@@ -375,7 +381,7 @@ mod Randomness {
                 contract_address: callback_address
             };
             example_randomness_dispatcher
-                .receive_random_words(requestor_address, request_id, random_words);
+                .receive_random_words(requestor_address, request_id, random_words, calldata.clone());
 
             // pay callback_fee_limit - callback_fee
             let token_address = self.payment_token.read();
