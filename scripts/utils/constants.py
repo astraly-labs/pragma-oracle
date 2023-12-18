@@ -45,7 +45,6 @@ NETWORKS = {
 }
 
 NETWORK = NETWORKS[os.getenv("STARKNET_NETWORK", "devnet")]
-print(NETWORK)
 NETWORK["account_address"] = os.environ.get(
     f"{NETWORK['name'].upper()}_ACCOUNT_ADDRESS"
 )

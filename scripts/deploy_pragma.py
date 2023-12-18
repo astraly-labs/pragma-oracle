@@ -43,7 +43,6 @@ async def main():
         args.port = 5050
     # %% Declarations
     chain_id = NETWORK["chain_id"]
-    print(f" the principal chain is : {chain_id}")
     logger.info(
         f"ℹ️  Connected to CHAIN_ID { chain_id }"
     )
