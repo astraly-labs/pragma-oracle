@@ -22,12 +22,12 @@ ETH_TOKEN_ADDRESS = "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E
 NETWORKS = {
     "mainnet": {
         "name": "mainnet",
-        "rpc_url": f"https://starknet-goerli.g.alchemy.com/v2/{os.getenv('RPC_KEY')}",
+        "rpc_url": f"https://starknet-mainnet.public.blastapi.io",
     },
     "testnet": {
         "name": "testnet",
         "explorer_url": "https://testnet.starkscan.co",
-        "rpc_url": f"https://starknet-goerli.g.alchemy.com/v2/{os.getenv('RPC_KEY')}",
+        "rpc_url": f"https://starknet-testnet.public.blastapi.io",
     },
     "devnet": {
         "name": "devnet",
@@ -66,13 +66,13 @@ if NETWORK["name"] == "mainnet":
 elif NETWORK["name"] == "sepolia":
     NETWORK[
         "chain_id"
-    ] = 393402133025997798000961  # To be replaced with starknet_py upgrade
+    ] = 393402133025997798000961  # TODO: replace with starknet_py upgrade
 else:
     NETWORK["chain_id"] = StarknetChainId.TESTNET
 
 
 FULLNODE_CLIENT = FullNodeClient(
-    node_url=os.getenv("FORK_RPC_URL"),
+    node_url=NETWORK["rpc_url"],
 )
 
 
