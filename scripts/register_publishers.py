@@ -130,7 +130,7 @@ if network == "mainnet":
 # %% Main
 async def main():
     parser = argparse.ArgumentParser(description="Deploy contracts to Katana")
-    parser.add_argument('--port', type=int, help='Port number(not required)', required=False)
+    parser.add_argument('--port', type=int, help='Port number', required=False)
     args = parser.parse_args()
     if os.getenv("STARKNET_NETWORK") == "katana" and args.port is None:
         logger.warning(
