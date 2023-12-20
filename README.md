@@ -15,7 +15,7 @@ Overview
 ---
 
 - <a href="/src/account">Account contract</a> mostly use for testing purposes and as a reference.
-- <a href="/src/admin">Admin contract</a> will be replaced by Argent's multisig as it gets released.
+- <a href="/src/admin">Ownable contract</a> used for access control.
 - <a href="/src/entry">Entry & Data Structures</a> defines data structures used within the protocol along with generic aggregations methods. It is designed from the ground up to ensure that adding new entry types is done seamlessly without involving any breaking changes.
 - <a href="/src/operations">Operations</a> defines a few utilities libraries (time series, sorting, bits manipulation) that will be used for different aggregation methods and optimizing storage operations.
 - <a href="/src/oracle">Oracle</a> is the main entrypoint of the protocol. It is the contract that end developers will interact with to fetch any kind of data. It's been thought and built for retro-compatibility and heavily leverages unique aspects of Cairo, notably enums, traits and generics.
@@ -46,17 +46,23 @@ Deployment addresses
 
 This repo will gradually replace the previous Pragma implementation in Cairo 0 which you can find [here](https://github.com/Astraly-Labs/pragma-contracts).
 
-**Starknet Testnet**
-- Oracle : [0x06df335982dddce41008e4c03f2546fa27276567b5274c7d0c1262f3c2b5d167](https://goerli.voyager.online/contract/0x06df335982dddce41008e4c03f2546fa27276567b5274c7d0c1262f3c2b5d167)
-- Publisher Registry : [0x552e96b3a9078a453ab7012ed76325bedef7b0cc5647a8fafe985e658e31d86](https://goerli.voyager.online/contract/0x552e96b3a9078a453ab7012ed76325bedef7b0cc5647a8fafe985e658e31d86)
-- Summary Stats : [0x3bcd9362bfe80456a7ee66f5a569457cb21adc3f82129420fa12453abb7f353](https://goerli.voyager.online/contract/0x3bcd9362bfe80456a7ee66f5a569457cb21adc3f82129420fa12453abb7f353)
-- VRF : [0x693d551265f0be7ccb3c869c64b5920929caaf486497788d43cb37dd17d6be6](https://goerli.voyager.online/contract/0x693d551265f0be7ccb3c869c64b5920929caaf486497788d43cb37dd17d6be6)
+**Starknet Sepolia**
+- Oracle : [](https://goerli.voyager.online/contract/)
+- Publisher Registry : [](https://goerli.voyager.online/contract/)
+- Summary Stats : [](https://goerli.voyager.online/contract/)
+- VRF : [](https://goerli.voyager.online/contract/)
 
 **Starknet Mainnet**
 - Oracle : [0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b](https://voyager.online/contract/0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b)
 - Publisher Registry : [0x24a55b928496ef83468fdb9a5430fe031ac386b8f62f5c2eb7dd20ef7237415](https://voyager.online/contract/0x24a55b928496ef83468fdb9a5430fe031ac386b8f62f5c2eb7dd20ef7237415)
 - Summary Stats : [0x49eefafae944d07744d07cc72a5bf14728a6fb463c3eae5bca13552f5d455fd](https://voyager.online/contract/0x49eefafae944d07744d07cc72a5bf14728a6fb463c3eae5bca13552f5d455fd)
 - VRF : 🔜
+
+**Starknet Goerli (Deprecated)**
+- Oracle : [0x06df335982dddce41008e4c03f2546fa27276567b5274c7d0c1262f3c2b5d167](https://goerli.voyager.online/contract/0x06df335982dddce41008e4c03f2546fa27276567b5274c7d0c1262f3c2b5d167)
+- Publisher Registry : [0x552e96b3a9078a453ab7012ed76325bedef7b0cc5647a8fafe985e658e31d86](https://goerli.voyager.online/contract/0x552e96b3a9078a453ab7012ed76325bedef7b0cc5647a8fafe985e658e31d86)
+- Summary Stats : [0x3bcd9362bfe80456a7ee66f5a569457cb21adc3f82129420fa12453abb7f353](https://goerli.voyager.online/contract/0x3bcd9362bfe80456a7ee66f5a569457cb21adc3f82129420fa12453abb7f353)
+- VRF : [0x693d551265f0be7ccb3c869c64b5920929caaf486497788d43cb37dd17d6be6](https://goerli.voyager.online/contract/0x693d551265f0be7ccb3c869c64b5920929caaf486497788d43cb37dd17d6be6)
 
 Local Deployment
 ---
@@ -80,15 +86,15 @@ scarb build
 
 3. Deploy contracts & setup
 
-Make sure your local devnet is running, see latest instructions [here](https://0xspaceshard.github.io/starknet-devnet/docs/intro).
+Make sure your local devnet is running, see latest instructions [here](https://book.dojoengine.org/toolchain/katana/reference.html).
 
-You can also specify a different network by setting `STARKNET_NETWORK` to a different value e.g `testnet | mainnet`.
+You can also specify a different network by setting `STARKNET_NETWORK` to a different value e.g `sepolia | testnet | mainnet`.
 
 ```bash
 
-STARKNET_NETWORK=devnet poetry run python3 scripts/deploy_pragma.py
-STARKNET_NETWORK=devnet poetry run python3 scripts/deploy_summary_stats.py
-STARKNET_NETWORK=devnet poetry run python3 scripts/register_publishers.py
+STARKNET_NETWORK=katana poetry run python3 scripts/deploy_pragma.py
+STARKNET_NETWORK=katana poetry run python3 scripts/deploy_summary_stats.py
+STARKNET_NETWORK=katana poetry run python3 scripts/register_publishers.py
 
 ```
 

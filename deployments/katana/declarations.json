@@ -1,9 +1,0 @@
-{
-  "pragma_Oracle": "0x40a2430b48587833abc2e912335cffd863c010e2c798d005d9bcace56a156fc",
-  "pragma_Ownable": "0x7b50a7a9bbb75d08248135003f1c87f0d44ba23018dc0ca480ac37a901531f3",
-  "pragma_PublisherRegistry": "0x306288971002bd7906e3a607d504dfb28dcbdc7655a115984e567dce3b67e8f",
-  "pragma_SummaryStats": "0x3b5bf1c2f918de14620b3c63e2c6543cf0a138df258bce3d03e3fb0b7d2183a",
-  "pragma_Randomness": "0x2b5594de4f55ed731b08ccc8b4c53b0ece3ec83386af4f3efd91666cdaf21d",
-  "pragma_ExampleRandomness": "0x45d5fa3b028d790cad5a460c6251cb84515bf1f29b4bb7191caeb3d9d7056a4",
-  "pragma_YieldCurve": "0x55a7af6d2df5730c784ec31ca9f71e66f19e8cb78359d23f51aececcc1c04eb"
-}

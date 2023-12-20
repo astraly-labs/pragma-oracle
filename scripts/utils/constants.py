@@ -37,7 +37,7 @@ NETWORKS = {
     "sepolia": {
         "name": "sepolia",
         "explorer_url": "https://sepolia.starkscan.co/",
-        "rpc_url": "https://starknet-sepolia.public.blastapi.io/rpc/v0_6",
+        "rpc_url": "https://starknet-sepolia.public.blastapi.io",
     },
     "katana": {
         "name": "katana",
