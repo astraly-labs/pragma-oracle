@@ -25,6 +25,7 @@ mod ExampleRandomness {
     use super::{ContractAddress, IExampleRandomness};
     use starknet::info::{get_block_number, get_caller_address, get_contract_address};
     use pragma::randomness::randomness::{IRandomnessDispatcher, IRandomnessDispatcherTrait};
+    use pragma::admin::admin::Ownable;
     use array::{ArrayTrait, SpanTrait};
     use openzeppelin::token::erc20::interface::{
         ERC20CamelABIDispatcher, ERC20CamelABIDispatcherTrait
@@ -92,6 +93,7 @@ mod ExampleRandomness {
         }
 
         fn withdraw_funds(ref self: ContractState, receiver: ContractAddress) {
+            assert_only_admin();
             let eth_dispatcher = ERC20CamelABIDispatcher {
                 contract_address: 0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 // ETH Contract Address
                     .try_into()
@@ -134,5 +136,12 @@ mod ExampleRandomness {
 
             return ();
         }
+    }
+
+    fn assert_only_admin() {
+        let state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
+        let admin = Ownable::OwnableImpl::owner(@state);
+        let caller = get_caller_address();
+        assert(caller == admin, 'Unauthorized');
     }
 }

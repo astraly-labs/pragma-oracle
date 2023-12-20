@@ -15,6 +15,8 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+MAX_FEE = 70000000000000000  # 0.07 ETH
+
 ETH_TOKEN_ADDRESS = "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7"
 
 NETWORKS = {
@@ -62,16 +64,16 @@ if NETWORK["private_key"] is None:
 if NETWORK["name"] == "mainnet":
     NETWORK["chain_id"] = StarknetChainId.MAINNET
 elif NETWORK["name"] == "sepolia":
-    NETWORK["chain_id"] = 393402133025997798000961 #To be replaced with starknet_py upgrade
+    NETWORK[
+        "chain_id"
+    ] = 393402133025997798000961  # To be replaced with starknet_py upgrade
 else:
     NETWORK["chain_id"] = StarknetChainId.TESTNET
 
 
 FULLNODE_CLIENT = FullNodeClient(
-        node_url= os.getenv("FORK_RPC_URL"),
+    node_url=os.getenv("FORK_RPC_URL"),
 )
-
-
 
 
 BUILD_DIR = Path("target/dev")
@@ -157,22 +159,22 @@ currencies = [
         "RETH",
         18,
         0,
-        0x0319111a5037cbec2b3e638cc34a3474e2d2608299f3e62866e9cc683208c610,
-        0xae78736cd615f374d3085123a210448e74fc6393,
+        0x0319111A5037CBEC2B3E638CC34A3474E2D2608299F3E62866E9CC683208C610,
+        0xAE78736CD615F374D3085123A210448E74FC6393,
     ),
     Currency(
         "LUSD",
         18,
         0,
-        0x070a76fd48ca0ef910631754d77dd822147fe98a569b826ec85e3c33fde586ac,
-        0x5f98805a4e8be255a32880fdec7f6728c6568ba0,
+        0x070A76FD48CA0EF910631754D77DD822147FE98A569B826EC85E3C33FDE586AC,
+        0x5F98805A4E8BE255A32880FDEC7F6728C6568BA0,
     ),
     Currency(
         "UNI",
         18,
         0,
-        0x049210ffc442172463f3177147c1aeaa36c51d152c1b0630f2364c300d4f48ee,
-        0x1f9840a85d5af5bf1d1762f925bdaddc4201f984,
+        0x049210FFC442172463F3177147C1AEAA36C51D152C1B0630F2364C300D4F48EE,
+        0x1F9840A85D5AF5BF1D1762F925BDADDC4201F984,
     ),
 ]
 pairs = [

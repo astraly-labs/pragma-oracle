@@ -6,8 +6,9 @@ PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.ge
 echo "Starting katana on port $PORT"
 katana --chain-id SN_GOERLI --host 127.0.0.1 --port $PORT --accounts "1" --seed "1" &
 
-# Optionally, wait for katana to be ready
-sleep 5  # Adjust this based on how long katana takes to start
+while ! nc -z localhost $PORT; do   
+  sleep 0.1 # wait for 1/10 of the second before check again
+done
 
 # Run your Python script
 echo "Running deploy_pragma.py with port $PORT"
