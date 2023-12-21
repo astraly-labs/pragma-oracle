@@ -9,6 +9,9 @@ from scripts.utils.constants import (
     NETWORK,
     pairs,
 )
+import os 
+from dotenv import load_dotenv
+import argparse
 from scripts.utils.starknet import (
     dump_declarations,
     dump_deployments,
@@ -23,6 +26,7 @@ from scripts.utils.starknet import (
     str_to_felt,
 )
 
+load_dotenv()
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -125,15 +129,23 @@ if network == "mainnet":
 
 # %% Main
 async def main():
+    parser = argparse.ArgumentParser(description="Deploy contracts to Katana")
+    parser.add_argument('--port', type=int, help='Port number', required=False)
+    args = parser.parse_args()
+    if os.getenv("STARKNET_NETWORK") == "katana" and args.port is None:
+        logger.warning(
+            f"⚠️  --port not set, defaulting to 5050"
+        )
+        args.port = 5050
     for publisher, sources, address in zip(
         publishers, publishers_sources, publisher_address
     ):
         (existing_address,) = await call(
-            "pragma_PublisherRegistry", "get_publisher_address", publisher
+            "pragma_PublisherRegistry", "get_publisher_address", publisher, port = args.port
         )
         if existing_address == 0:
             tx_hash = await invoke(
-                "pragma_PublisherRegistry", "add_publisher", [publisher, address]
+                "pragma_PublisherRegistry", "add_publisher", [publisher, address],port = args.port
             )
             logger.info(f"Registered new publisher {publisher} with tx {hex(tx_hash)}")
         elif existing_address != address:
@@ -143,7 +155,7 @@ async def main():
             return
 
         (existing_sources,) = await call(
-            "pragma_PublisherRegistry", "get_publisher_sources", publisher
+            "pragma_PublisherRegistry", "get_publisher_sources", publisher,port = args.port
         )
         new_sources = [x for x in sources if str_to_felt(x) not in existing_sources]
         if len(new_sources) > 0:
@@ -151,6 +163,7 @@ async def main():
                 "pragma_PublisherRegistry",
                 "add_sources_for_publisher",
                 [publisher, len(new_sources), *new_sources],
+                port = args.port
             )
             logger.info(
                 f"Registered sources {new_sources} for publisher {publisher} with tx {hex(tx_hash)}"

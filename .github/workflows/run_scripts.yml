@@ -1,0 +1,48 @@
+name: Run scripts
+
+on: pull_request
+
+jobs:
+  run_scripts: 
+    runs-on: ubuntu-latest
+    steps: 
+      - uses: actions/checkout@v3
+
+
+      - name: Install rust
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+      - name: Install dojoup
+        run: |
+          curl -L https://install.dojoengine.org | bash
+      
+      - name: Install dojo
+        run: |-
+          /home/runner/.config/.dojo/bin/dojoup
+          sudo mv /home/runner/.config/.dojo/bin/katana /usr/local/bin/
+
+      - name: Make script executable
+        run: chmod +x scripts/katana.sh
+        
+      # Set up Python and install Poetry
+      - name: Set up Python and install Poetry
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - run: pip3 install poetry
+
+      # Install Python dependencies with Poetry
+      - name: Install dependencies
+        run: poetry install
+
+      # Set up Scarb
+      - uses: software-mansion/setup-scarb@v1
+      - run: scarb build
+        
+      # Run Katana and scripts
+      - name: Run Katana and scripts
+        env: 
+          KATANA_ACCOUNT_ADDRESS: ${{ secrets.KATANA_ACCOUNT_ADDRESS }}
+          KATANA_PRIVATE_KEY: ${{ secrets.KATANA_PRIVATE_KEY }}
+        run: bash scripts/katana.sh

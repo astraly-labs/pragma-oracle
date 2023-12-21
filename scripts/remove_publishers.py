@@ -22,7 +22,11 @@ from scripts.utils.starknet import (
     get_deployments,
     str_to_felt,
 )
+import os 
+import argparse 
+from dotenv import load_dotenv
 
+load_dotenv()
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -37,11 +41,20 @@ publishers = [
 
 # %% Main
 async def main():
+    parser = argparse.ArgumentParser(description="Deploy contracts to Katana")
+    parser.add_argument('--port', type=int, help='Port number(not required)', required=False)
+    args = parser.parse_args()
+    if os.getenv("STARKNET_NETWORK") == "katana" and args.port is None:
+        logger.warning(
+            f"⚠️  --port not set, defaulting to 5050"
+        )
+        args.port = 5050
     for publisher in publishers:
         await invoke(
             "pragma_PublisherRegistry",
             "remove_publisher",
-            [str_to_felt(publisher)])
+            [str_to_felt(publisher)], 
+            port = args.port)
         logger.info(f"ℹ️ Removed publisher {publisher}.")
 
 
