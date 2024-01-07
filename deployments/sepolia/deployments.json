@@ -1,22 +1,18 @@
 {
   "pragma_PublisherRegistry": {
-    "address": "0x732b618bc92e3919e28dd3b3aff21079b2507c1f51b8a194ce90300e995cb",
-    "tx": "0x696821818ebcaf3052d9af16b2e3250dfea98fb4ab8d9caccd1f7e8ffced82f"
+    "address": "0x1b08e27ab436cd491631156da5f3aa7ff04aee1e6ca925eb2ca84397c22b74d",
+    "tx": "0x2f1d2a0070a008fd312a2368776aca5b57c4a3cd734efdb619c616af7ab64f5"
   },
   "pragma_Oracle": {
-    "address": "0x5acaa0ef3a6837c98ddeae516fa3f6022018cf646914d921842e46fc00c35d3",
-    "tx": "0x6700eac1d61330b9831384e358985681ccaf90eea540f299f9fc58550372e17"
+    "address": "0x36031daa264c24520b11d93af622c848b2499b66b41d611bac95e13cfca131a",
+    "tx": "0x64f5b3cd696f93beb8f834b9fdc5b660fac342655708b75ae353eb7b956ca04"
   },
   "pragma_SummaryStats": {
-    "address": "0x185b147a3e03043e0232ec6fcf17143614481cc29a505c7d9c4b29e98c1f14e",
-    "tx": "0x5586671f1d7d1e7744ca88b19927ab12ef9ac233d70f2f9bbed650c32bcd38f"
+    "address": "0x54563a0537b3ae0ba91032d674a6d468f30a59dc4deb8f0dce4e642b94be15c",
+    "tx": "0x1c753020f5b99852025defa05313b4b82c5cbeb989bb9f700b7a63453f21781"
   },
   "pragma_Randomness": {
-    "address": "0x556bd6988d786777bb5b1ee337c63f60f30d8200818b59b29e54afc27266a46",
-    "tx": "0x201c3bfe0ea8d3476f97d7430d947e804e58c9184ee80ffab2a2d0582a7aaf2"
-  },
-  "pragma_ExampleRandomness": {
-    "address": "0x6b95c03d088974e17cc87a3b9b2650d7b0c7098e2ec968f6d852249e808f5dc",
-    "tx": "0x226ec4801c9b3e7428ffcbec16c75bb3cf7c90ed2c9e189ac8d310e41157665"
+    "address": "0x60c69136b39319547a4df303b6b3a26fab8b2d78de90b6bd215ce82e9cb515c",
+    "tx": "0x59493788ed2789da7be4fa48fc5fa92cc3e60d5040761d4142fdbe59c15cf0e"
   }
 }

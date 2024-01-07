@@ -9,7 +9,7 @@ from scripts.utils.constants import (
     NETWORK,
     pairs,
 )
-import os 
+import os
 from dotenv import load_dotenv
 import argparse
 from scripts.utils.starknet import (
@@ -54,7 +54,7 @@ DEX_SOURCES = [
     "10KSWAP",
 ]
 
-network = "mainnet"
+network = "sepolia"
 
 # TODO: load data from JSON/YAML
 """
@@ -72,7 +72,7 @@ if network == "testnet":
         "FLOWDESK",
         "CRYPTOMENTUM",
         "AVNU",
-        "SPACESHARD"
+        "SPACESHARD",
     ]
     publishers_sources = [
         THIRD_PARTY_SOURCES,
@@ -85,20 +85,20 @@ if network == "testnet":
         ["FLOWDESK"],
         ["CRYPTOMENTUM"],
         ["AVNU"] + DEX_SOURCES,
-        THIRD_PARTY_SOURCES
+        THIRD_PARTY_SOURCES,
     ]
     publisher_address = [
         0x0624EBFB99865079BD58CFCFB925B6F5CE940D6F6E41E118B8A72B7163FB435C,
         0xCF357FA043A29F7EA06736CC253D8D6D8A208C03B92FFB4B50074F8470818B,
-        0x01daa5cb5f56d96832990ddf4eb9d4f09ba72aff39af13028af67dce9934a74c,
+        0x01DAA5CB5F56D96832990DDF4EB9D4F09BA72AFF39AF13028AF67DCE9934A74C,
         0x17A6F7E8196C9A7AFF90B7CC4BF98842894ECC2B9CC1A3703A1AAB948FCE208,
         0x1D8E01188C4C8984FB19F00156491787E64FD2DE1C3CE4EB9571924C540CF3B,
         0x4E2863FD0FF85803EEF98CE5DD8272AB21C6595537269A2CD855A10EBCC18CC,
-        0x022641362f12d72103f3badfbdc8e1a77fca91eb1f3835638eec55ebcaeaaffd,
-        0x0264CD871a4B5a6B441eB2862b3785e01C4cB82A133E3a65A01827BB8df4B871,
-        0x5b1400d876caaa7ba7858df28faa73a16318ab8551397d83016fb33cb590b28,
-        0x052D8E9778d026588A51595E30B0f45609B4F771eEcF0E335CdeFeD1D84A9d89,
-        0x0271e25bf6ef39b48ab319456c7db88767f0b38d53e1285c5b3e901c60cd878c
+        0x022641362F12D72103F3BADFBDC8E1A77FCA91EB1F3835638EEC55EBCAEAAFFD,
+        0x0264CD871A4B5A6B441EB2862B3785E01C4CB82A133E3A65A01827BB8DF4B871,
+        0x5B1400D876CAAA7BA7858DF28FAA73A16318AB8551397D83016FB33CB590B28,
+        0x052D8E9778D026588A51595E30B0F45609B4F771EECF0E335CDEFED1D84A9D89,
+        0x0271E25BF6EF39B48AB319456C7DB88767F0B38D53E1285C5B3E901C60CD878C,
     ]
     admin_address = 0x02356B628D108863BAF8644C945D97BAD70190AF5957031F4852D00D0F690A77
 
@@ -106,46 +106,52 @@ if network == "testnet":
 MAINNET
 """
 if network == "mainnet":
-    publishers = [
-        "PRAGMA",
-        "FOURLEAF",
-        "SPACESHARD",
-        "SKYNET_TRADING"
-    ]
+    publishers = ["PRAGMA", "FOURLEAF", "SPACESHARD", "SKYNET_TRADING"]
     publishers_sources = [
         THIRD_PARTY_SOURCES,
         ["FOURLEAF"],
         THIRD_PARTY_SOURCES,
-        ["SKYNET_TRADING"]
+        ["SKYNET_TRADING"],
     ]
     publisher_address = [
-        0x06707675cd7dD9256667eCa8284e46F4546711ee0054Bc2dd02f0Ce572056CF4,
-        0x073335cc71c93fe46c04c14e09e7cde7ca7f6147bb36c72dee7968ec3abaf70d,
-        0x035dd30e84f7d61586c6b152524f3f2519dfc11b4dcb9998176b1de9cff9a6ea,
-        0x0155e28e1947350dac90112f3129b74e3a58d38132c8c26f8552002d78c3656e
+        0x06707675CD7DD9256667ECA8284E46F4546711EE0054BC2DD02F0CE572056CF4,
+        0x073335CC71C93FE46C04C14E09E7CDE7CA7F6147BB36C72DEE7968EC3ABAF70D,
+        0x035DD30E84F7D61586C6B152524F3F2519DFC11B4DCB9998176B1DE9CFF9A6EA,
+        0x0155E28E1947350DAC90112F3129B74E3A58D38132C8C26F8552002D78C3656E,
     ]
     admin_address = 0x02356B628D108863BAF8644C945D97BAD70190AF5957031F4852D00D0F690A77
+
+if network == "sepolia":
+    publishers = ["PRAGMA"]
+    publishers_sources = [THIRD_PARTY_SOURCES]
+    publisher_address = [
+        0x04C1D9DA136846AB084AE18CF6CE7A652DF7793B666A16CE46B1BF5850CC739D
+    ]
 
 
 # %% Main
 async def main():
     parser = argparse.ArgumentParser(description="Deploy contracts to Katana")
-    parser.add_argument('--port', type=int, help='Port number', required=False)
+    parser.add_argument("--port", type=int, help="Port number", required=False)
     args = parser.parse_args()
     if os.getenv("STARKNET_NETWORK") == "katana" and args.port is None:
-        logger.warning(
-            f"⚠️  --port not set, defaulting to 5050"
-        )
+        logger.warning(f"⚠️  --port not set, defaulting to 5050")
         args.port = 5050
     for publisher, sources, address in zip(
         publishers, publishers_sources, publisher_address
     ):
         (existing_address,) = await call(
-            "pragma_PublisherRegistry", "get_publisher_address", publisher, port = args.port
+            "pragma_PublisherRegistry",
+            "get_publisher_address",
+            publisher,
+            port=args.port,
         )
         if existing_address == 0:
             tx_hash = await invoke(
-                "pragma_PublisherRegistry", "add_publisher", [publisher, address],port = args.port
+                "pragma_PublisherRegistry",
+                "add_publisher",
+                [publisher, address],
+                port=args.port,
             )
             logger.info(f"Registered new publisher {publisher} with tx {hex(tx_hash)}")
         elif existing_address != address:
@@ -155,7 +161,10 @@ async def main():
             return
 
         (existing_sources,) = await call(
-            "pragma_PublisherRegistry", "get_publisher_sources", publisher,port = args.port
+            "pragma_PublisherRegistry",
+            "get_publisher_sources",
+            publisher,
+            port=args.port,
         )
         new_sources = [x for x in sources if str_to_felt(x) not in existing_sources]
         if len(new_sources) > 0:
@@ -163,7 +172,7 @@ async def main():
                 "pragma_PublisherRegistry",
                 "add_sources_for_publisher",
                 [publisher, len(new_sources), *new_sources],
-                port = args.port
+                port=args.port,
             )
             logger.info(
                 f"Registered sources {new_sources} for publisher {publisher} with tx {hex(tx_hash)}"

@@ -47,10 +47,10 @@ Deployment addresses
 This repo will gradually replace the previous Pragma implementation in Cairo 0 which you can find [here](https://github.com/Astraly-Labs/pragma-contracts).
 
 **Starknet Sepolia**
-- Oracle : [0x5acaa0ef3a6837c98ddeae516fa3f6022018cf646914d921842e46fc00c35d3](https://sepolia.voyager.online/contract/0x5acaa0ef3a6837c98ddeae516fa3f6022018cf646914d921842e46fc00c35d3)
-- Publisher Registry : [0x732b618bc92e3919e28dd3b3aff21079b2507c1f51b8a194ce90300e995cb](https://sepolia.voyager.online/contract/0x732b618bc92e3919e28dd3b3aff21079b2507c1f51b8a194ce90300e995cb)
-- Summary Stats : [0x185b147a3e03043e0232ec6fcf17143614481cc29a505c7d9c4b29e98c1f14e](https://sepolia.voyager.online/contract/0x185b147a3e03043e0232ec6fcf17143614481cc29a505c7d9c4b29e98c1f14e)
-- VRF : [0x556bd6988d786777bb5b1ee337c63f60f30d8200818b59b29e54afc27266a46](https://sepolia.voyager.online/contract/0x556bd6988d786777bb5b1ee337c63f60f30d8200818b59b29e54afc27266a46)
+- Oracle : [0x36031daa264c24520b11d93af622c848b2499b66b41d611bac95e13cfca131a](https://sepolia.voyager.online/contract/0x36031daa264c24520b11d93af622c848b2499b66b41d611bac95e13cfca131a)
+- Publisher Registry : [0x1b08e27ab436cd491631156da5f3aa7ff04aee1e6ca925eb2ca84397c22b74d](https://sepolia.voyager.online/contract/0x1b08e27ab436cd491631156da5f3aa7ff04aee1e6ca925eb2ca84397c22b74d)
+- Summary Stats : [0x54563a0537b3ae0ba91032d674a6d468f30a59dc4deb8f0dce4e642b94be15c](https://sepolia.voyager.online/contract/0x54563a0537b3ae0ba91032d674a6d468f30a59dc4deb8f0dce4e642b94be15c)
+- VRF : [0x60c69136b39319547a4df303b6b3a26fab8b2d78de90b6bd215ce82e9cb515c](https://sepolia.voyager.online/contract/0x60c69136b39319547a4df303b6b3a26fab8b2d78de90b6bd215ce82e9cb515c)
 
 **Starknet Mainnet**
 - Oracle : [0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b](https://voyager.online/contract/0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b)
