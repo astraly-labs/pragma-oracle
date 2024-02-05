@@ -89,7 +89,10 @@ trait IOracleABI<TContractState> {
     );
     fn add_currency(ref self: TContractState, new_currency: Currency);
     fn update_currency(ref self: TContractState, currency_id: felt252, currency: Currency);
+    fn get_currency(self: @TContractState, currency_id: felt252) -> Currency;
+    fn update_pair(ref self: TContractState, pair_id: felt252, pair: Pair);
     fn add_pair(ref self: TContractState, new_pair: Pair);
+    fn get_pair(self: @TContractState, pair_id: felt252) -> Pair;
     fn set_checkpoint(
         ref self: TContractState, data_type: DataType, aggregation_mode: AggregationMode
     );
@@ -303,6 +306,11 @@ mod Oracle {
     }
 
     #[derive(Drop, starknet::Event)]
+    struct UpdatedPair {
+        pair: Pair
+    }
+
+    #[derive(Drop, starknet::Event)]
     struct SubmittedPair {
         pair: Pair
     }
@@ -331,6 +339,7 @@ mod Oracle {
         SubmittedGenericEntry: SubmittedGenericEntry,
         SubmittedCurrency: SubmittedCurrency,
         UpdatedCurrency: UpdatedCurrency,
+        UpdatedPair: UpdatedPair,
         SubmittedPair: SubmittedPair,
         CheckpointSpotEntry: CheckpointSpotEntry,
         CheckpointFutureEntry: CheckpointFutureEntry,
@@ -1553,6 +1562,22 @@ mod Oracle {
             return ();
         }
 
+        // @notice retrieve the Currency associated to a currency id.
+        // @param currency_id: The currency id to retrieve the information from
+        // @returns the Currency struct associated
+        fn get_currency(self: @ContractState, currency_id: felt252) -> Currency {
+            self.oracle_currencies_storage.read(currency_id)
+        }
+
+
+        // @notice retrieve the Pair associated to a pair id.
+        // @param pair_id: The pair id to retrieve the information from
+        // @returns the Pair struct associated
+        fn get_pair(self: @ContractState, pair_id: felt252) -> Pair {
+            self.oracle_pairs_storage.read(pair_id)
+        }
+
+
         // @notice add a new currency to the oracle (e.g ETH)
         // @dev can be called only by the admin
         // @param new_currency: the new currency to be added 
@@ -1581,6 +1606,22 @@ mod Oracle {
             return ();
         }
 
+
+        // @notice update an existing pair
+        // @dev can be called only by the admin
+        // @param pair_id: the Pair id to be updated
+        // @param pair: the pair to be updated
+        fn update_pair(ref self: ContractState, pair_id: felt252, pair: Pair) {
+            OracleInternal::assert_only_admin();
+            assert(pair_id == pair.id, 'Pair id not corresponding');
+            let existing_pair = self.oracle_pairs_storage.read(pair_id);
+            assert(existing_pair.id != 0, 'No pair recorded');
+            self.oracle_pairs_storage.write(pair_id, pair);
+            self.emit(Event::UpdatedPair(UpdatedPair { pair: pair }));
+            return ();
+        }
+
+
         // @notice add a new pair to the oracle (e.g ETH)
         // @dev can be called only by the admin
         // @param new_pair: the new pair to be added 
@@ -1600,6 +1641,7 @@ mod Oracle {
                 .write((new_pair.quote_currency_id, new_pair.base_currency_id), new_pair.id);
             return ();
         }
+
 
         // @notice remove a source for a given data type(DataType)
         // @dev can be called only by the admin

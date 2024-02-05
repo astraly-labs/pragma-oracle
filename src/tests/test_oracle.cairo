@@ -1336,3 +1336,36 @@ fn test_publishing_data_for_less_sources_than_initially_planned() {
     assert(data.price == 7000000, 'wrong price');
 }
 
+
+#[test]
+#[available_gas(2000000000)]
+fn test_update_pair() {
+    let (publisher_registry, oracle) = setup();
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+    let pair = oracle.get_pair(1);
+    assert(pair.id == 1, 'wrong pair fetched');
+    assert(pair.quote_currency_id == 111, 'wrong recorded pair');
+    assert(pair.base_currency_id == 222, 'wrong recorded pair');
+    oracle
+        .add_currency(
+            Currency {
+                id: 12345,
+                decimals: 18_u32,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle
+        .update_pair(
+            1,
+            Pair {
+                id: 1, quote_currency_id: 111, base_currency_id: 12345, //wrong base currency id 
+            }
+        );
+    let pair = oracle.get_pair(1);
+    assert(pair.id == 1, 'wrong pair fetched');
+    assert(pair.quote_currency_id == 111, 'wrong recorded pair');
+    assert(pair.base_currency_id == 12345, 'wrong recorded pair');
+}
