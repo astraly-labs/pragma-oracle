@@ -31,10 +31,17 @@ logger.setLevel(logging.INFO)
 
 
 load_dotenv()
-currencies_to_add = []
+currencies_to_add = [
+    Currency(
+        "STRK",
+        18,
+        False,
+        0x04718F5A0FC34CC1AF16A1CDEE98FFB20C31F5CD61D6AB07201858F4287C938D,
+        0xCA14007EFF0DB1F8135F4C25B34DE49AB0D42766,
+    )
+]
 pairs_to_add = [
-    Pair("ETH/USDT", "ETH", "USDT"),
-    Pair("BTC/USDT", "BTC", "USDT"),
+    Pair("STRK/USD", "STRK", "USD"),
 ]
 
 
