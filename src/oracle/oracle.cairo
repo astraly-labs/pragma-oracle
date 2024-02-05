@@ -849,10 +849,10 @@ mod Oracle {
                 )
             };
 
-            let last_updated_timestamp = max(
+            let last_updated_timestamp = min(
                 quotePPR.last_updated_timestamp, basePPR.last_updated_timestamp
             );
-            let num_sources_aggregated = max(
+            let num_sources_aggregated = min(
                 quotePPR.num_sources_aggregated, basePPR.num_sources_aggregated
             );
             PragmaPricesResponse {
