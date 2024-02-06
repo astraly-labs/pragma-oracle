@@ -10,5 +10,13 @@
   "pragma_SummaryStats": {
     "address": "0x49eefafae944d07744d07cc72a5bf14728a6fb463c3eae5bca13552f5d455fd",
     "tx": "0x3345a21d42f671bad6709fa58f43ef37a97efafa61b724bfc48eb92ac2ae255"
+  },
+  "pragma_Randomness": {
+    "address": "0x4fb09ce7113bbdf568f225bc757a29cb2b72959c21ca63a7d59bdb9026da661",
+    "tx": "0x18ae52f54ff59acb0b816587422017a737f155fc44dec90d17ac7d12537b1d7"
+  },
+  "pragma_ExampleRandomness": {
+    "address": "0xd2a05a1d1f87da40c77410b91cab00c66d5cbca88103e7206565a918ad2722",
+    "tx": "0x3fb67ac3529869e76e9e0bbf323cf30a1d355641199f2b8ebd9d7e81e714c5a"
   }
 }
