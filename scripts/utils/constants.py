@@ -22,7 +22,7 @@ ETH_TOKEN_ADDRESS = "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E
 NETWORKS = {
     "mainnet": {
         "name": "mainnet",
-        "rpc_url": f"https://starknet-mainnet.public.blastapi.io",
+        "rpc_url": f"https://free-rpc.nethermind.io/mainnet-juno",
     },
     "testnet": {
         "name": "testnet",
@@ -64,9 +64,9 @@ if NETWORK["private_key"] is None:
 if NETWORK["name"] == "mainnet":
     NETWORK["chain_id"] = StarknetChainId.MAINNET
 elif NETWORK["name"] == "sepolia":
-    NETWORK[
-        "chain_id"
-    ] = 393402133025997798000961  # TODO: replace with starknet_py upgrade
+    NETWORK["chain_id"] = (
+        393402133025997798000961  # TODO: replace with starknet_py upgrade
+    )
 else:
     NETWORK["chain_id"] = StarknetChainId.TESTNET
 

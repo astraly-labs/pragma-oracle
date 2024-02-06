@@ -32,16 +32,20 @@ logger.setLevel(logging.INFO)
 
 load_dotenv()
 currencies_to_add = [
-    Currency(
-        "STRK",
-        18,
-        False,
-        0x04718F5A0FC34CC1AF16A1CDEE98FFB20C31F5CD61D6AB07201858F4287C938D,
-        0xCA14007EFF0DB1F8135F4C25B34DE49AB0D42766,
-    )
+    # Currency(
+    #     "STRK",
+    #     18,
+    #     False,
+    #     0x04718F5A0FC34CC1AF16A1CDEE98FFB20C31F5CD61D6AB07201858F4287C938D,
+    #     0xCA14007EFF0DB1F8135F4C25B34DE49AB0D42766,
+    # )
 ]
 pairs_to_add = [
-    Pair("STRK/USD", "STRK", "USD"),
+    # Pair("STRK/USD", "STRK", "USD"),
+]
+
+pairs_to_update = [
+    Pair("WSTETH/ETH", "WSTETH", "ETH"),
 ]
 
 
@@ -61,6 +65,13 @@ async def main():
             "pragma_Oracle", "add_currency", currency.serialize(), port=args.port
         )
         logger.info(f"Added currency {currency} with tx hash {hex(tx_hash)}")
+
+    # Update Pairs
+    for pair in pairs_to_update:
+        tx_hash = await invoke(
+            "pragma_Oracle", "update_pair", [pair.id] + pair.serialize(), port=args.port
+        )
+        logger.info(f"Updated pair {pair} with tx hash {hex(tx_hash)}")
 
     # Add Pairs
     for pair in pairs_to_add:
