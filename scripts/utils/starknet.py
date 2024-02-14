@@ -123,12 +123,16 @@ def dump_deployments(deployments):
         {
             name: {
                 **deployment,
-                "address": hex(deployment["address"])
-                if type(deployment["address"]) == int
-                else deployment["address"],
-                "tx": hex(deployment["tx"])
-                if type(deployment["tx"]) == int
-                else deployment["tx"],
+                "address": (
+                    hex(deployment["address"])
+                    if type(deployment["address"]) == int
+                    else deployment["address"]
+                ),
+                "tx": (
+                    hex(deployment["tx"])
+                    if type(deployment["tx"]) == int
+                    else deployment["tx"]
+                ),
             }
             for name, deployment in deployments.items()
         },
@@ -244,9 +248,11 @@ async def invoke(contract_name, function_name, inputs, address=None, port=None):
     account = await get_starknet_account(port=port)
     deployments = get_deployments()
     call = Call(
-        to_addr=int(deployments[contract_name]["address"], 16)
-        if address is None
-        else address,
+        to_addr=(
+            int(deployments[contract_name]["address"], 16)
+            if address is None
+            else address
+        ),
         selector=get_selector_from_name(function_name),
         calldata=inputs,
     )
