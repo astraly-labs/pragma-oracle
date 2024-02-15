@@ -1617,6 +1617,9 @@ mod Oracle {
             let existing_pair = self.oracle_pairs_storage.read(pair_id);
             assert(existing_pair.id != 0, 'No pair recorded');
             self.oracle_pairs_storage.write(pair_id, pair);
+            self
+                .oracle_pair_id_storage
+                .write((pair.quote_currency_id, pair.base_currency_id), pair.id);
             self.emit(Event::UpdatedPair(UpdatedPair { pair: pair }));
             return ();
         }
