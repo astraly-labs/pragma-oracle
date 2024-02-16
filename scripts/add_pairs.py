@@ -46,6 +46,7 @@ pairs_to_add = [
 
 pairs_to_update = [
     Pair("WSTETH/ETH", "WSTETH", "ETH"),
+    Pair("WSTETH/USD", "WSTETH", "USD"),
 ]
 
 

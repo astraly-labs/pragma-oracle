@@ -22,7 +22,7 @@ ETH_TOKEN_ADDRESS = "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E
 NETWORKS = {
     "mainnet": {
         "name": "mainnet",
-        "rpc_url": f"https://starknet-mainnet.public.blastapi.io/rpc/v0_6",
+        "rpc_url": f"https://free-rpc.nethermind.io/mainnet-juno",
     },
     "testnet": {
         "name": "testnet",
@@ -37,7 +37,7 @@ NETWORKS = {
     "sepolia": {
         "name": "sepolia",
         "explorer_url": "https://sepolia.starkscan.co/",
-        "rpc_url": "https://starknet-sepolia.public.blastapi.io/rpc/v0_6",
+        "rpc_url": "https://free-rpc.nethermind.io/sepolia-juno",
     },
     "katana": {
         "name": "katana",
