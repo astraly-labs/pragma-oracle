@@ -45,6 +45,10 @@ THIRD_PARTY_SOURCES = [
     "GECKOTERMINAL",
     "STARKNET",
     "PROPELLER",
+    "KUCOIN",
+    "BINANCE",
+    "HUOBI",
+    "BYBIT",
 ]
 
 DEX_SOURCES = [
