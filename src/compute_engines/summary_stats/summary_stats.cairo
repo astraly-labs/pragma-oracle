@@ -1,6 +1,6 @@
 use starknet::ContractAddress;
 use pragma::entry::structs::{DataType, AggregationMode};
-use cubit::f128::types::fixed::{FixedTrait, ONE_u128};
+use cubit::f128::types::fixed::{FixedTrait, ONE_u128, Fixed};
 #[starknet::interface]
 trait ISummaryStatsABI<TContractState> {
     fn calculate_mean(
@@ -28,24 +28,80 @@ trait ISummaryStatsABI<TContractState> {
         start_time: u64,
     ) -> (u128, u32);
 
+    fn calculate_ema(
+        self: @TContractState,
+        data_type: DataType,
+        aggregation_mode: AggregationMode,
+        period: u64,
+        number_of_period: u64, 
+        timestamp: u64, 
+        initial_ema: Option::<u128>
+    ) -> (Array<u128>, u32);
+    fn calculate_macd(
+        self: @TContractState, 
+        data_type: DataType, 
+        aggregation_mode: AggregationMode, 
+        period: u64, 
+        timestamp : Option::<u64>
+    ) -> (Array<Fixed>,u32); 
+    // fn calculate_signal_line(
+    //     self: @TContractState, 
+    //     data_type: DataType, 
+    //     aggregation_mode: AggregationMode, 
+    //     period: u64,
+    //     number_of_period: Option::<u64>,
+    // ) -> (Array<Fixed>, u32);
 
     fn get_oracle_address(self: @TContractState) -> ContractAddress;
 }
 
 #[starknet::contract]
 mod SummaryStats {
-    use starknet::ContractAddress;
-
+    use starknet::{ContractAddress, get_caller_address};
     use array::ArrayTrait;
+    use hash::LegacyHash;
     use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
-    use pragma::entry::structs::{DataType, AggregationMode};
+    use pragma::entry::structs::{DataType, AggregationMode, EMA, SPOT, FUTURE, GENERIC};
     use pragma::operations::time_series::structs::TickElem;
     use pragma::operations::time_series::metrics::{volatility, mean, twap};
     use pragma::operations::time_series::scaler::scale_data;
-    use super::{FixedTrait, ONE_u128, ISummaryStatsABI};
+    use super::{FixedTrait, ONE_u128, ISummaryStatsABI, Fixed};
+    use alexandria_math::pow;
+    use pragma::operations::time_series::convert::normalize_to_decimals;
+    const ONE_DAY: u64 = 86400;
+    const PRECISION: u64 = 1000;  // added precision for operations
+    use debug::PrintTrait;
+    const SUMMARY_STATS_DECIMALS: u32 = 8;
+
+    type Index = u64; 
+    type Config = u8;
+    type Period = u32;
+
     #[storage]
     struct Storage {
         oracle_address: ContractAddress,
+    }
+
+
+    /// LegacyHash implementation for LongString.
+impl DataTypeLegacyHash of hash::LegacyHash::<DataType> {
+    ///
+    fn hash(state: felt252, value: DataType) -> felt252 {
+        let mut buf: Array<felt252> = ArrayTrait::new();
+        value.serialize(ref buf);
+
+        // Poseidon is used here on the whole span to have a unique
+        // key based on the content. Several other options are available here.
+        let k = poseidon::poseidon_hash_span(buf.span());
+        hash::LegacyHash::hash(state, k)
+    }
+}
+
+    mod Errors {
+        const EMA_INITIALIZATION_ERROR: felt252 = 'EMA not initialized';
+        const EMA_LACK_PREVIOUS_DATA: felt252 = 'EMA: not enough data';
+        const EMA_NOT_ENOUGH_CHECKPOINTS: felt252 = 'EMA: not enough checkpoints';
+        const EMA_NO_AVAILABLE_CHECKPOINT_FOR_GIVEN_PERIOD : felt252 = 'No cp avlble for given period';
     }
 
     #[constructor]
@@ -154,7 +210,7 @@ mod SummaryStats {
                 idx += 1;
             };
             //the number of decimals is hardcoded to 8 by the volatilty computation in metrics.cairo
-            (volatility(tick_arr.span()), 8)
+            (volatility(tick_arr.span()), SUMMARY_STATS_DECIMALS)
         }
 
 
@@ -196,9 +252,127 @@ mod SummaryStats {
         }
 
 
+        /// Exponential moving average computation
+        /// # Arguments
+        /// * `data_type` - an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        /// * `aggregation_mode` - specifies the method by which the oracle aggregates each price used in the computation 
+        /// * `period` - The period over which to compute the EMA - period is a timestamp
+        /// * `number_of_period` - The nunmber of period to consider
+        /// * `timestamp` - current timestamp for the operation
+        /// # Returns 
+        /// * `ema` - the exponential moving average for the given period of time
+        /// * `decimals` - the precision, the number of decimals (the real ema value is ema / (10**decimals))
+        fn calculate_ema(
+            self: @ContractState,
+            data_type: DataType,
+            aggregation_mode: AggregationMode,
+            period: u64,
+            number_of_period: u64, 
+            timestamp: u64, 
+            initial_ema: Option::<u128>
+        ) -> (Array<u128>, u32) {
+            let oracle_address = self.oracle_address.read();
+            let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
+            let decimals : u128 = oracle_dispatcher.get_decimals(data_type).into();
+            let smoothing_factor: u128 = (2*pow(10,decimals)).into()/(number_of_period+1).into();
+            let initial_timestamp = timestamp - period * number_of_period; 
+            let first_checkpoint = oracle_dispatcher.get_checkpoint(data_type, 0, aggregation_mode); 
+            assert(initial_timestamp > first_checkpoint.timestamp, Errors::EMA_LACK_PREVIOUS_DATA); 
+            let (initial_checkpoint, _) = oracle_dispatcher.get_last_checkpoint_before(data_type, initial_timestamp, aggregation_mode); 
+            // check if there is an available checkpoint around the period
+            assert(initial_timestamp-initial_checkpoint.timestamp <= period/5, Errors::EMA_NO_AVAILABLE_CHECKPOINT_FOR_GIVEN_PERIOD);
+            let init_ema : u128 = match initial_ema {
+                Option::Some(val) => val, 
+                Option::None(_) => {
+                    if (initial_checkpoint.timestamp >= initial_timestamp - ONE_DAY) {
+                first_checkpoint.value.into()
+            } else {
+                let (twap, _) = self.calculate_twap(data_type, aggregation_mode, ONE_DAY,initial_timestamp-ONE_DAY); 
+                twap.into()
+            }
+                }
+            };
+            let mut list_ema = array![init_ema];
+            let mut cur_idx: u64 = 1; 
+            loop {
+                if (cur_idx == number_of_period +1) {
+                    break();
+                }
+                let (checkpoint, _) = oracle_dispatcher.get_last_checkpoint_before(data_type, initial_timestamp + cur_idx * period, aggregation_mode); 
+                assert((initial_timestamp + cur_idx *period) -checkpoint.timestamp  <= period/5, Errors::EMA_NO_AVAILABLE_CHECKPOINT_FOR_GIVEN_PERIOD);
+                let current_ema : u128=  *list_ema.at(cur_idx.try_into().unwrap() -1);
+                let new_ema: u128 = smoothing_factor * checkpoint.value.into() + current_ema * (pow(10,decimals).into()- smoothing_factor);
+                list_ema.append(new_ema/(pow(10,decimals)).into());
+                cur_idx +=1;
+            };
+            (list_ema, decimals.try_into().unwrap())
+        }
+
+        ///  Moving Average convergence divergence
+        /// # Arguments
+        /// * `data_type` - an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        /// * `aggregation_mode` - specifies the method by which the oracle aggregates each price used in the computation 
+        /// * `period` - The period over which to compute the MACD - period is a number of days
+        /// # Returns 
+        /// * `macd` - the  moving Average convergence divergence for the given period of time
+        /// * `decimals` - the precision, the number of decimals (the real macd value is macd / (10**decimals))
+        fn calculate_macd(self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode, period: u64, timestamp: Option::<u64>)  ->(Array<Fixed>, u32) {
+            let oracle_address = self.oracle_address.read(); 
+            let oracle_dispatcher = IOracleABIDispatcher {contract_address : oracle_address}; 
+            let decimals = oracle_dispatcher.get_decimals(data_type); 
+            let current_timestamp  = match timestamp {
+                Option::Some(val) => val,
+                Option::None(_) => starknet::get_block_timestamp(),
+            };
+
+            // MACD
+            let (ema_12, decimals) = self.calculate_ema(data_type, aggregation_mode, period,12_u64, current_timestamp, Option::None); 
+            let (ema_26, _) = self.calculate_ema(data_type, aggregation_mode, period, 26_u64,current_timestamp, Option::None); 
+            let mut cur_idx = 0; 
+            let mut macd = array![];
+            loop{  
+                if (cur_idx == ema_12.len()){
+                    break();
+                }
+                let ema_12_val = FixedTrait::new(*ema_12.at(cur_idx), false); 
+                let ema_26_val = FixedTrait::new(*ema_26.at(ema_26.len() - ema_12.len() +cur_idx),false);
+                macd.append(ema_12_val-ema_26_val);
+                cur_idx +=1;
+            };
+            (macd ,decimals)
+        }
+
+        // fn calculate_signal_line(self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode, period: u64, number_of_period: Option::<u64>) -> (Array<Fixed>, u32) {
+        //     let oracle_address = self.oracle_address.read(); 
+        //     let oracle_dispatcher = IOracleABIDispatcher {contract_address : oracle_address}; 
+        //     let decimals = oracle_dispatcher.get_decimals(data_type); 
+        //     let current_timestamp = starknet::get_block_timestamp(); 
+        //     let mut signal_line = array![]; 
+        //     let mut cur_idx : u32= 1; 
+        //     let max_it = match number_of_period {
+        //         Option::Some(val) => val, 
+        //         Option::None(_) => 9_u64
+        //     };
+        //     let smoothing_factor = FixedTrait::new((2*pow(10,decimals.into()))/(max_it+1).into(), false);
+        //     let (init_macd,_) = self.calculate_macd(data_type, aggregation_mode, period, Option::Some(current_timestamp - max_it * period));
+        //     signal_line.append(init_macd);
+        //     loop {
+        //         if (cur_idx.into() == max_it) {
+        //             break();
+        //         }
+        //         let (macd,_) = self.calculate_macd(data_type, aggregation_mode, period, Option::Some(current_timestamp - (max_it - cur_idx.into()) * period)); 
+        //         let signal_line_i = *signal_line.at(cur_idx -1);
+        //         signal_line.append((macd - signal_line_i) * smoothing_factor/FixedTrait::new(pow(10,decimals.into()),false) + signal_line_i); 
+        //         cur_idx += 1;
+        //     }; 
+        //     (signal_line, decimals)
+        // }
+
+
         fn get_oracle_address(self: @ContractState) -> ContractAddress {
             self.oracle_address.read()
         }
+        
     }
 
     //
@@ -262,4 +436,90 @@ mod SummaryStats {
         // let _scaled_arr = scale_data(start_tick, end_tick, tick_arr.span(), SCALED_ARR_SIZE);
         return tick_arr;
     }
+
+
+
+    // fn init_ema(
+    //     self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode, period: u32, config: EMATimeCheckpoint
+    // ) -> EMA {
+    //     let oracle_address = self.oracle_address.read();
+    //     let DAY_IN_SECONDS = 24 *3600; 
+    //     let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
+    //     let (latest_checkpoint_index, _) = oracle_dispatcher
+    //         .get_latest_checkpoint_index(data_type, aggregation_mode);
+    //     // assert(latest_checkpoint_index - period.into() > 0, Errors::EMA_NOT_ENOUGH_CHECKPOINTS);
+    //     let mut cur_idx: u32 = 0;
+    //     let timestamp = starknet::get_block_timestamp();
+    //     let mut entry : u128 = 0;
+    //     // let mut yesterday_0_gmt = timestamp; 
+    //     let mut sma: u128 = 0;
+    //     let hour_of_day = (timestamp*PRECISION/3600) % 24; 
+    //     let mut timestamp_configuration = match config {
+    //         EMATimeCheckpoint::Average(()) => {
+    //             timestamp - hour_of_day * 3600/PRECISION
+    //         }, 
+    //         EMATimeCheckpoint::Hour_8(()) => {
+    //             if (hour_of_day.into() > 8 * PRECISION){
+    //                 timestamp - (hour_of_day/PRECISION - 8) * 3600
+    //             } else {
+    //                 timestamp  - (hour_of_day/PRECISION - 8) * 3600 - DAY_IN_SECONDS
+    //             }
+    //         }, 
+    //         EMATimeCheckpoint::Hour_12(()) => {
+    //             if (hour_of_day.into() > 12 * PRECISION){
+    //                 timestamp - (hour_of_day/PRECISION - 12) * 3600
+    //             } else {
+    //                 timestamp  - (hour_of_day/PRECISION - 12) * 3600 - DAY_IN_SECONDS
+    //             }
+    //         }, 
+    //         EMATimeCheckpoint::Error(()) => {
+    //             panic_with_felt252('Wrong configuration');
+    //             0
+    //         }
+    //     };
+    //     loop {
+            
+    //         if (cur_idx == period) {
+    //             break ();
+    //         }
+
+    //         match config {
+    //             EMATimeCheckpoint::Average(()) => {
+    //                 let (last_checkpoint, last_cp_index) = oracle_dispatcher.get_last_checkpoint_before(data_type,timestamp_configuration - cur_idx.into() * DAY_IN_SECONDS,aggregation_mode); 
+    //                 let (first_checkpoint, first_cp_index ) = oracle_dispatcher.get_last_checkpoint_before(data_type, timestamp_configuration - (cur_idx + 1 ).into() * DAY_IN_SECONDS, aggregation_mode);
+    //                 if (first_cp_index == last_cp_index) {
+    //                     entry += first_checkpoint.value;
+    //                 } else {
+    //                     let mut l_cur_idx = first_cp_index; 
+    //                     let mut sub_entry: u128= 0; 
+    //                     loop {
+    //                         if (l_cur_idx == last_cp_index){
+    //                             break(); 
+    //                         }
+    //                         let checkpoint = oracle_dispatcher.get_checkpoint(data_type, l_cur_idx, aggregation_mode); 
+    //                         sub_entry += checkpoint.value;
+    //                         l_cur_idx +=1;
+    //                     };
+    //                     entry += sub_entry / (last_cp_index - first_cp_index).into();
+    //                 }
+    //             }, 
+    //             EMATimeCheckpoint::Hour_8(()) => {
+    //                 let (checkpoint, cp_index) = oracle_dispatcher.get_last_checkpoint_before(data_type, timestamp_configuration - cur_idx.into() * DAY_IN_SECONDS, aggregation_mode); 
+    //                 assert(checkpoint.timestamp >= timestamp *(1 -1/10), Errors::EMA_NO_AVAILABLE_CHECKPOINTS_FOR_HOUR_8);
+    //                 entry += checkpoint.value; 
+    //             }, 
+    //             EMATimeCheckpoint::Hour_12(()) => {
+    //                 let (checkpoint, cp_index) = oracle_dispatcher.get_last_checkpoint_before(data_type, timestamp_configuration - cur_idx.into() * DAY_IN_SECONDS, aggregation_mode); 
+    //                 assert(checkpoint.timestamp >= timestamp *(1 -1/10), Errors::EMA_NO_AVAILABLE_CHECKPOINTS_FOR_HOUR_12);
+    //                 entry += checkpoint.value; 
+    //             }, 
+    //             EMATimeCheckpoint::Error(()) => {
+    //                 panic_with_felt252('Wrong configuration');
+    //             }
+    //         }
+    //         sma = entry /period.into();
+    //         cur_idx += 1;
+    //     };
+    //     EMA { price: sma, timestamp: timestamp }
+    // }
 }

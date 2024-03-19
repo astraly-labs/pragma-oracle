@@ -173,6 +173,22 @@ enum AggregationMode {
     Error: (),
 }
 
+#[derive(Serde, Drop, Copy, starknet::Store)]
+struct EMA {
+    price: u128,
+    timestamp: u64
+}
+
+#[derive(Drop, Serde,Copy, starknet::Store )]
+enum EMATimeCheckpoint {
+    Average: (),  //Checkpoint average 
+    Hour_8: (), // 8-am
+    Hour_12 : (), // 12-am
+    Error: () 
+}
+
+
+
 
 /// DataType should implement this trait
 /// If it has a `base_entry` field defined by `BaseEntry` struct
@@ -304,6 +320,32 @@ impl u8IntoAggregationMode of Into<u8, AggregationMode> {
             AggregationMode::Mean(())
         } else {
             AggregationMode::Error(())
+        }
+    }
+}
+
+
+impl EMATimeCheckpointIntoU8 of TryInto<EMATimeCheckpoint, u8> {
+    fn try_into(self: EMATimeCheckpoint) -> Option<u8> {
+        match self {
+            EMATimeCheckpoint::Average(()) => Option::Some(0_u8),
+            EMATimeCheckpoint::Hour_8(()) => Option::Some(1_u8),
+            EMATimeCheckpoint::Hour_12(()) => Option::Some(2_u8),
+            EMATimeCheckpoint::Error(()) => Option::Some(3_u8),
+            
+        }
+    }
+}
+impl u8IntoEMATimeCheckpoint of Into<u8, EMATimeCheckpoint> {
+    fn into(self: u8) -> EMATimeCheckpoint {
+        if self == 0_u8 {
+            EMATimeCheckpoint::Average(())
+        } else if self == 1_u8 {
+            EMATimeCheckpoint::Hour_8(())
+        } else if self == 2_u8{
+            EMATimeCheckpoint::Hour_12(())
+        } else {
+            EMATimeCheckpoint::Error(())
         }
     }
 }
