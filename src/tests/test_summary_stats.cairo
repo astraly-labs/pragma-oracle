@@ -32,7 +32,6 @@ use starknet::testing::{
 use starknet::syscalls::deploy_syscall;
 use starknet::class_hash::{Felt252TryIntoClassHash};
 use starknet::Felt252TryIntoContractAddress;
-use debug::PrintTrait;
 const ONE_ETH: felt252 = 1000000000000000000;
 const CHAIN_ID: felt252 = 'SN_MAIN';
 const BLOCK_TIMESTAMP: u64 = 103374042;
@@ -703,7 +702,8 @@ fn test_set_future_checkpoint() {
 #[derive(Drop, Copy, Serde)]
 enum Config {
     EMA: (), 
-    MACD: ()
+    MACD: (), 
+    ERROR_NOT_ENOUGH_DATA: ()
 }
 
 fn ema_macd_initial_configuration(config: Config) -> (ISummaryStatsABIDispatcher, IOracleABIDispatcher, u64){
@@ -717,6 +717,9 @@ fn ema_macd_initial_configuration(config: Config) -> (ISummaryStatsABIDispatcher
         },
         Config::MACD(()) => {
             30
+        }, 
+        Config::ERROR_NOT_ENOUGH_DATA(())=> {
+            3
         }
     };
     let initial_timestamp = now - max_iteration * 1000;
@@ -749,17 +752,19 @@ fn ema_macd_initial_configuration(config: Config) -> (ISummaryStatsABIDispatcher
 fn test_compute_ema(){
     let (summary_stats, oracle, now) = ema_macd_initial_configuration(Config::EMA(()));
     // TEST 1: WITH NUMBER_OF_PERIOD = 4
+    // Exponential Moving Average (EMA): [400000000000, 428000000000.0, 448800000000.0, 465280000000.0, 479168000000.0]
     let (result, _) = summary_stats.calculate_ema(DataType::SpotEntry('BTC/ETH'), AggregationMode::Median(()), 1000, 4, now +10, Option::None);
     assert(*result.at(0)==(4000*pow(10,8)).into(), 'EMA: wrong initial value'); 
     assert(*result.at(1)== (4280*pow(10,8)).into(), 'EMA: wrong first value');
     assert(*result.at(2)== (4488*pow(10,8)).into(), 'EMA: wrong second value');
     assert(*result.at(3)== (46528*pow(10,7)).into(), 'EMA: wrong third value');
+    assert(*result.at(4)== (479168*pow(10,6)).into(), 'EMA: wrong fourth value');
 
     // TEST 2: WITH NUMBER_OF_PERIOD = 10
     // Notice: incertitude propagation due to the nature of the data on the last 3 decimals 
 
     // Result array from the python script src/tests/computational_feeds.py: 
-    // Exponential Moving Average (EMA): [400000000000, 401818181818.18176, 405123966942.1487, 409646882043.5762, 415165630762.92596, 421499152442.3939, 428499306543.77686, 436044887172.181, 444036725868.14813, 452393684801.21204]
+    // Exponential Moving Average (EMA): [400000000000, 401818181818.18176, 405123966942.1487, 409646882043.5762, 415165630762.92596, 421499152442.3939, 428499306543.77686, 436044887172.181, 444036725868.14813, 452393684801.21204, 461049378473.7189]    
     let (result, _) = summary_stats.calculate_ema(DataType::SpotEntry('BTC/ETH'), AggregationMode::Median(()), 1000, 10, now +10, Option::None);
     assert(*result.at(0)==(4000*pow(10,8)), 'EMA: wrong initial value'); 
     assert(*result.at(1)== 401818181800, 'EMA: wrong first value');
@@ -771,17 +776,16 @@ fn test_compute_ema(){
     assert(*result.at(7)== 436044886927, 'EMA: wrong seventh value');
     assert(*result.at(8)== 444036725587, 'EMA: wrong eight value');
     assert(*result.at(9)== 452393684487, 'EMA: wrong ninth value');
+    assert(*result.at(10)== 461049378130, 'EMA: wrong tenth value');
 
 
     // TEST 3: WITH A DIFFERENT PERIOD
     let (result, _) = summary_stats.calculate_ema(DataType::SpotEntry('BTC/ETH'), AggregationMode::Median(()), 2000, 4, now +10, Option::None);
-    let test = *result.at(1);
-    test.print();
     assert(*result.at(0)==(4000*pow(10,8)).into(), 'EMA: wrong initial value'); 
-    assert(*result.at(1)== (4280*pow(10,8)).into(), 'EMA: wrong first value');
-    assert(*result.at(2)== (4488*pow(10,8)).into(), 'EMA: wrong second value');
-    assert(*result.at(3)== (46528*pow(10,7)).into(), 'EMA: wrong third value');
-
+    assert(*result.at(1)== (4160*pow(10,8)).into(), 'EMA: wrong first value');
+    assert(*result.at(2)== (4336*pow(10,8)).into(), 'EMA: wrong second value');
+    assert(*result.at(3)== (45216*pow(10,7)).into(), 'EMA: wrong third value');
+    assert(*result.at(4)== (471296*pow(10,6)).into(), 'EMA: wrong third value');
 }
 
 
@@ -800,11 +804,76 @@ fn test_compute_macd(){
     assert(*result.at(3) == FixedTrait::new(28701124659, true), 'MACD: failed(3)'); 
     assert(*result.at(4) == FixedTrait::new(15348928930, true), 'MACD: failed(4)'); 
     assert(*result.at(5) == FixedTrait::new(3915169471, true), 'MACD: failed(5)'); 
-    assert(*result.at(6) == FixedTrait::new(5885242372, false), 'MACD: failed(5)'); 
-    assert(*result.at(7) == FixedTrait::new(14294280304, false), 'MACD: failed(5)'); 
-    assert(*result.at(8) == FixedTrait::new(21517380977, false), 'MACD: failed(5)'); 
-    assert(*result.at(9) == FixedTrait::new(27729013987, false), 'MACD: failed(5)'); 
-    assert(*result.at(10) == FixedTrait::new(33077398736, false), 'MACD: failed(5)'); 
-    assert(*result.at(11) == FixedTrait::new(37688499122, false), 'MACD: failed(5)'); 
+    assert(*result.at(6) == FixedTrait::new(5885242372, false), 'MACD: failed(6)'); 
+    assert(*result.at(7) == FixedTrait::new(14294280304, false), 'MACD: failed(7))'); 
+    assert(*result.at(8) == FixedTrait::new(21517380977, false), 'MACD: failed(8)'); 
+    assert(*result.at(9) == FixedTrait::new(27729013987, false), 'MACD: failed(9)'); 
+    assert(*result.at(10) == FixedTrait::new(33077398736, false), 'MACD: failed(10)'); 
+    assert(*result.at(11) == FixedTrait::new(37688499122, false), 'MACD: failed(11)'); 
+}
 
+
+#[test]
+#[available_gas(20000000000000)]
+fn test_comppute_signal_line(){
+    let (summary_stats, oracle, now) = ema_macd_initial_configuration(Config::MACD(()));
+    // Signal line [-83939188515.86871, -79664305950.96127, -72592990993.32986, -63814618132.639984, -54121480677.81255, -44080218818.18832, -34087126970.265594, -24410845922.91237, -15225200974.300621, -6634358441.638008]    let (summary_stats, oracle, now) = ema_macd_initial_configuration(Config::MACD(()));
+    let (result, _) = summary_stats.calculate_signal_line(DataType::SpotEntry('BTC/ETH'), AggregationMode::Median(()), 1000, Option::None);
+    let mut cur_idx = 0;
+    assert(*result.at(0) == FixedTrait::new(83939185397, true), 'Signal_line: failed(0)'); 
+    assert(*result.at(1) == FixedTrait::new(79664302938, true), 'Signal_line: failed(1)'); 
+    assert(*result.at(2) == FixedTrait::new(72592988135, true), 'Signal_line: failed(2)'); 
+    assert(*result.at(3) == FixedTrait::new(63814615440, true), 'Signal_line: failed(3)'); 
+    assert(*result.at(4) == FixedTrait::new(54121478138, true), 'Signal_line: failed(4)'); 
+    assert(*result.at(5) == FixedTrait::new(44080216405, true), 'Signal_line: failed(5)'); 
+    assert(*result.at(6) == FixedTrait::new(34087124650, true), 'Signal_line: failed(6)'); 
+    assert(*result.at(7) == FixedTrait::new(24410843660, true), 'Signal_line: failed(7)'); 
+    assert(*result.at(8) == FixedTrait::new(15225198733, true), 'Signal_line: failed(8)'); 
+
+}
+
+#[test]
+#[should_panic(expected:('EMA: not enough data', 'ENTRYPOINT_FAILED'))]
+#[available_gas(20000000000000)]
+fn compute_ema_should_fail_if_not_enough_data() {
+    let (summary_stats, oracle, now) = ema_macd_initial_configuration(Config::ERROR_NOT_ENOUGH_DATA(()));
+    let (result, _) = summary_stats.calculate_ema(DataType::SpotEntry('BTC/ETH'), AggregationMode::Median(()), 1000, 4, now +10, Option::None);
+    assert(*result.at(0)==(4000*pow(10,8)).into(), 'EMA: wrong initial value'); 
+}
+
+
+#[test]
+#[should_panic(expected:('EMA: not enough data', 'ENTRYPOINT_FAILED'))]
+#[available_gas(20000000000000)]
+fn compute_macd_should_fail_if_not_enough_data() {
+    let (summary_stats, oracle, now) = ema_macd_initial_configuration(Config::ERROR_NOT_ENOUGH_DATA(()));
+    let (result, _) = summary_stats.calculate_ema(DataType::SpotEntry('BTC/ETH'), AggregationMode::Median(()), 1000, 4, now +10, Option::None);
+    assert(*result.at(0)==(4000*pow(10,8)).into(), 'EMA: wrong initial value'); 
+}
+
+
+#[test]
+#[should_panic(expected:('EMA:No cp avlble for gvn period', 'ENTRYPOINT_FAILED'))]
+#[available_gas(20000000000000)]
+fn compute_ema_should_fail_if_no_checkpoint_available() {
+    let (summary_stats, oracle, now) = ema_macd_initial_configuration(Config::ERROR_NOT_ENOUGH_DATA(()));
+    let (result, _) = summary_stats.calculate_ema(DataType::SpotEntry('BTC/ETH'), AggregationMode::Median(()), 20, 4, now +10, Option::None);
+}
+
+
+#[test]
+#[should_panic(expected:('EMA:No cp avlble for gvn period', 'ENTRYPOINT_FAILED'))]
+#[available_gas(20000000000000)]
+fn compute_macd_should_fail_if_no_checkpoint_available() {
+    let (summary_stats, oracle, now) = ema_macd_initial_configuration(Config::ERROR_NOT_ENOUGH_DATA(()));
+    let (result, _) = summary_stats.calculate_macd(DataType::SpotEntry('BTC/ETH'), AggregationMode::Median(()), 20, Option::None);
+}
+
+
+#[test]
+#[should_panic(expected:('EMA:No cp avlble for gvn period', 'ENTRYPOINT_FAILED'))]
+#[available_gas(200000000000)]
+fn compute_signal_should_fail_if_no_checkpoint_available() {
+    let (summary_stats, oracle, now) = ema_macd_initial_configuration(Config::ERROR_NOT_ENOUGH_DATA(()));
+    let (result, _) = summary_stats.calculate_signal_line(DataType::SpotEntry('BTC/ETH'), AggregationMode::Median(()), 20, Option::None);
 }

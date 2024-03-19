@@ -23,13 +23,13 @@ def calculate_ema(number_of_period):
     # Generate random data
     np.random.seed(0)  # for reproducibility
     max_iteration = 30
-    data_test_1 = [(4000 + cur_idx * 100) *10**8 for cur_idx in range(max_iteration)]
+    data_test_1 = [(4000 + cur_idx * 100) *10**8 for cur_idx in range(max_iteration+1)]
 
     # Calculate exponential moving average (EMA)
     alpha = 2 / (number_of_period + 1)
     ema = [4000 * 10**8]  # initialize the EMA list with the TWAP
     # Calculate EMA for the remaining data
-    for i in range(len(data_test_1)-number_of_period+1, len(data_test_1)):
+    for i in range(len(data_test_1)-number_of_period, len(data_test_1)):
         ema_value = alpha * data_test_1[i] + (1 - alpha) * ema[-1]  # calculate EMA using the formula
         ema.append(ema_value)
 
@@ -55,7 +55,18 @@ def calculate_macd():
     print("Data points:", data_test_1)
     print("MACD:", macd)
     print(len(macd))
+    return macd
 
 
+def calculate_signal_line(macd, signal_period):
+    # Calculate exponential moving average (EMA) for MACD
+    alpha = 2 / (signal_period + 1)
+    signal_line = [macd[0]]  # initialize the signal line with the first MACD value
+    for i in range(1, (signal_period)):
+        signal_value = alpha * macd[i] + (1 - alpha) * signal_line[-1]
+        signal_line.append(signal_value)
+    return signal_line
 
-calculate_macd()
+
+macd = calculate_macd()
+print("Signal line", calculate_signal_line(macd, 9))
