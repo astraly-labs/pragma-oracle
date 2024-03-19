@@ -409,7 +409,7 @@ mod SummaryStats {
                 if (cur_idx.into() == max_it) {
                     break ();
                 }
-                // Here we are obliged to separate operations in order ot avoid overflow
+                // Here we are obliged to separate operations in order to avoid overflow
                 let signal_line_i = *signal_line.at(cur_idx - 1);
                 let fixed_macd_sign_diff = (*macd.at(cur_idx) - signal_line_i);
                 let smooth_macd_sign_diff = fixed_macd_sign_diff.mag
