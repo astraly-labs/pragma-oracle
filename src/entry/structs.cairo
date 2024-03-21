@@ -99,7 +99,7 @@ struct EntryStorage {
 /// * `Spot` - Spot price
 /// * `Future` - Future price
 /// * `Option` - Option price
-#[derive(Drop, Copy, Serde)]
+#[derive(Drop, Copy, Serde, starknet::Store)]
 enum DataType {
     SpotEntry: felt252,
     FutureEntry: (felt252, u64),

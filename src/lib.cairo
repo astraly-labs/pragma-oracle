@@ -30,6 +30,9 @@ mod compute_engines {
     mod summary_stats {
         mod summary_stats;
     }
+    mod index_price_feed {
+        mod index_price_feed;
+    }
 }
 mod upgradeable {
     mod upgradeable;
