@@ -25,16 +25,18 @@ trait IIndexPriceFeed<TContractState> {
     fn update_price_index_owner(
         ref self: TContractState, index_name: felt252, new_owner: ContractAddress
     );
-    fn update_price_index_composion(
+    fn update_price_index_composition(
         ref self: TContractState, index_name: felt252, new_composition: Array<Composition>
     );
     fn update_price_index_sources(
-            ref self: TContractState, index_name: felt252, new_sources: Array<felt252>
-        );
+        ref self: TContractState, index_name: felt252, new_sources: Array<felt252>
+    );
     fn update_oracle_address(ref self: TContractState, new_oracle_address: ContractAddress);
     fn get_index_price_composition(
         self: @TContractState, index_name: felt252
     ) -> Array<Composition>;
+    fn get_index_price_sources(self: @TContractState, index_name: felt252) -> Array<felt252>;
+    fn get_index_price_owner(self: @TContractState, index_name: felt252) -> ContractAddress;
     fn get_median_index_price(self: @TContractState, index_name: felt252) -> PragmaPricesResponse;
 }
 
@@ -57,7 +59,7 @@ mod IndexPriceFeed {
     };
     use cmp::{max, min};
     use pragma::operations::time_series::convert::normalize_to_decimals;
-
+    use debug::PrintTrait;
 
     // use consistent types 
     type Source = felt252;
@@ -66,24 +68,29 @@ mod IndexPriceFeed {
 
     const MAX_ASSETS_COMPOSITION: u32 = 20_u32;
     const SPOT: felt252 = 'SPOT';
-
-    const COMPOSITION_TYPE_OF_SHIFT_U36: felt252 = 0x1000000000;
-    const COMPOSITION_TYPE_OF_SHIFT_MASK_U36: u256 = 0xfffffffff;
-    const COMPOSITION_ASSET_SHIFT_U188: felt252 = 0x100000000000000000000000000000000000000000000000;
-    const COMPOSITION_ASSET_SHIFT_MASK_U188: u256 = 0xfffffffffffffffffffffffffffffffffffffffffffffff;
-    const COMPOSITION_WEIGHT_SHIFT_U208: felt252 = 0x10000000000000000000000000000000000000000000000000000;
+    const MAX_FELT: u256 =
+    3618502788666131213697322783095070105623107215331596699973092056135872020480; //max felt value
+    const COMPOSITION_TYPE_OF_SHIFT_U36: u256 = 0x1000000000000;
+    const COMPOSITION_TYPE_OF_SHIFT_MASK_U36: u256 = 0xffffffffffff;
+    const COMPOSITION_ASSET_SHIFT_U188: u256 =
+        0x10000000000000000000000000000000000000000000;
+    const COMPOSITION_ASSET_SHIFT_MASK_U188: u256 =
+        0xfffffffffffffffffffffffffffffffffffffffffff;
+    const COMPOSITION_WEIGHT_SHIFT_U208: u256 =
+        0x10000000000000000000000000000000000000000000000000000000000;
     const COMPOSITION_WEIGHT_SHIFT_MASK_U208: u256 =
-        0xffffffffffffffffffffffffffffffffffffffffffffffffffff;
-    const COMPOSITION_WEIGHT_DECIMALS_SHIFT_U220: felt252 =
-        0x10000000000000000000000000000000000000000000000000000000;
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    const COMPOSITION_WEIGHT_DECIMALS_SHIFT_U220: u256 =
+        0x1000000000000000000000000000000000000000000000000000000000000000;
     const COMPOSITION_WEIGHT_DECIMALS_SHIFT_MASK_U220: u256 =
-        0xfffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+        0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
     mod Errors {
         const TOO_MANY_ASSETS: felt252 = 'Too many assets';
         const CALLER_NOT_OWNER: felt252 = 'Caller is not index owner';
         const UNAUTHORIZED: felt252 = 'Admin: unauthorized';
         const UNSUPPORTED_TYPE_OF_DATA: felt252 = 'Type of data not suppported';
+        const EMPTY_COMPOSITION: felt252 = 'Composition array is empty';
     }
 
     #[storage]
@@ -123,29 +130,33 @@ mod IndexPriceFeed {
                 'Composition:weight too big'
             );
             assert(
-                value.weight_decimals.into() == value.weight_decimals.into() & COMPOSITION_WEIGHT_DECIMALS_SHIFT_MASK_U220,
+                value.weight_decimals.into() == value.weight_decimals.into()
+                    & COMPOSITION_WEIGHT_DECIMALS_SHIFT_MASK_U220,
                 'Composition:weight dec too big'
             );
-            type_of_data.into() * COMPOSITION_TYPE_OF_SHIFT_U36
-                + pair_id.into() * COMPOSITION_ASSET_SHIFT_U188
-                + value.weight.into() * COMPOSITION_WEIGHT_SHIFT_U208
-                + value.weight_decimals.into() * COMPOSITION_WEIGHT_DECIMALS_SHIFT_U220
+            let pack_value : u256 = type_of_data.into()
+                + pair_id.into() * COMPOSITION_TYPE_OF_SHIFT_U36
+                + value.weight.into() * COMPOSITION_ASSET_SHIFT_U188
+                + value.weight_decimals.into() * COMPOSITION_WEIGHT_SHIFT_U208;
+            assert(pack_value.into() < MAX_FELT, 'Composition cannot to be stored');
+            pack_value.try_into().unwrap()
+
         }
         fn unpack(value: felt252) -> Composition {
             let value: u256 = value.into();
             let weight_decimals_shift: NonZero<u256> = integer::u256_try_as_non_zero(
-                COMPOSITION_WEIGHT_DECIMALS_SHIFT_U220.into()
+                COMPOSITION_WEIGHT_SHIFT_U208.into()
             )
                 .unwrap();
             let (weight_decimals, rest) = integer::u256_safe_div_rem(value, weight_decimals_shift);
             let weight_shift: NonZero<u256> = integer::u256_try_as_non_zero(
-                COMPOSITION_WEIGHT_SHIFT_U208.into()
+                COMPOSITION_ASSET_SHIFT_U188.into()
             )
                 .unwrap();
 
             let (weight, rest_2) = integer::u256_safe_div_rem(rest, weight_shift);
             let asset_shift: NonZero<u256> = integer::u256_try_as_non_zero(
-                COMPOSITION_ASSET_SHIFT_U188.into()
+                COMPOSITION_TYPE_OF_SHIFT_U36.into()
             )
                 .unwrap();
 
@@ -198,32 +209,29 @@ mod IndexPriceFeed {
 
 
         fn update_price_index_sources(
-            ref self: ContractState, index_name: Index_Name, mut new_sources: Array<Source>
+            ref self: ContractState, index_name: Index_Name, mut new_sources: Array<felt252>
         ) {
             let caller = starknet::get_caller_address();
             assert(
                 assert_only_price_index_owner(@self, caller, index_name), Errors::CALLER_NOT_OWNER
             );
-            let mut sources_list: List<Source> = self
-                .index_price_feed_sources
-                .read(index_name);
+            let mut sources_list: List<felt252> = self.index_price_feed_sources.read(index_name);
             sources_list.clean();
             store_sources_configuration(ref self, index_name, ref new_sources);
-
         }
-        fn update_price_index_composion(
+        fn update_price_index_composition(
             ref self: ContractState, index_name: Index_Name, mut new_composition: Array<Composition>
         ) {
             let caller = starknet::get_caller_address();
             assert(
                 assert_only_price_index_owner(@self, caller, index_name), Errors::CALLER_NOT_OWNER
             );
+            assert(new_composition.len()!=0, Errors::EMPTY_COMPOSITION);
             let mut composition_list: List<Composition> = self
                 .index_price_feed_composition
                 .read(index_name);
             composition_list.clean();
             store_composition_configuration(ref self, index_name, ref new_composition);
-
         }
 
 
@@ -236,6 +244,14 @@ mod IndexPriceFeed {
             self: @ContractState, index_name: felt252
         ) -> Array<Composition> {
             self.index_price_feed_composition.read(index_name).array()
+        }
+
+        fn get_index_price_sources(self: @ContractState, index_name: felt252) -> Array<felt252> {
+            self.index_price_feed_sources.read(index_name).array()
+        }
+
+        fn get_index_price_owner(self: @ContractState, index_name: felt252) -> ContractAddress {
+            self.index_price_feed_owner.read(index_name)
         }
         fn get_median_index_price(
             self: @ContractState, index_name: felt252
