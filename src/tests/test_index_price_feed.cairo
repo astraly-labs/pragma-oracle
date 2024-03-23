@@ -11,6 +11,7 @@ use starknet::class_hash::class_hash_const;
 use traits::Into;
 use serde::Serde;
 use traits::TryInto;
+use alexandria_math::pow;
 use pragma::oracle::oracle::Oracle;
 use pragma::compute_engines::summary_stats::summary_stats::SummaryStats;
 use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
@@ -35,31 +36,33 @@ const BLOCK_TIMESTAMP: u64 = 103374042;
 const NOW: u64 = 100000;
 
 
-
-
-
 impl CompositionEq of PartialEq<Composition> {
-  fn eq(lhs: @Composition, rhs: @Composition) -> bool {
-    (*lhs.asset == *rhs.asset) & (*lhs.weight == *rhs.weight) & (*lhs.weight_decimals == *rhs.weight_decimals)
-  }
+    fn eq(lhs: @Composition, rhs: @Composition) -> bool {
+        (*lhs.asset == *rhs.asset)
+            & (*lhs.weight == *rhs.weight)
+            & (*lhs.weight_decimals == *rhs.weight_decimals)
+    }
 
-  #[inline(always)]
-  fn ne(lhs: @Composition, rhs: @Composition) -> bool {
-    !(lhs == rhs)
-  }
+    #[inline(always)]
+    fn ne(lhs: @Composition, rhs: @Composition) -> bool {
+        !(lhs == rhs)
+    }
 }
 
 
-
 impl PragmaPricesResponseEq of PartialEq<PragmaPricesResponse> {
-  fn eq(lhs: @PragmaPricesResponse, rhs: @PragmaPricesResponse) -> bool {
-    (*lhs.price == *rhs.price) & (*lhs.decimals == *rhs.decimals) & (*lhs.last_updated_timestamp == *rhs.last_updated_timestamp)& (*lhs.num_sources_aggregated == *rhs.num_sources_aggregated)& (*lhs.expiration_timestamp == *rhs.expiration_timestamp)
-  }
+    fn eq(lhs: @PragmaPricesResponse, rhs: @PragmaPricesResponse) -> bool {
+        (*lhs.price == *rhs.price)
+            & (*lhs.decimals == *rhs.decimals)
+            & (*lhs.last_updated_timestamp == *rhs.last_updated_timestamp)
+            & (*lhs.num_sources_aggregated == *rhs.num_sources_aggregated)
+            & (*lhs.expiration_timestamp == *rhs.expiration_timestamp)
+    }
 
-  #[inline(always)]
-  fn ne(lhs: @PragmaPricesResponse, rhs: @PragmaPricesResponse) -> bool {
-    !(lhs == rhs)
-  }
+    #[inline(always)]
+    fn ne(lhs: @PragmaPricesResponse, rhs: @PragmaPricesResponse) -> bool {
+        !(lhs == rhs)
+    }
 }
 
 fn setup() -> (IIndexPriceFeedDispatcher, IOracleABIDispatcher) {
@@ -140,11 +143,19 @@ fn setup() -> (IIndexPriceFeedDispatcher, IOracleABIDispatcher) {
                 base_currency_id: 'USD', // currency id - str_to_felt encode the ticker
             }
         );
+    pairs
+        .append(
+            Pair {
+                id: 'INDEX3/INDEX2', // same as key currently (e.g. str_to_felt("ETH/USD") - force uppercase)
+                quote_currency_id: 'INDEX3', // currency id - str_to_felt encode the ticker
+                base_currency_id: 'INDEX2', // currency id - str_to_felt encode the ticker
+            }
+        );
     let admin = contract_address_const::<0x123456789>();
     set_contract_address(admin);
     set_block_timestamp(BLOCK_TIMESTAMP);
     set_chain_id(CHAIN_ID);
-    let now = 100000;
+    let now = NOW;
     //Deploy the registry
     let mut constructor_calldata = ArrayTrait::new();
     constructor_calldata.append(admin.into());
@@ -229,6 +240,17 @@ fn setup() -> (IIndexPriceFeedDispatcher, IOracleABIDispatcher) {
                 }
             )
         );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    pair_id: 'INDEX3/INDEX2',
+                    price: 6 * pow(10, 18),
+                    volume: 0
+                }
+            )
+        );
 
     (index_price_feed, oracle)
 }
@@ -281,7 +303,7 @@ fn test_create_price_index() {
 }
 
 #[test]
-#[should_panic(expected:('Caller is not index owner','ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('Caller is not index owner', 'ENTRYPOINT_FAILED'))]
 #[available_gas(200000000000000000)]
 fn test_update_price_index_owner_should_fail_if_caller_is_not_owner() {
     let index_name = 'INDEX_COMPOSITION';
@@ -292,20 +314,20 @@ fn test_update_price_index_owner_should_fail_if_caller_is_not_owner() {
 }
 
 #[test]
-#[should_panic(expected:('Caller is not index owner','ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('Caller is not index owner', 'ENTRYPOINT_FAILED'))]
 #[available_gas(200000000000000000)]
 fn test_update_price_index_sources_should_fail_if_caller_is_not_owner() {
     let index_name = 'INDEX_COMPOSITION';
     let price_index_feed = create_price_index(index_name);
     let not_owner = contract_address_const::<0x123456781239>();
     set_contract_address(not_owner);
-    let new_sources = array![1,2];
+    let new_sources = array![1, 2];
     price_index_feed.update_price_index_sources(index_name, new_sources);
 }
 
 
 #[test]
-#[should_panic(expected:('Caller is not index owner','ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('Caller is not index owner', 'ENTRYPOINT_FAILED'))]
 #[available_gas(200000000000000000)]
 fn test_update_price_index_composition_should_fail_if_caller_is_not_owner() {
     let index_name = 'INDEX_COMPOSITION';
@@ -322,7 +344,7 @@ fn test_update_price_index_composition_should_fail_if_caller_is_not_owner() {
 
 
 #[test]
-#[should_panic(expected:('Composition array is empty','ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('Composition array is empty', 'ENTRYPOINT_FAILED'))]
 #[available_gas(200000000000000000)]
 fn test_update_price_index_composition_should_fail_if_composition_array_is_empty() {
     let index_name = 'INDEX_COMPOSITION';
@@ -340,7 +362,7 @@ fn test_update_price_index_composition() {
     let price_index_feed = create_price_index(index_name);
     let not_owner = contract_address_const::<0x123456781239>();
     let new_composition = array![
-         Composition {
+        Composition {
             asset: DataType::SpotEntry('INDEX1/USD'), weight: 20000000, weight_decimals: 8
         },
         Composition {
@@ -351,7 +373,6 @@ fn test_update_price_index_composition() {
     let composition_configuration = price_index_feed.get_index_price_composition(index_name);
     assert(composition_configuration == new_composition, 'Wrong composition');
 }
-
 
 
 #[test]
@@ -373,18 +394,72 @@ fn test_get_median_index_price() {
     ];
     let sources = array![];
     price_index_feed.create_price_index(index_name, assets.clone(), sources.clone());
-    let median_index_price = price_index_feed.get_median_index_price(index_name); 
-    let expected_result =  PragmaPricesResponse {
-         price: 3700000,
+    let median_index_price = price_index_feed.get_median_index_price(index_name);
+    let expected_result = PragmaPricesResponse {
+        price: 3700000,
         decimals: 6,
-        last_updated_timestamp:100000 ,
+        last_updated_timestamp: NOW,
         num_sources_aggregated: 1,
         expiration_timestamp: Option::None,
-
     };
-    median_index_price.last_updated_timestamp.print();
-    assert(expected_result == median_index_price , 'Wrong median index price info');
+    assert(expected_result == median_index_price, 'Wrong median index price info');
 }
 
 
-//TODO: add tests with different decimals
+#[test]
+#[available_gas(200000000000000000)]
+fn test_get_median_index_price_18_decimals() {
+    let index_name = 'INDEX_COMPOSITION';
+    let (price_index_feed, oracle) = setup();
+    let owner = contract_address_const::<0x123456789>();
+    let assets = array![
+        Composition {
+            asset: DataType::SpotEntry('INDEX1/USD'), weight: 20000000, weight_decimals: 8
+        },
+        Composition {
+            asset: DataType::SpotEntry('INDEX2/USD'), weight: 40000000, weight_decimals: 8
+        },
+        Composition {
+            asset: DataType::SpotEntry('INDEX3/USD'), weight: 20000000, weight_decimals: 8
+        },
+        Composition {
+            asset: DataType::SpotEntry('INDEX3/INDEX2'), weight: 20000000, weight_decimals: 8
+        },
+    ];
+    let sources = array![];
+    price_index_feed.create_price_index(index_name, assets.clone(), sources.clone());
+    let median_index_price = price_index_feed.get_median_index_price(index_name);
+    let expected_result = PragmaPricesResponse {
+        price: 4100000000000000000,
+        decimals: 18,
+        last_updated_timestamp: NOW,
+        num_sources_aggregated: 1,
+        expiration_timestamp: Option::None,
+    };
+
+    assert(expected_result == median_index_price, 'Wrong median index price info');
+}
+
+
+#[test]
+#[should_panic(expected: ('Index already created', 'ENTRYPOINT_FAILED'))]
+#[available_gas(200000000000000000)]
+fn test_create_price_index_should_fail_if_index_already_created() {
+    let index_name = 'INDEX_COMPOSITION';
+    let (price_index_feed, oracle) = setup();
+    let owner = contract_address_const::<0x123456789>();
+    let assets = array![
+        Composition {
+            asset: DataType::SpotEntry('INDEX1/USD'), weight: 20000000, weight_decimals: 8
+        },
+        Composition {
+            asset: DataType::SpotEntry('INDEX2/USD'), weight: 60000000, weight_decimals: 8
+        },
+        Composition {
+            asset: DataType::SpotEntry('INDEX3/USD'), weight: 20000000, weight_decimals: 8
+        },
+    ];
+    let sources = array![];
+    price_index_feed.create_price_index(index_name, assets.clone(), sources.clone());
+    price_index_feed.create_price_index(index_name, assets.clone(), sources.clone());
+}
