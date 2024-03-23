@@ -333,9 +333,7 @@ mod IndexPriceFeed {
             let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
             let sources = self.index_price_feed_sources.read(index_name);
             let mut composition_array = composition.array();
-            compute_weigthed_index(
-                ref composition_array , sources.array().span(), oracle_dispatcher
-            )
+            compute_weigthed_index(ref composition_array, sources.array().span(), oracle_dispatcher)
         }
 
 
@@ -444,10 +442,7 @@ mod IndexPriceFeed {
                             normalize_to_decimals(weighted_prices, decimals, asset_entry.decimals);
                         decimals = asset_entry.decimals
                     }
-                    weighted_prices += asset_entry.price
-                        * element
-                            .weight
-                            .into(); 
+                    weighted_prices += asset_entry.price * element.weight.into();
                     weights += element.weight;
                 },
                 Option::None(_) => {
