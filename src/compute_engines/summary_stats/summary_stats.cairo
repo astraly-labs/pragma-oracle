@@ -100,7 +100,7 @@ mod SummaryStats {
         const EMA_INITIALIZATION_ERROR: felt252 = 'EMA not initialized';
         const EMA_LACK_PREVIOUS_DATA: felt252 = 'EMA: not enough data';
         const EMA_NO_AVAILABLE_CHECKPOINT_FOR_GIVEN_PERIOD: felt252 =
-            'EMA:No cp avlble for gvn period';
+            'EMA: no cp available';
     }
 
     #[constructor]
