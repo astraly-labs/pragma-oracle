@@ -181,7 +181,7 @@ struct EMA {
 
 #[derive(Drop, Serde, Copy, starknet::Store)]
 enum EMATimeCheckpoint {
-    Average: (), //Checkpoint average 
+    Average: (), // Checkpoint average 
     Hour_8: (), // 8-am
     Hour_12: (), // 12-am
     Error: ()
