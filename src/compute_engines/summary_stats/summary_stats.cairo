@@ -370,7 +370,7 @@ mod SummaryStats {
             (macd, decimals)
         }
 
-        /// Determine the signal lien associated to the MACD
+        /// Determine the signal line associated to the MACD
         /// # Arguments
         /// * `data_type` - an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         /// * `aggregation_mode` - specifies the method by which the oracle aggregates each price used in the computation 
