@@ -375,7 +375,7 @@ mod SummaryStats {
         /// * `data_type` - an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         /// * `aggregation_mode` - specifies the method by which the oracle aggregates each price used in the computation 
         /// * `period` - The period over which to compute the MACD - period is a number of days
-        /// * `number_of_period` - The nunmber of period to consider
+        /// * `number_of_period` - The nunmber of period to consider (Default: 9)
         /// # Returns 
         /// * `signal_line`- the point associated to the signal line for the given parameters
         /// * `decimals` - the precision, the number of decimals (the real macd value is macd / (10**decimals))
