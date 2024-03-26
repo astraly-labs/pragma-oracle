@@ -323,27 +323,17 @@ impl u8IntoAggregationMode of Into<u8, AggregationMode> {
 }
 
 
-impl EMATimeCheckpointIntoU8 of TryInto<EMATimeCheckpoint, u8> {
-    fn try_into(self: EMATimeCheckpoint) -> Option<u8> {
-        match self {
-            EMATimeCheckpoint::Average(()) => Option::Some(0_u8),
-            EMATimeCheckpoint::Hour_8(()) => Option::Some(1_u8),
-            EMATimeCheckpoint::Hour_12(()) => Option::Some(2_u8),
-            EMATimeCheckpoint::Error(()) => Option::Some(3_u8),
-        }
-    }
-}
-impl u8IntoEMATimeCheckpoint of Into<u8, EMATimeCheckpoint> {
-    fn into(self: u8) -> EMATimeCheckpoint {
-        if self == 0_u8 {
-            EMATimeCheckpoint::Average(())
-        } else if self == 1_u8 {
-            EMATimeCheckpoint::Hour_8(())
-        } else if self == 2_u8 {
-            EMATimeCheckpoint::Hour_12(())
-        } else {
-            EMATimeCheckpoint::Error(())
-        }
+/// LegacyHash implementation for LongString.
+impl DataTypeLegacyHash of hash::LegacyHash<DataType> {
+    ///
+    fn hash(state: felt252, value: DataType) -> felt252 {
+        let mut buf: Array<felt252> = ArrayTrait::new();
+        value.serialize(ref buf);
+
+        // Poseidon is used here on the whole span to have a unique
+        // key based on the content. Several other options are available here.
+        let k = poseidon::poseidon_hash_span(buf.span());
+        hash::LegacyHash::hash(state, k)
     }
 }
 

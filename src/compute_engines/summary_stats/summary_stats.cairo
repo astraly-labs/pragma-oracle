@@ -33,7 +33,7 @@ trait ISummaryStatsABI<TContractState> {
         data_type: DataType,
         aggregation_mode: AggregationMode,
         period: u64,
-        number_of_period: u64,
+        number_of_periods: u64,
         timestamp: u64,
         initial_ema: Option::<u128>
     ) -> (Array<u128>, u32);
@@ -49,7 +49,7 @@ trait ISummaryStatsABI<TContractState> {
         data_type: DataType,
         aggregation_mode: AggregationMode,
         period: u64,
-        number_of_period: Option::<u64>,
+        number_of_periods: Option::<u64>,
     ) -> (Array<Fixed>, u32);
 
     fn get_oracle_address(self: @TContractState) -> ContractAddress;
@@ -82,25 +82,10 @@ mod SummaryStats {
     }
 
 
-    /// LegacyHash implementation for LongString.
-    impl DataTypeLegacyHash of hash::LegacyHash<DataType> {
-        ///
-        fn hash(state: felt252, value: DataType) -> felt252 {
-            let mut buf: Array<felt252> = ArrayTrait::new();
-            value.serialize(ref buf);
-
-            // Poseidon is used here on the whole span to have a unique
-            // key based on the content. Several other options are available here.
-            let k = poseidon::poseidon_hash_span(buf.span());
-            hash::LegacyHash::hash(state, k)
-        }
-    }
-
     mod Errors {
         const EMA_INITIALIZATION_ERROR: felt252 = 'EMA not initialized';
         const EMA_LACK_PREVIOUS_DATA: felt252 = 'EMA: not enough data';
-        const EMA_NO_AVAILABLE_CHECKPOINT_FOR_GIVEN_PERIOD: felt252 =
-            'EMA: no cp available';
+        const EMA_NO_AVAILABLE_CHECKPOINT_FOR_GIVEN_PERIOD: felt252 = 'EMA: no cp available';
     }
 
     #[constructor]
@@ -256,7 +241,7 @@ mod SummaryStats {
         /// * `data_type` - an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         /// * `aggregation_mode` - specifies the method by which the oracle aggregates each price used in the computation 
         /// * `period` - The period over which to compute the EMA - period is a timestamp
-        /// * `number_of_period` - The nunmber of period to consider
+        /// * `number_of_periods` - The nunmber of period to consider
         /// * `timestamp` - current timestamp for the operation
         /// # Returns 
         /// * `ema` - the exponential moving average for the given period of time
@@ -266,7 +251,7 @@ mod SummaryStats {
             data_type: DataType,
             aggregation_mode: AggregationMode,
             period: u64,
-            number_of_period: u64,
+            number_of_periods: u64,
             timestamp: u64,
             initial_ema: Option::<u128>
         ) -> (Array<u128>, u32) {
@@ -274,8 +259,8 @@ mod SummaryStats {
             let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
             let decimals: u128 = oracle_dispatcher.get_decimals(data_type).into();
             let smoothing_factor: u128 = (2 * pow(10, decimals)).into()
-                / (number_of_period + 1).into();
-            let initial_timestamp = timestamp - period * number_of_period;
+                / (number_of_periods + 1).into();
+            let initial_timestamp = timestamp - period * number_of_periods;
             let first_checkpoint = oracle_dispatcher.get_checkpoint(data_type, 0, aggregation_mode);
             assert(initial_timestamp > first_checkpoint.timestamp, Errors::EMA_LACK_PREVIOUS_DATA);
             let (initial_checkpoint, _) = oracle_dispatcher
@@ -302,13 +287,14 @@ mod SummaryStats {
             let mut list_ema = array![init_ema];
             let mut cur_idx: u64 = 1;
             loop {
-                if (cur_idx == number_of_period + 1) {
+                if (cur_idx == number_of_periods + 1) {
                     break ();
                 }
                 let (checkpoint, _) = oracle_dispatcher
                     .get_last_checkpoint_before(
                         data_type, initial_timestamp + cur_idx * period, aggregation_mode
                     );
+                // Checking if the selected checkpoint is relevant for the computation, difference in timestamp is an arbitrary fraction of the desired period
                 assert(
                     (initial_timestamp + cur_idx * period) - checkpoint.timestamp <= period / 5,
                     Errors::EMA_NO_AVAILABLE_CHECKPOINT_FOR_GIVEN_PERIOD
@@ -375,7 +361,7 @@ mod SummaryStats {
         /// * `data_type` - an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         /// * `aggregation_mode` - specifies the method by which the oracle aggregates each price used in the computation 
         /// * `period` - The period over which to compute the MACD - period is a number of days
-        /// * `number_of_period` - The nunmber of period to consider (Default: 9)
+        /// * `number_of_periods` - The nunmber of period to consider (Default: 9)
         /// # Returns 
         /// * `signal_line`- the point associated to the signal line for the given parameters
         /// * `decimals` - the precision, the number of decimals (the real macd value is macd / (10**decimals))
@@ -384,7 +370,7 @@ mod SummaryStats {
             data_type: DataType,
             aggregation_mode: AggregationMode,
             period: u64,
-            number_of_period: Option::<u64>
+            number_of_periods: Option::<u64>
         ) -> (Array<Fixed>, u32) {
             let oracle_address = self.oracle_address.read();
             let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
@@ -393,7 +379,7 @@ mod SummaryStats {
             let mut signal_line = array![];
             let mut cur_idx: u32 = 1;
             // In general, to compute the signal line, we use the 9th-period
-            let max_it = match number_of_period {
+            let max_it = match number_of_periods {
                 Option::Some(val) => val,
                 Option::None(_) => 9_u64
             };
@@ -492,3 +478,4 @@ mod SummaryStats {
         return tick_arr;
     }
 }
+

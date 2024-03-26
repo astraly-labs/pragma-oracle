@@ -1,7 +1,5 @@
 import numpy as np
 
-import numpy as np
-
 
 def calculate_twap():
     prices= [4000 + cur_idx * 100 for cur_idx in range(0,6)]  # Sample prices
