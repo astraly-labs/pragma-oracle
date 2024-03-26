@@ -353,7 +353,7 @@ mod IndexPriceFeed {
 
     fn assert_only_price_index_owner(
         self: @ContractState, caller: ContractAddress, index_name: Index_Name
-    )  {
+    ) {
         let owner = self.index_price_feed_owner.read(index_name);
         assert(owner == caller, Errors::CALLER_NOT_OWNER);
     }
