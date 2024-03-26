@@ -68,10 +68,10 @@ mod SummaryStats {
     use super::{FixedTrait, ONE_u128, ISummaryStatsABI, Fixed};
     use alexandria_math::pow;
     use pragma::operations::time_series::convert::normalize_to_decimals;
+    const VALIDATION_FRACTION: u64 = 5;
     const ONE_DAY: u64 = 86400;
     const PRECISION: u64 = 1000; // added precision for operations
     const SUMMARY_STATS_DECIMALS: u32 = 8;
-
     type Index = u64;
     type Config = u8;
     type Period = u32;
@@ -267,7 +267,7 @@ mod SummaryStats {
                 .get_last_checkpoint_before(data_type, initial_timestamp, aggregation_mode);
             // check if there is an available checkpoint around the period
             assert(
-                initial_timestamp - initial_checkpoint.timestamp <= period / 5,
+                initial_timestamp - initial_checkpoint.timestamp <= period / VALIDATION_FRACTION,
                 Errors::EMA_NO_AVAILABLE_CHECKPOINT_FOR_GIVEN_PERIOD
             );
             let init_ema: u128 = match initial_ema {
