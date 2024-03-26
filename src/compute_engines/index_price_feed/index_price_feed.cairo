@@ -220,9 +220,7 @@ mod IndexPriceFeed {
             ref self: ContractState, index_name: felt252, new_owner: ContractAddress
         ) {
             let caller = starknet::get_caller_address();
-            assert(
-                assert_only_price_index_owner(@self, caller, index_name), Errors::CALLER_NOT_OWNER
-            );
+            assert_only_price_index_owner(@self, caller, index_name);
             self.index_price_feed_owner.write(index_name, new_owner);
         }
 
@@ -236,9 +234,7 @@ mod IndexPriceFeed {
             ref self: ContractState, index_name: felt252, mut new_sources: Array<felt252>
         ) {
             let caller = starknet::get_caller_address();
-            assert(
-                assert_only_price_index_owner(@self, caller, index_name), Errors::CALLER_NOT_OWNER
-            );
+            assert_only_price_index_owner(@self, caller, index_name);
             let mut sources_list: List<felt252> = self.index_price_feed_sources.read(index_name);
             sources_list.clean();
             store_sources_configuration(ref self, index_name, ref new_sources);
@@ -254,9 +250,7 @@ mod IndexPriceFeed {
             ref self: ContractState, index_name: felt252, mut new_composition: Array<Composition>
         ) {
             let caller = starknet::get_caller_address();
-            assert(
-                assert_only_price_index_owner(@self, caller, index_name), Errors::CALLER_NOT_OWNER
-            );
+            assert_only_price_index_owner(@self, caller, index_name);
             assert(new_composition.len() != 0, Errors::EMPTY_COMPOSITION);
             let mut composition_list: List<Composition> = self
                 .index_price_feed_composition
@@ -359,9 +353,9 @@ mod IndexPriceFeed {
 
     fn assert_only_price_index_owner(
         self: @ContractState, caller: ContractAddress, index_name: Index_Name
-    ) -> bool {
+    )  {
         let owner = self.index_price_feed_owner.read(index_name);
-        owner == caller
+        assert(owner == caller, Errors::CALLER_NOT_OWNER);
     }
 
     fn check_name_validity(self: @ContractState, index_name: felt252) {
