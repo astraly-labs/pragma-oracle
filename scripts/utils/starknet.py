@@ -232,7 +232,6 @@ async def deploy_v2(contract_name, *args, port=None):
     )
 
     await deploy_result.wait_for_acceptance()
-    print("deploy_result", deploy_result)
 
     logger.info(
         f"✅ {contract_name} deployed at: {hex(deploy_result.deployed_contract.address)}"
@@ -256,9 +255,11 @@ async def invoke(contract_name, function_name, inputs, address=None, port=None):
         selector=get_selector_from_name(function_name),
         calldata=inputs,
     )
-    print("call", call)
     logger.info(f"ℹ️  Invoking {contract_name}.{function_name}({json.dumps(inputs)})")
-    response = await account.execute(calls=call, max_fee=MAX_FEE)
+    response = await account.execute(
+        calls=call,
+        max_fee=MAX_FEE,
+    )
     await account.client.wait_for_tx(response.transaction_hash)
     logger.info(
         f"✅ {contract_name}.{function_name} invoked at tx: %s",
