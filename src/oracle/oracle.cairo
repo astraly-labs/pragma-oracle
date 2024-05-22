@@ -323,12 +323,14 @@ mod Oracle {
     #[derive(Drop, starknet::Event)]
     struct CheckpointSpotEntry {
         pair_id: felt252, 
+        checkpoint: Checkpoint
     }
 
     #[derive(Drop, starknet::Event)]
     struct CheckpointFutureEntry {
         pair_id: felt252,
         expiration_timestamp: u64,
+        checkpoint: Checkpoint
     }
     #[derive(Drop, starknet::Event)]
     #[event]
@@ -1817,7 +1819,7 @@ mod Oracle {
                                 (pair_id, SPOT, 0, aggregation_mode.try_into().unwrap()),
                                 cur_idx + 1
                             );
-                        self.emit(Event::CheckpointSpotEntry(CheckpointSpotEntry { pair_id }));
+                        self.emit(Event::CheckpointSpotEntry(CheckpointSpotEntry { pair_id, checkpoint: new_checkpoint }));
                     },
                     DataType::FutureEntry((
                         pair_id, expiration_timestamp
@@ -1856,7 +1858,7 @@ mod Oracle {
                         self
                             .emit(
                                 Event::CheckpointFutureEntry(
-                                    CheckpointFutureEntry { pair_id, expiration_timestamp }
+                                    CheckpointFutureEntry { pair_id, expiration_timestamp, checkpoint: new_checkpoint }
                                 )
                             );
                     },
