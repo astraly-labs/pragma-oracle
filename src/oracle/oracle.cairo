@@ -77,8 +77,8 @@ trait IOracleABI<TContractState> {
         checkpoint_index: u64,
         aggregation_mode: AggregationMode
     ) -> Checkpoint;
-    fn get_sources_threshold(self: @TContractState, ) -> u32;
-    fn get_admin_address(self: @TContractState, ) -> ContractAddress;
+    fn get_sources_threshold(self: @TContractState,) -> u32;
+    fn get_admin_address(self: @TContractState,) -> ContractAddress;
     fn get_all_publishers(self: @TContractState, data_type: DataType) -> Span<felt252>;
     fn get_all_sources(self: @TContractState, data_type: DataType) -> Span<felt252>;
     fn publish_data(ref self: TContractState, new_entry: PossibleEntries);
@@ -322,13 +322,15 @@ mod Oracle {
 
     #[derive(Drop, starknet::Event)]
     struct CheckpointSpotEntry {
-        pair_id: felt252, 
+        pair_id: felt252,
+        checkpoint: Checkpoint
     }
 
     #[derive(Drop, starknet::Event)]
     struct CheckpointFutureEntry {
         pair_id: felt252,
         expiration_timestamp: u64,
+        checkpoint: Checkpoint
     }
     #[derive(Drop, starknet::Event)]
     #[event]
@@ -427,12 +429,12 @@ mod Oracle {
         // @returns a span of PossibleEntries, which can be spot entries, future entries, generic entries ...
         // @returns the last updated timestamp
         fn get_data_entries_for_sources(
-            self: @ContractState, data_type: DataType, sources: Span<felt252>, 
+            self: @ContractState, data_type: DataType, sources: Span<felt252>,
         ) -> (Span<PossibleEntries>, u64) {
             if (sources.len() == 0) {
                 let all_sources = IOracleABI::get_all_sources(self, data_type);
                 let last_updated_timestamp = get_latest_entry_timestamp(
-                    self, data_type, all_sources, 
+                    self, data_type, all_sources,
                 );
                 let current_timestamp: u64 = get_block_timestamp();
                 let conservative_current_timestamp = min(last_updated_timestamp, current_timestamp);
@@ -480,7 +482,7 @@ mod Oracle {
             self: @ContractState, data_type: DataType, sources: Span<felt252>
         ) -> PragmaPricesResponse {
             let prices_response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
-                self, data_type, AggregationMode::Median(()), sources, 
+                self, data_type, AggregationMode::Median(()), sources,
             );
             prices_response
         }
@@ -971,7 +973,10 @@ mod Oracle {
                         SpotEntry {
                             base: BaseEntry {
                                 timestamp: _entry.timestamp, source: source, publisher: publisher
-                            }, pair_id: pair_id, price: _entry.price, volume: _entry.volume
+                            },
+                            pair_id: pair_id,
+                            price: _entry.price,
+                            volume: _entry.volume
                         }
                     )
                 },
@@ -995,7 +1000,9 @@ mod Oracle {
                         GenericEntry {
                             base: BaseEntry {
                                 timestamp: _entry.timestamp, source: source, publisher: publisher
-                            }, key: key, value: _entry.price
+                            },
+                            key: key,
+                            value: _entry.price
                         }
                     )
                 }
@@ -1043,7 +1050,10 @@ mod Oracle {
                         SpotEntry {
                             base: BaseEntry {
                                 timestamp: last_updated_timestamp, source: source, publisher: 0
-                            }, pair_id: pair_id, price: median, volume: median_volume
+                            },
+                            pair_id: pair_id,
+                            price: median,
+                            volume: median_volume
                         }
                     );
                 },
@@ -1120,7 +1130,9 @@ mod Oracle {
                         GenericEntry {
                             base: BaseEntry {
                                 timestamp: last_updated_timestamp, source: source, publisher: 0
-                            }, key: key, value: median
+                            },
+                            key: key,
+                            value: median
                         }
                     );
                 }
@@ -1817,7 +1829,12 @@ mod Oracle {
                                 (pair_id, SPOT, 0, aggregation_mode.try_into().unwrap()),
                                 cur_idx + 1
                             );
-                        self.emit(Event::CheckpointSpotEntry(CheckpointSpotEntry { pair_id }));
+                        self
+                            .emit(
+                                Event::CheckpointSpotEntry(
+                                    CheckpointSpotEntry { pair_id, checkpoint: new_checkpoint }
+                                )
+                            );
                     },
                     DataType::FutureEntry((
                         pair_id, expiration_timestamp
@@ -1856,7 +1873,9 @@ mod Oracle {
                         self
                             .emit(
                                 Event::CheckpointFutureEntry(
-                                    CheckpointFutureEntry { pair_id, expiration_timestamp }
+                                    CheckpointFutureEntry {
+                                        pair_id, expiration_timestamp, checkpoint: new_checkpoint
+                                    }
                                 )
                             );
                     },
@@ -2040,7 +2059,7 @@ mod Oracle {
     // @param a span of sources
     // @returns the latest timestamp
     fn get_latest_entry_timestamp(
-        self: @ContractState, data_type: DataType, sources: Span<felt252>, 
+        self: @ContractState, data_type: DataType, sources: Span<felt252>,
     ) -> u64 {
         let mut cur_idx = 0;
         let mut latest_timestamp = 0;
@@ -2378,7 +2397,7 @@ mod Oracle {
     // @param new_entry : an entry (spot entry, future entry, ... )
     // @param last_entry : an entry (with the same nature as new_entry)
     fn validate_data_timestamp<T, impl THasBaseEntry: HasBaseEntry<T>, impl TDrop: Drop<T>>(
-        ref self: ContractState, new_entry: PossibleEntries, last_entry: T, 
+        ref self: ContractState, new_entry: PossibleEntries, last_entry: T,
     ) {
         let current_timestamp = get_block_timestamp();
         match new_entry {

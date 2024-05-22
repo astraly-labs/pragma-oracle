@@ -149,7 +149,7 @@ struct Currency {
     ethereum_address: ContractAddress, // optional
 }
 
-#[derive(Serde, Drop)]
+#[derive(Serde, Drop, Copy)]
 struct Checkpoint {
     timestamp: u64,
     value: u128,
