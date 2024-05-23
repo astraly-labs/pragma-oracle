@@ -58,12 +58,8 @@ if NETWORK["private_key"] is None:
     NETWORK["private_key"] = os.getenv("PRIVATE_KEY")
 if NETWORK["name"] == "mainnet":
     NETWORK["chain_id"] = StarknetChainId.MAINNET
-elif NETWORK["name"] == "sepolia":
-    NETWORK["chain_id"] = (
-        393402133025997798000961  # TODO: replace with starknet_py upgrade
-    )
-else:
-    NETWORK["chain_id"] = StarknetChainId.TESTNET
+else: 
+    NETWORK["chain_id"] = StarknetChainId.SEPOLIA_TESTNET
 
 
 FULLNODE_CLIENT = FullNodeClient(

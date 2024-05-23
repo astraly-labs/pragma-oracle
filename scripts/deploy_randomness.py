@@ -58,7 +58,7 @@ async def main():
     deployments = get_deployments()
     deployments["pragma_Randomness"] = await deploy_v2(
         "pragma_Randomness",
-        int(os.getenv("TESTNET_ACCOUNT_ADDRESS"), 16),
+        int(os.getenv("KATANA_ACCOUNT_ADDRESS"), 16),
         2061139992776959994838533810929826594222370735645675137341826408353556487187,
         int(ETH_TOKEN_ADDRESS, 16),
         int(deployments["pragma_Oracle"]["address"], 16),

@@ -8,8 +8,8 @@ packages = [{ include = "scripts" }]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.10"
-starknet-py = "0.18.2"
-pragma-sdk = "1.0.5"
+"starknet.py" = "0.20.0"
+pragma-sdk = "1.3.1"
 python-dotenv = "^1.0.0"
 case-converter = "^1.1.0"
 

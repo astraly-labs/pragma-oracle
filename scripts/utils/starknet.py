@@ -200,15 +200,15 @@ async def declare_v2(contract_name, port=None):
 
     # Create Declare v2 transaction
     account = await get_starknet_account(port=port)
-    declare_v2_transaction = await account.sign_declare_v2_transaction(
+    sign_declare_v2 = await account.sign_declare_v2(
         compiled_contract=contract_compiled_sierra,
         compiled_class_hash=casm_class_hash,
         max_fee=MAX_FEE,
     )
 
-    # Send Declare v2 transaction
-    resp = await account.client.declare(transaction=declare_v2_transaction)
-    await account.client.wait_for_tx(resp.transaction_hash)
+
+    # # Send Declare v2 transaction
+    resp = await account.client.declare(transaction=sign_declare_v2)
 
     logger.info(f"✅ {contract_name} class hash: {hex(resp.class_hash)}")
     return resp.class_hash
@@ -222,7 +222,7 @@ async def deploy_v2(contract_name, *args, port=None):
     sierra_class_hash = get_declarations()[contract_name]
     abi = get_abi(contract_name)
 
-    deploy_result = await Contract.deploy_contract(
+    deploy_result = await Contract.deploy_contract_v1(
         account=account,
         class_hash=sierra_class_hash,
         abi=json.loads(abi),
@@ -256,7 +256,7 @@ async def invoke(contract_name, function_name, inputs, address=None, port=None):
         calldata=inputs,
     )
     logger.info(f"ℹ️  Invoking {contract_name}.{function_name}({json.dumps(inputs)})")
-    response = await account.execute(
+    response = await account.execute_v1(
         calls=call,
         max_fee=MAX_FEE,
     )
@@ -278,7 +278,7 @@ async def invoke_cairo0(contract_name, function_name, *inputs, address=None):
     )
     call = contract.functions[function_name].prepare(*inputs, max_fee=MAX_FEE)
     logger.info(f"ℹ️  Invoking {contract_name}.{function_name}({json.dumps(inputs)})")
-    response = await account.execute(call, max_fee=MAX_FEE).wait_for_acceptance()
+    response = await account.execute_v1(call, max_fee=MAX_FEE).wait_for_acceptance()
     logger.info(
         f"✅ {contract_name}.{function_name} invoked at tx: %s",
         hex(response.transaction_hash),
