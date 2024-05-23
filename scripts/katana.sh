@@ -16,6 +16,7 @@ STARKNET_NETWORK=katana poetry run python3 scripts/deploy_pragma.py --port $PORT
 STARKNET_NETWORK=katana poetry run python3 scripts/add_pairs.py --port $PORT
 STARKNET_NETWORK=katana poetry run python3 scripts/register_publishers.py --port $PORT
 STARKNET_NETWORK=katana poetry run python3 scripts/deploy_summary_stats.py --port $PORT
+STARKNET_NETWORK=katana poetry run python3 scripts/deploy_randomness.py --port $PORT
 STARKNET_NETWORK=katana poetry run python3 scripts/test_randomness.py --port $PORT
 STARKNET_NETWORK=katana poetry run python3 scripts/upgrade_pragma.py --port $PORT
 # STARKNET_NETWORK=katana poetry run python3 scripts/remove_source.py --port $PORT
