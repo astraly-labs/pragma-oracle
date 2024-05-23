@@ -47,15 +47,15 @@ NETWORK["account_address"] = os.environ.get(
 )
 if NETWORK["account_address"] is None:
     logger.warning(
-        f"⚠️ {NETWORK['name'].upper()}_ACCOUNT_ADDRESS not set, defaulting to DEFAULT KATANA ADDRESS"
+        f"⚠️ {NETWORK['name'].upper()}_ACCOUNT_ADDRESS not set, defaulting to ACCOUNT_ADDRESS"
     )
-    NETWORK["account_address"] = "0x4d75495e10ee26cae76478b6e491646ff0a10e0a062db1555131e47b07b7d24" 
+    NETWORK["account_address"] = os.getenv("ACCOUNT_ADDRESS")
 NETWORK["private_key"] = os.environ.get(f"{NETWORK['name'].upper()}_PRIVATE_KEY")
 if NETWORK["private_key"] is None:
     logger.warning(
-        f"⚠️  {NETWORK['name'].upper()}_PRIVATE_KEY not set, defaulting to DEFAULT KATANA PRIVATE KEY"
+        f"⚠️  {NETWORK['name'].upper()}_PRIVATE_KEY not set, defaulting to PRIVATE_KEY"
     )
-    NETWORK["private_key"] = "0x100801800000000310080180000000010030000000000005106801800206800"
+    NETWORK["private_key"] = os.getenv("PRIVATE_KEY")
 if NETWORK["name"] == "mainnet":
     NETWORK["chain_id"] = StarknetChainId.MAINNET
 else: 
