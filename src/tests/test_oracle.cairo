@@ -334,7 +334,6 @@ fn test_get_decimals() {
 }
 
 
-
 #[test]
 #[available_gas(200000000000)]
 fn test_data_entry() {
@@ -373,8 +372,6 @@ fn test_data_entry() {
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (5000000), 'wrong price');
 }
-
-
 
 
 #[test]
@@ -749,7 +746,6 @@ fn test_get_last_checkpoint_before() {
     assert(idx_2 == 0, 'wrong idx');
     assert(checkpoint_2.timestamp <= 111111111, 'wrong timestamp');
 }
-
 
 
 #[test]
