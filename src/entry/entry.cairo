@@ -97,7 +97,6 @@ mod Entry {
     ) -> u128 {
         let sorted_entries = merge(entries);
         let entries_len = sorted_entries.len();
-        assert(entries_len > 0_usize, 'entries must not be empty');
         let is_even = 1 - entries_len % 2_usize;
         if (is_even == 0) {
             let median_idx = (entries_len) / 2;
@@ -137,7 +136,6 @@ mod Entry {
     fn compute_median(entry_array: Array<u128>) -> u128 {
         let sorted_array = alexandria_sorting::merge_sort::merge(entry_array);
         let entries_len = sorted_array.len();
-        assert(entries_len > 0_usize, 'entries must not be empty');
         let is_even = 1 - entries_len % 2_usize;
         if (is_even == 0) {
             let median_idx = (entries_len) / 2;

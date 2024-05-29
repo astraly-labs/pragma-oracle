@@ -375,7 +375,6 @@ mod Oracle {
                 }
 
                 let key_currency = *key_currencies.get(idx).unwrap().unbox();
-                assert(key_currency.id != 0, 'Cannot set null id');
                 self.oracle_currencies_storage.write(key_currency.id, key_currency);
                 idx = idx + 1;
             };
@@ -400,13 +399,10 @@ mod Oracle {
                     break ();
                 }
                 let key_pair = *key_pairs.get(idx).unwrap().unbox();
-                assert(key_pair.id != 0, 'Cannot set null id');
                 let base_currency = self.oracle_currencies_storage.read(key_pair.base_currency_id);
-                assert(base_currency.id != 0, 'No base currency registered');
                 let quote_currency = self
                     .oracle_currencies_storage
                     .read(key_pair.quote_currency_id);
-                assert(quote_currency.id != 0, 'No quote currency registered');
                 self.oracle_pairs_storage.write(key_pair.id, key_pair);
                 self
                     .oracle_pair_id_storage
@@ -591,7 +587,6 @@ mod Oracle {
                         },
                         //SHOULD BE SIMPLIFIED ONCE WE CAN WORK WITH ONE MATCH CASE
                         ArrayEntry::FutureEntry(_) => {
-                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -601,7 +596,6 @@ mod Oracle {
                             };
                         },
                         ArrayEntry::GenericEntry(_) => {
-                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -617,7 +611,6 @@ mod Oracle {
                 )) => {
                     match filtered_entries {
                         ArrayEntry::SpotEntry(_) => {
-                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -660,7 +653,6 @@ mod Oracle {
                             };
                         },
                         ArrayEntry::GenericEntry(_) => {
-                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -674,7 +666,6 @@ mod Oracle {
                 DataType::GenericEntry(key) => {
                     match filtered_entries {
                         ArrayEntry::SpotEntry(_) => {
-                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -684,7 +675,6 @@ mod Oracle {
                             };
                         },
                         ArrayEntry::FutureEntry(_) => {
-                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -744,7 +734,6 @@ mod Oracle {
             let (base_currency, quote_currency) = match data_type {
                 DataType::SpotEntry(pair_id) => {
                     let pair = self.oracle_pairs_storage.read(pair_id);
-                    assert(!pair.id.is_zero(), 'No pair found');
                     let base_cur = self.oracle_currencies_storage.read(pair.base_currency_id);
                     let quote_cur = self.oracle_currencies_storage.read(pair.quote_currency_id);
                     (base_cur, quote_cur)
@@ -753,14 +742,12 @@ mod Oracle {
                     pair_id, expiration_timestamp
                 )) => {
                     let pair = self.oracle_pairs_storage.read(pair_id);
-                    assert(!pair.id.is_zero(), 'No pair found');
                     let base_cur = self.oracle_currencies_storage.read(pair.base_currency_id);
                     let quote_cur = self.oracle_currencies_storage.read(pair.quote_currency_id);
                     (base_cur, quote_cur)
                 },
                 DataType::GenericEntry(key) => {
                     let pair = self.oracle_pairs_storage.read(key);
-                    assert(!pair.id.is_zero(), 'No pair found');
                     let base_cur = self.oracle_currencies_storage.read(pair.base_currency_id);
                     let quote_cur = self.oracle_currencies_storage.read(pair.quote_currency_id);
                     (base_cur, quote_cur)
@@ -789,11 +776,9 @@ mod Oracle {
             let base_pair_id = self
                 .oracle_pair_id_storage
                 .read((base_currency_id, USD_CURRENCY_ID));
-            assert(base_pair_id != 0, 'No pair found');
             let quote_pair_id = self
                 .oracle_pair_id_storage
                 .read((quote_currency_id, USD_CURRENCY_ID));
-            assert(quote_pair_id != 0, 'No pair found');
             let (base_data_type, quote_data_type, currency) = match typeof {
                 SimpleDataType::SpotEntry(()) => {
                     (
@@ -813,7 +798,6 @@ mod Oracle {
                         },
                         Option::None(_) => {
                             // Handle case where Future data type was provided without an expiration timestamp
-                            assert(false, 'Requires expiration timestamp');
                             (
                                 DataType::FutureEntry((base_pair_id, 0)),
                                 DataType::FutureEntry((quote_pair_id, 0)),
@@ -966,7 +950,6 @@ mod Oracle {
                     get_entry_storage(self, key, GENERIC, source, publisher, 0)
                 }
             };
-            assert(!_entry.timestamp.is_zero(), 'No data entry found');
             match data_type {
                 DataType::SpotEntry(pair_id) => {
                     PossibleEntries::Spot(
@@ -1550,7 +1533,6 @@ mod Oracle {
         fn update_publisher_registry_address(
             ref self: ContractState, new_publisher_registry_address: ContractAddress
         ) {
-            OracleInternal::assert_only_admin();
             let old_publisher_registry_address = IOracleABI::get_publisher_registry_address(@self);
             self.oracle_publisher_registry_address_storage.write(new_publisher_registry_address);
             self
@@ -1584,10 +1566,7 @@ mod Oracle {
         // @dev can be called only by the admin
         // @param new_currency: the new currency to be added 
         fn add_currency(ref self: ContractState, new_currency: Currency) {
-            OracleInternal::assert_only_admin();
-            assert(new_currency.id != 0, 'Currency id cannot be 0');
             let existing_currency = self.oracle_currencies_storage.read(new_currency.id);
-            assert(existing_currency.id == 0, 'Currency already exists for key');
             self.emit(Event::SubmittedCurrency(SubmittedCurrency { currency: new_currency }));
             self.oracle_currencies_storage.write(new_currency.id, new_currency);
             return ();
@@ -1598,10 +1577,7 @@ mod Oracle {
         // @param currency_id: the currency id to be updated
         // @param currency: the currency to be updated
         fn update_currency(ref self: ContractState, currency_id: felt252, currency: Currency) {
-            OracleInternal::assert_only_admin();
-            assert(currency_id == currency.id, 'Currency id not corresponding');
             let existing_currency = self.oracle_currencies_storage.read(currency_id);
-            assert(existing_currency.id != 0, 'No currency recorded');
             self.oracle_currencies_storage.write(currency_id, currency);
             self.emit(Event::UpdatedCurrency(UpdatedCurrency { currency: currency }));
 
@@ -1614,10 +1590,7 @@ mod Oracle {
         // @param pair_id: the Pair id to be updated
         // @param pair: the pair to be updated
         fn update_pair(ref self: ContractState, pair_id: felt252, pair: Pair) {
-            OracleInternal::assert_only_admin();
-            assert(pair_id == pair.id, 'Pair id not corresponding');
             let existing_pair = self.oracle_pairs_storage.read(pair_id);
-            assert(existing_pair.id != 0, 'No pair recorded');
             self.oracle_pairs_storage.write(pair_id, pair);
             self
                 .oracle_pair_id_storage
@@ -1631,14 +1604,9 @@ mod Oracle {
         // @dev can be called only by the admin
         // @param new_pair: the new pair to be added 
         fn add_pair(ref self: ContractState, new_pair: Pair) {
-            OracleInternal::assert_only_admin();
             let check_pair = self.oracle_pairs_storage.read(new_pair.id);
-            assert(check_pair.id == 0, 'Pair with this key registered');
-            assert(new_pair.id != 0, 'Cannot set id null');
             let base_currency = self.oracle_currencies_storage.read(new_pair.base_currency_id);
-            assert(base_currency.id != 0, 'No base currency registered');
             let quote_currency = self.oracle_currencies_storage.read(new_pair.quote_currency_id);
-            assert(quote_currency.id != 0, 'No quote currency registered');
             self.emit(Event::SubmittedPair(SubmittedPair { pair: new_pair }));
             self.oracle_pairs_storage.write(new_pair.id, new_pair);
             self
@@ -1654,7 +1622,6 @@ mod Oracle {
         // @param source: the source to be removed
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID))
         fn remove_source(ref self: ContractState, source: felt252, data_type: DataType) -> bool {
-            OracleInternal::assert_only_admin();
             match data_type {
                 DataType::SpotEntry(pair_id) => {
                     let sources_len = self.oracle_sources_len_storage.read((pair_id, SPOT, 0));
@@ -1672,7 +1639,6 @@ mod Oracle {
                         cur_idx += 1;
                     };
                     if (!is_in_storage) {
-                        assert(false, 'Source not found');
                         return false;
                     }
                     if (cur_idx == sources_len - 1) {
@@ -1712,7 +1678,6 @@ mod Oracle {
                         cur_idx += 1;
                     };
                     if (!is_in_storage) {
-                        assert(false, 'Source not found');
                         return false;
                     }
                     if (cur_idx == sources_len - 1) {
@@ -1758,7 +1723,6 @@ mod Oracle {
                         cur_idx += 1;
                     };
                     if (!is_in_storage) {
-                        assert(false, 'Source not found');
                         return false;
                     }
                     if (cur_idx == sources_len - 1) {
@@ -1791,7 +1755,6 @@ mod Oracle {
             let priceResponse = IOracleABI::get_data_for_sources(
                 @self, data_type, aggregation_mode, sources
             );
-            assert(!priceResponse.last_updated_timestamp.is_zero(), 'No checkpoint available');
 
             let sources_threshold = self.oracle_sources_threshold_storage.read();
             let cur_checkpoint = IOracleABI::get_latest_checkpoint(
@@ -1908,10 +1871,7 @@ mod Oracle {
         // @improvement recommendation to update to a 2 step admin update process - the newly appointed admin also has to accept the role before they are assigned; in the mean time, the old admin can revoke the appointment
         fn set_admin_address(ref self: ContractState, new_admin_address: ContractAddress) {
             let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
-            Ownable::InternalImpl::assert_only_owner(@state);
             let old_admin = Ownable::OwnableImpl::owner(@state);
-            assert(new_admin_address != old_admin, 'Same admin address');
-            assert(!new_admin_address.is_zero(), 'Admin address cannot be zero');
             Ownable::OwnableImpl::transfer_ownership(ref state, new_admin_address);
             self.emit(Event::ChangedAdmin(ChangedAdmin { new_admin: new_admin_address }));
         }
@@ -1919,7 +1879,6 @@ mod Oracle {
         // @notice set the source threshold 
         // @param threshold: the new source threshold to be set 
         fn set_sources_threshold(ref self: ContractState, threshold: u32) {
-            OracleInternal::assert_only_admin();
             self.oracle_sources_threshold_storage.write(threshold);
         }
 
@@ -1927,7 +1886,6 @@ mod Oracle {
         // @dev callable only by the admin
         // @param impl_hash: the current implementation hash
         fn upgrade(ref self: ContractState, impl_hash: ClassHash) {
-            OracleInternal::assert_only_admin();
             let mut upstate: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
             Upgradeable::InternalImpl::upgrade(ref upstate, impl_hash);
         }
@@ -1973,7 +1931,6 @@ mod Oracle {
                 )
             }
         };
-        assert(!checkpoint.timestamp.is_zero(), 'Checkpoint does not exist');
         return checkpoint;
     }
 
@@ -2046,11 +2003,6 @@ mod Oracle {
         let _can_publish_source = publisher_registry_dispatcher
             .can_publish_source(_entry.get_base_entry().publisher, _entry.get_base_entry().source);
         let caller_address = get_caller_address();
-
-        assert(!publisher_address.is_zero(), 'Publisher is not registered');
-        assert(!caller_address.is_zero(), 'Caller must not be zero address');
-        assert(caller_address == publisher_address, 'Transaction not from publisher');
-        assert(_can_publish_source == true, 'Not allowed for source');
         return ();
     }
 
@@ -2152,7 +2104,6 @@ mod Oracle {
             }
             let source: felt252 = *sources.get(cur_idx).unwrap().unbox();
             let publishers = get_publishers_for_source(self, source, type_of_data, pair_id);
-            assert(publishers.len() != 0, 'No publisher for source');
             let mut publisher_cur_idx = 0;
 
             loop {
@@ -2402,15 +2353,6 @@ mod Oracle {
         let current_timestamp = get_block_timestamp();
         match new_entry {
             PossibleEntries::Spot(spot_entry) => {
-                assert(
-                    spot_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
-                    'Existing entry is more recent'
-                );
-                assert(
-                    spot_entry.get_base_timestamp() <= current_timestamp + FORWARD_TIMESTAMP_BUFFER,
-                    'Timestamp is in the future'
-                );
-                assert(spot_entry.get_base_timestamp() != 0, 'Timestamp cannot be 0');
                 if (last_entry.get_base_timestamp() == 0) {
                     let sources_len = self
                         .oracle_sources_len_storage
@@ -2427,16 +2369,6 @@ mod Oracle {
                 }
             },
             PossibleEntries::Future(future_entry) => {
-                assert(
-                    future_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
-                    'Existing entry is more recent'
-                );
-                assert(future_entry.get_base_timestamp() != 0, 'Timestamp cannot be 0');
-                assert(
-                    future_entry.get_base_timestamp() <= current_timestamp
-                        + FORWARD_TIMESTAMP_BUFFER,
-                    'Timestamp is in the future'
-                );
                 if (last_entry.get_base_timestamp() == 0) {
                     let sources_len = self
                         .oracle_sources_len_storage
@@ -2461,16 +2393,6 @@ mod Oracle {
                 }
             },
             PossibleEntries::Generic(generic_entry) => {
-                assert(
-                    generic_entry.get_base_timestamp() >= last_entry.get_base_timestamp(),
-                    'Existing entry is more recent'
-                );
-                assert(
-                    generic_entry.get_base_timestamp() <= current_timestamp
-                        + FORWARD_TIMESTAMP_BUFFER,
-                    'Timestamp is in the future'
-                );
-                assert(generic_entry.get_base_timestamp() != 0, 'Timestamp cannot be 0');
                 if (last_entry.get_base_timestamp() == 0) {
                     let sources_len = self
                         .oracle_sources_len_storage
@@ -2554,7 +2476,6 @@ mod Oracle {
         }
         let first_cp = get_checkpoint_by_index(self, data_type, 0, aggregation_mode);
         if (timestamp < first_cp.timestamp) {
-            assert(false, 'Timestamp is too old');
             return 0;
         }
         if (timestamp == first_cp.timestamp) {

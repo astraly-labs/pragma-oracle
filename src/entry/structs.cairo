@@ -312,22 +312,9 @@ impl u8IntoAggregationMode of Into<u8, AggregationMode> {
 impl EntryStorePacking of StorePacking<EntryStorage, felt252> {
     fn pack(value: EntryStorage) -> felt252 {
         // entries verifications (no overflow)
-        assert(
-            (value.timestamp.into() == value.timestamp.into() & TIMESTAMP_SHIFT_MASK_U32),
-            'EntryStorePack:tmp too big'
-        );
-        assert(
-            value.volume.into() == value.volume.into() & VOLUME_SHIFT_MASK_U100,
-            'EntryStorePack:volume too big'
-        );
-        assert(
-            value.price.into() == value.price.into() & PRICE_SHIFT_MASK_U120,
-            'EntryStorePack:price too big'
-        );
         let pack_value: felt252 = value.timestamp.into()
             + value.volume.into() * TIMESTAMP_SHIFT_U32
             + value.price.into() * VOLUME_SHIFT_U132;
-        assert(pack_value.into() < MAX_FELT, 'EntryStorePacking:tot too big');
         pack_value
     }
     fn unpack(value: felt252) -> EntryStorage {

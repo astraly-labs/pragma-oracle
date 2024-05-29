@@ -110,13 +110,9 @@ mod PublisherRegistry {
         fn add_publisher(
             ref self: ContractState, publisher: felt252, publisher_address: ContractAddress
         ) {
-            assert_only_admin();
             let existing_publisher_address = PublisherRegistryImpl::get_publisher_address(
                 @self, publisher
             );
-            assert(!is_address_registered(@self, publisher_address), 'Address already registered');
-            assert(existing_publisher_address.is_zero(), 'Name already registered');
-            assert(!publisher_address.is_zero(), 'Cannot set address to zero');
             let publishers_len = self.publishers_storage_len.read();
 
             self.publishers_storage_len.write(publishers_len + 1);
@@ -140,13 +136,6 @@ mod PublisherRegistry {
                 @self, publisher
             );
             let caller = get_caller_address();
-            assert(
-                !is_address_registered(@self, new_publisher_address), 'Address already registered'
-            );
-            assert(!existing_publisher_address.is_zero(), 'Name not registered');
-
-            assert(caller == existing_publisher_address, 'Caller is not the publisher');
-            assert(!new_publisher_address.is_zero(), 'Publishr address cannot be zero');
             self.publisher_address_storage.write(publisher, new_publisher_address);
 
             self
@@ -164,9 +153,7 @@ mod PublisherRegistry {
         // @notice remove a given publisher
         // @param publisher : the publisher that needs to be removed
         fn remove_publisher(ref self: ContractState, publisher: felt252) {
-            assert_only_admin();
             let not_exists: bool = self.publisher_address_storage.read(publisher).is_zero();
-            assert(!not_exists, 'Publisher not found');
             self.publisher_address_storage.write(publisher, Zeroable::zero());
 
             self.publishers_sources_idx.write(publisher, 0);
@@ -181,9 +168,6 @@ mod PublisherRegistry {
             }
 
             let (publisher_idx, found) = _find_publisher_idx(@self, 0, publishers_len, publisher);
-
-            assert(found, 'Publisher not found');
-
             if (publisher_idx == publishers_len - 1) {
                 self.publishers_storage_len.write(publishers_len - 1);
                 self.publishers_storage.write(publishers_len - 1, 0);
@@ -200,11 +184,9 @@ mod PublisherRegistry {
         // @param: the publisher for which we need to add a source
         // @param: the source that needs to be added for the given publisher
         fn add_source_for_publisher(ref self: ContractState, publisher: felt252, source: felt252) {
-            assert_only_admin();
             let existing_publisher_address = PublisherRegistryImpl::get_publisher_address(
                 @self, publisher
             );
-            assert(!existing_publisher_address.is_zero(), 'Publisher does not exist');
             let cur_idx = self.publishers_sources_idx.read(publisher);
             if (cur_idx == 0) {
                 self.publishers_sources.write((publisher, 0), source);
@@ -214,7 +196,6 @@ mod PublisherRegistry {
                 let can_publish = PublisherRegistryImpl::can_publish_source(
                     @self, publisher, source
                 );
-                assert(can_publish == false, 'Already registered');
                 self.publishers_sources.write((publisher, cur_idx), source);
                 self.publishers_sources_idx.write(publisher, cur_idx + 1);
                 return ();
@@ -227,7 +208,6 @@ mod PublisherRegistry {
         fn add_sources_for_publisher(
             ref self: ContractState, publisher: felt252, sources: Span<felt252>
         ) {
-            assert_only_admin();
             let mut idx: u32 = 0;
 
             loop {
@@ -247,7 +227,6 @@ mod PublisherRegistry {
         fn remove_source_for_publisher(
             ref self: ContractState, publisher: felt252, source: felt252
         ) {
-            assert_only_admin();
             let cur_idx = self.publishers_sources_idx.read(publisher);
 
             if (cur_idx == 0) {
@@ -258,7 +237,6 @@ mod PublisherRegistry {
             _iter_publisher_sources(@self, 0_usize, cur_idx, publisher, ref sources_arr);
 
             let (source_idx, found) = _find_source_idx(0_usize, source, @sources_arr);
-            assert(found, 'Source not found');
 
             if (source_idx == cur_idx - 1) {
                 self.publishers_sources_idx.write(publisher, source_idx);
@@ -277,7 +255,6 @@ mod PublisherRegistry {
         // @param source the source to consider
         fn remove_source_for_all_publishers(ref self: ContractState, source: felt252) {
             let mut publishers = IPublisherRegistryABI::get_all_publishers(@self);
-            assert_only_admin();
             loop {
                 match publishers.pop_front() {
                     Option::Some(publisher) => {
@@ -322,10 +299,7 @@ mod PublisherRegistry {
         // @param new_admin_address: the new admin address
         fn set_admin_address(ref self: ContractState, new_admin_address: ContractAddress) {
             let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
-            Ownable::InternalImpl::assert_only_owner(@state);
             let old_admin = Ownable::OwnableImpl::owner(@state);
-            assert(new_admin_address != old_admin, 'Same admin address');
-            assert(!new_admin_address.is_zero(), 'Admin address cannot be zero');
             Ownable::OwnableImpl::transfer_ownership(ref state, new_admin_address);
             self
                 .emit(

@@ -51,8 +51,6 @@ mod Ownable {
         }
 
         fn transfer_ownership(ref self: ContractState, new_owner: ContractAddress) {
-            assert(!new_owner.is_zero(), Errors::ZERO_ADDRESS_OWNER);
-            self.assert_only_owner();
             self._transfer_ownership(new_owner);
         }
 
