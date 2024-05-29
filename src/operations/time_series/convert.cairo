@@ -32,9 +32,6 @@ fn mul_decimals(a_price: u128, b_price: u128, output_decimals: u128) -> u128 {
 fn convert_via_usd(a_price_in_usd: u128, b_price_in_usd: u128, output_decimals: u32) -> u128 {
     let power: u128 = pow(10_u128, output_decimals.into()).into();
 
-    assert(power <= MAX_POWER, 'Conversion overflow');
-    assert(a_price_in_usd <= MAX_POWER, 'Conversion overflow');
-
     a_price_in_usd * power / b_price_in_usd
 }
 
