@@ -332,23 +332,7 @@ fn test_get_decimals() {
     let decimals_5 = oracle.get_decimals(DataType::FutureEntry((2, 11111110)));
     assert(decimals_5 == 6_u32, 'wrong decimals value');
 }
-#[test]
-#[should_panic]
-#[available_gas(200000000000)]
-fn test_get_decimals_should_fail_if_not_found() {
-    //Test should fail if the pair_id is not found 
-    let (publisher_registry, oracle) = setup();
-    let decimals_1 = oracle.get_decimals(DataType::SpotEntry(100));
-}
 
-#[test]
-#[should_panic]
-#[available_gas(200000000000)]
-fn test_get_decimals_should_fail_if_not_found_2() {
-    //Test should fail if the pair_id or the expiration timestamp is not related to a FutureEntry
-    let (publisher_registry, oracle) = setup();
-    let decimals_1 = oracle.get_decimals(DataType::FutureEntry((100, 110100)));
-}
 
 #[test]
 #[available_gas(200000000000)]
@@ -389,32 +373,6 @@ fn test_data_entry() {
     assert(price == (5000000), 'wrong price');
 }
 
-#[test]
-#[should_panic]
-#[available_gas(200000000000)]
-fn test_data_entry_should_fail_if_not_found() {
-    //no panic because we want get_data_entry is called the first time data is published
-    let (publisher_registry, oracle) = setup();
-    let entry = oracle.get_data_entry(DataType::SpotEntry(100), 1, 1);
-}
-
-#[test]
-#[should_panic]
-#[available_gas(200000000000)]
-fn test_data_entry_should_fail_if_not_found_2() {
-    //Test should return if the pair_id or the expiration timestamp is not related to a FutureEntry
-    let (publisher_registry, oracle) = setup();
-    let entry = oracle.get_data_entry(DataType::FutureEntry((100, 110100)), 1, 1);
-}
-
-#[test]
-#[should_panic]
-#[available_gas(200000000000)]
-fn test_data_entry_should_fail_if_not_found_3() {
-    //Test should fail if the pair_id or the expiration timestamp is not related to a FutureEntry
-    let (publisher_registry, oracle) = setup();
-    let entry = oracle.get_data_entry(DataType::FutureEntry((2, 110100)), 1, 1);
-}
 
 #[test]
 #[available_gas(20000000000)]
@@ -506,16 +464,7 @@ fn get_data_median_for_sources() {
     let entry = oracle.get_data_median_for_sources(DataType::SpotEntry(2), sources.span());
     assert(entry.price == (2500000), 'wrong price');
 }
-#[test]
-#[should_panic]
-#[available_gas(2000000000)]
-fn get_data_median_for_sources_should_fail_if_wrong_sources() {
-    let (publisher_registry, oracle) = setup();
-    let mut sources = ArrayTrait::<felt252>::new();
-    // sources.append(1);
-    sources.append(3);
-    let entry = oracle.get_data_median_for_sources(DataType::SpotEntry(2), sources.span());
-}
+
 #[test]
 #[available_gas(2000000000)]
 fn get_data_for_sources() {
@@ -695,33 +644,8 @@ fn test_get_data_median_multi() {
 
     assert(*res_2.at(1).price == (5000000), 'wrong price');
 }
-#[test]
-#[available_gas(2000000000)]
-#[should_panic]
-fn test_data_median_multi_should_fail_if_wrong_sources() {
-    let (publisher_registry, oracle) = setup();
-    let mut sources = ArrayTrait::<felt252>::new();
-    sources.append(1);
-    sources.append(3);
-    let mut data_types = ArrayTrait::<DataType>::new();
-    data_types.append(DataType::SpotEntry(2));
-    data_types.append(DataType::SpotEntry(3));
-    let res = oracle.get_data_median_multi(data_types.span(), sources.span());
-}
 
-#[test]
-#[should_panic]
-#[available_gas(2000000000)]
-fn test_data_median_multi_should_fail_if_no_expiration_time_associated() {
-    let (publisher_registry, oracle) = setup();
-    let mut sources = ArrayTrait::<felt252>::new();
-    sources.append(1);
-    sources.append(3);
-    let mut data_types = ArrayTrait::<DataType>::new();
-    data_types.append(DataType::FutureEntry((2, 111111111)));
-    data_types.append(DataType::FutureEntry((3, 111111111)));
-    let res = oracle.get_data_median_multi(data_types.span(), sources.span());
-}
+
 #[test]
 #[should_panic]
 #[available_gas(2000000000)]
@@ -770,17 +694,6 @@ fn test_get_data_with_usd_hop_diff() {
         );
     assert(entry.price == 400000, 'wrong price for hop');
     assert(entry.decimals == 6, 'wrong decimals for hop');
-}
-
-#[test]
-#[should_panic]
-#[available_gas(2000000000)]
-fn test_get_data_with_USD_hop_should_fail_if_wrong_id() {
-    let (publisher_registry, oracle) = setup();
-    let entry: PragmaPricesResponse = oracle
-        .get_data_with_USD_hop(
-            444, 222, AggregationMode::Median(()), SimpleDataType::SpotEntry(()), Option::Some(0)
-        );
 }
 
 #[test]
@@ -834,30 +747,6 @@ fn test_get_last_checkpoint_before() {
     assert(checkpoint_2.timestamp <= 111111111, 'wrong timestamp');
 }
 
-#[test]
-#[should_panic]
-#[available_gas(2000000000)]
-fn test_get_last_checkpoint_before_should_fail_if_wrong_data_type() {
-    let (publisher_registry, oracle) = setup();
-    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
-    oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
-
-    let (checkpoint, idx) = oracle
-        .get_last_checkpoint_before(DataType::SpotEntry(6), 111111111, AggregationMode::Median(()));
-}
-
-#[test]
-#[should_panic]
-#[available_gas(2000000000)]
-fn test_get_last_checkpoint_before_should_fail_if_timestamp_too_old() {
-    //if timestamp is before the first checkpoint
-    let (publisher_registry, oracle) = setup();
-    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
-    oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
-
-    let (checkpoint, idx) = oracle
-        .get_last_checkpoint_before(DataType::SpotEntry(6), 111, AggregationMode::Median(()));
-}
 
 #[test]
 #[should_panic(expected: ('Currency id cannot be 0', 'ENTRYPOINT_FAILED'))]

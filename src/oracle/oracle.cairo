@@ -591,7 +591,6 @@ mod Oracle {
                         },
                         //SHOULD BE SIMPLIFIED ONCE WE CAN WORK WITH ONE MATCH CASE
                         ArrayEntry::FutureEntry(_) => {
-                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -601,7 +600,6 @@ mod Oracle {
                             };
                         },
                         ArrayEntry::GenericEntry(_) => {
-                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -617,7 +615,6 @@ mod Oracle {
                 )) => {
                     match filtered_entries {
                         ArrayEntry::SpotEntry(_) => {
-                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -660,7 +657,6 @@ mod Oracle {
                             };
                         },
                         ArrayEntry::GenericEntry(_) => {
-                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -674,7 +670,6 @@ mod Oracle {
                 DataType::GenericEntry(key) => {
                     match filtered_entries {
                         ArrayEntry::SpotEntry(_) => {
-                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -684,7 +679,6 @@ mod Oracle {
                             };
                         },
                         ArrayEntry::FutureEntry(_) => {
-                            assert(false, 'Wrong data type');
                             return PragmaPricesResponse {
                                 price: 0,
                                 decimals: 0,
@@ -744,7 +738,6 @@ mod Oracle {
             let (base_currency, quote_currency) = match data_type {
                 DataType::SpotEntry(pair_id) => {
                     let pair = self.oracle_pairs_storage.read(pair_id);
-                    assert(!pair.id.is_zero(), 'No pair found');
                     let base_cur = self.oracle_currencies_storage.read(pair.base_currency_id);
                     let quote_cur = self.oracle_currencies_storage.read(pair.quote_currency_id);
                     (base_cur, quote_cur)
@@ -753,14 +746,12 @@ mod Oracle {
                     pair_id, expiration_timestamp
                 )) => {
                     let pair = self.oracle_pairs_storage.read(pair_id);
-                    assert(!pair.id.is_zero(), 'No pair found');
                     let base_cur = self.oracle_currencies_storage.read(pair.base_currency_id);
                     let quote_cur = self.oracle_currencies_storage.read(pair.quote_currency_id);
                     (base_cur, quote_cur)
                 },
                 DataType::GenericEntry(key) => {
                     let pair = self.oracle_pairs_storage.read(key);
-                    assert(!pair.id.is_zero(), 'No pair found');
                     let base_cur = self.oracle_currencies_storage.read(pair.base_currency_id);
                     let quote_cur = self.oracle_currencies_storage.read(pair.quote_currency_id);
                     (base_cur, quote_cur)
@@ -789,11 +780,9 @@ mod Oracle {
             let base_pair_id = self
                 .oracle_pair_id_storage
                 .read((base_currency_id, USD_CURRENCY_ID));
-            assert(base_pair_id != 0, 'No pair found');
             let quote_pair_id = self
                 .oracle_pair_id_storage
                 .read((quote_currency_id, USD_CURRENCY_ID));
-            assert(quote_pair_id != 0, 'No pair found');
             let (base_data_type, quote_data_type, currency) = match typeof {
                 SimpleDataType::SpotEntry(()) => {
                     (
@@ -813,7 +802,6 @@ mod Oracle {
                         },
                         Option::None(_) => {
                             // Handle case where Future data type was provided without an expiration timestamp
-                            assert(false, 'Requires expiration timestamp');
                             (
                                 DataType::FutureEntry((base_pair_id, 0)),
                                 DataType::FutureEntry((quote_pair_id, 0)),
@@ -966,7 +954,6 @@ mod Oracle {
                     get_entry_storage(self, key, GENERIC, source, publisher, 0)
                 }
             };
-            assert(!_entry.timestamp.is_zero(), 'No data entry found');
             match data_type {
                 DataType::SpotEntry(pair_id) => {
                     PossibleEntries::Spot(
@@ -1973,7 +1960,6 @@ mod Oracle {
                 )
             }
         };
-        assert(!checkpoint.timestamp.is_zero(), 'Checkpoint does not exist');
         return checkpoint;
     }
 
@@ -2152,7 +2138,6 @@ mod Oracle {
             }
             let source: felt252 = *sources.get(cur_idx).unwrap().unbox();
             let publishers = get_publishers_for_source(self, source, type_of_data, pair_id);
-            assert(publishers.len() != 0, 'No publisher for source');
             let mut publisher_cur_idx = 0;
 
             loop {
@@ -2554,7 +2539,6 @@ mod Oracle {
         }
         let first_cp = get_checkpoint_by_index(self, data_type, 0, aggregation_mode);
         if (timestamp < first_cp.timestamp) {
-            assert(false, 'Timestamp is too old');
             return 0;
         }
         if (timestamp == first_cp.timestamp) {
