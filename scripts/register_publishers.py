@@ -50,6 +50,8 @@ THIRD_PARTY_SOURCES = [
     "HUOBI",
     "BYBIT",
     "INDEXCOOP",
+    "MEXC",
+    "GATEIO",
 ]
 
 DEX_SOURCES = [
