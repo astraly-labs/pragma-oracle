@@ -1,6 +1,6 @@
 use starknet::ContractAddress;
 use pragma::entry::structs::{DataType, AggregationMode};
-use cubit::f128::types::fixed::{FixedTrait, ONE_u128};
+use cubit::f128::types::fixed::{FixedTrait, ONE_u128, Fixed};
 #[starknet::interface]
 trait ISummaryStatsABI<TContractState> {
     fn calculate_mean(
@@ -28,24 +28,64 @@ trait ISummaryStatsABI<TContractState> {
         start_time: u64,
     ) -> (u128, u32);
 
+    fn calculate_ema(
+        self: @TContractState,
+        data_type: DataType,
+        aggregation_mode: AggregationMode,
+        period: u64,
+        number_of_periods: u64,
+        timestamp: u64,
+        initial_ema: Option::<u128>
+    ) -> (Array<u128>, u32);
+    fn calculate_macd(
+        self: @TContractState,
+        data_type: DataType,
+        aggregation_mode: AggregationMode,
+        period: u64,
+        timestamp: Option::<u64>
+    ) -> (Array<Fixed>, u32);
+    fn calculate_signal_line(
+        self: @TContractState,
+        data_type: DataType,
+        aggregation_mode: AggregationMode,
+        period: u64,
+        number_of_periods: Option::<u64>,
+    ) -> (Array<Fixed>, u32);
 
     fn get_oracle_address(self: @TContractState) -> ContractAddress;
 }
 
 #[starknet::contract]
 mod SummaryStats {
-    use starknet::ContractAddress;
-
+    use starknet::{ContractAddress, get_caller_address};
     use array::ArrayTrait;
+    use hash::LegacyHash;
     use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
-    use pragma::entry::structs::{DataType, AggregationMode};
+    use pragma::entry::structs::{DataType, AggregationMode, EMA, SPOT, FUTURE, GENERIC};
     use pragma::operations::time_series::structs::TickElem;
     use pragma::operations::time_series::metrics::{volatility, mean, twap};
     use pragma::operations::time_series::scaler::scale_data;
-    use super::{FixedTrait, ONE_u128, ISummaryStatsABI};
+    use super::{FixedTrait, ONE_u128, ISummaryStatsABI, Fixed};
+    use alexandria_math::pow;
+    use pragma::operations::time_series::convert::normalize_to_decimals;
+    const VALIDATION_FRACTION: u64 = 5;
+    const ONE_DAY: u64 = 86400;
+    const PRECISION: u64 = 1000; // added precision for operations
+    const SUMMARY_STATS_DECIMALS: u32 = 8;
+    type Index = u64;
+    type Config = u8;
+    type Period = u32;
+
     #[storage]
     struct Storage {
         oracle_address: ContractAddress,
+    }
+
+
+    mod Errors {
+        const EMA_INITIALIZATION_ERROR: felt252 = 'EMA not initialized';
+        const EMA_LACK_PREVIOUS_DATA: felt252 = 'EMA: not enough data';
+        const EMA_NO_AVAILABLE_CHECKPOINT_FOR_GIVEN_PERIOD: felt252 = 'EMA: no cp available';
     }
 
     #[constructor]
@@ -154,7 +194,7 @@ mod SummaryStats {
                 idx += 1;
             };
             //the number of decimals is hardcoded to 8 by the volatilty computation in metrics.cairo
-            (volatility(tick_arr.span()), 8)
+            (volatility(tick_arr.span()), SUMMARY_STATS_DECIMALS)
         }
 
 
@@ -193,6 +233,181 @@ mod SummaryStats {
                 idx += 1;
             };
             (twap(tick_arr.span()), decimals)
+        }
+
+
+        /// Exponential moving average computation
+        /// # Arguments
+        /// * `data_type` - an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        /// * `aggregation_mode` - specifies the method by which the oracle aggregates each price used in the computation 
+        /// * `period` - The period over which to compute the EMA - period is a timestamp
+        /// * `number_of_periods` - The nunmber of period to consider
+        /// * `timestamp` - current timestamp for the operation
+        /// # Returns 
+        /// * `ema` - the exponential moving average for the given period of time
+        /// * `decimals` - the precision, the number of decimals (the real ema value is ema / (10**decimals))
+        fn calculate_ema(
+            self: @ContractState,
+            data_type: DataType,
+            aggregation_mode: AggregationMode,
+            period: u64,
+            number_of_periods: u64,
+            timestamp: u64,
+            initial_ema: Option::<u128>
+        ) -> (Array<u128>, u32) {
+            let oracle_address = self.oracle_address.read();
+            let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
+            let decimals: u128 = oracle_dispatcher.get_decimals(data_type).into();
+            let smoothing_factor: u128 = (2 * pow(10, decimals)).into()
+                / (number_of_periods + 1).into();
+            let initial_timestamp = timestamp - period * number_of_periods;
+            let first_checkpoint = oracle_dispatcher.get_checkpoint(data_type, 0, aggregation_mode);
+            assert(initial_timestamp > first_checkpoint.timestamp, Errors::EMA_LACK_PREVIOUS_DATA);
+            let (initial_checkpoint, _) = oracle_dispatcher
+                .get_last_checkpoint_before(data_type, initial_timestamp, aggregation_mode);
+            // check if there is an available checkpoint around the period
+            assert(
+                initial_timestamp - initial_checkpoint.timestamp <= period / VALIDATION_FRACTION,
+                Errors::EMA_NO_AVAILABLE_CHECKPOINT_FOR_GIVEN_PERIOD
+            );
+            let init_ema: u128 = match initial_ema {
+                Option::Some(val) => val,
+                Option::None(_) => {
+                    if (initial_checkpoint.timestamp >= initial_timestamp - ONE_DAY) {
+                        first_checkpoint.value.into()
+                    } else {
+                        let (twap, _) = self
+                            .calculate_twap(
+                                data_type, aggregation_mode, ONE_DAY, initial_timestamp - ONE_DAY
+                            );
+                        twap.into()
+                    }
+                }
+            };
+            let mut list_ema = array![init_ema];
+            let mut cur_idx: u64 = 1;
+            loop {
+                if (cur_idx == number_of_periods + 1) {
+                    break ();
+                }
+                let (checkpoint, _) = oracle_dispatcher
+                    .get_last_checkpoint_before(
+                        data_type, initial_timestamp + cur_idx * period, aggregation_mode
+                    );
+                // Checking if the selected checkpoint is relevant for the computation, difference in timestamp is an arbitrary fraction of the desired period
+                assert(
+                    (initial_timestamp + cur_idx * period) - checkpoint.timestamp <= period / 5,
+                    Errors::EMA_NO_AVAILABLE_CHECKPOINT_FOR_GIVEN_PERIOD
+                );
+                let current_ema: u128 = *list_ema.at(cur_idx.try_into().unwrap() - 1);
+                let new_ema: u128 = smoothing_factor * checkpoint.value.into()
+                    + current_ema * (pow(10, decimals).into() - smoothing_factor);
+                list_ema.append(new_ema / (pow(10, decimals)).into());
+                cur_idx += 1;
+            };
+            (list_ema, decimals.try_into().unwrap())
+        }
+
+        ///  Moving Average convergence divergence
+        /// # Arguments
+        /// * `data_type` - an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        /// * `aggregation_mode` - specifies the method by which the oracle aggregates each price used in the computation 
+        /// * `period` - The period over which to compute the MACD - period is a number of days
+        /// # Returns 
+        /// * `macd` - the  moving Average convergence divergence for the given period of time
+        /// * `decimals` - the precision, the number of decimals (the real macd value is macd / (10**decimals))
+        fn calculate_macd(
+            self: @ContractState,
+            data_type: DataType,
+            aggregation_mode: AggregationMode,
+            period: u64,
+            timestamp: Option::<u64>
+        ) -> (Array<Fixed>, u32) {
+            let oracle_address = self.oracle_address.read();
+            let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
+            let decimals = oracle_dispatcher.get_decimals(data_type);
+            let current_timestamp = match timestamp {
+                Option::Some(val) => val,
+                Option::None(_) => starknet::get_block_timestamp(),
+            };
+
+            // MACD
+            let (ema_12, decimals) = self
+                .calculate_ema(
+                    data_type, aggregation_mode, period, 12_u64, current_timestamp, Option::None
+                );
+            let (ema_26, _) = self
+                .calculate_ema(
+                    data_type, aggregation_mode, period, 26_u64, current_timestamp, Option::None
+                );
+            let mut cur_idx = 0;
+            let mut macd = array![];
+            loop {
+                if (cur_idx == ema_12.len()) {
+                    break ();
+                }
+                let ema_12_val = FixedTrait::new(*ema_12.at(cur_idx), false);
+                let ema_26_val = FixedTrait::new(
+                    *ema_26.at(ema_26.len() - ema_12.len() + cur_idx), false
+                );
+                macd.append(ema_12_val - ema_26_val);
+                cur_idx += 1;
+            };
+            (macd, decimals)
+        }
+
+        /// Determine the signal line associated to the MACD
+        /// # Arguments
+        /// * `data_type` - an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
+        /// * `aggregation_mode` - specifies the method by which the oracle aggregates each price used in the computation 
+        /// * `period` - The period over which to compute the MACD - period is a number of days
+        /// * `number_of_periods` - The nunmber of period to consider (Default: 9)
+        /// # Returns 
+        /// * `signal_line`- the point associated to the signal line for the given parameters
+        /// * `decimals` - the precision, the number of decimals (the real macd value is macd / (10**decimals))
+        fn calculate_signal_line(
+            self: @ContractState,
+            data_type: DataType,
+            aggregation_mode: AggregationMode,
+            period: u64,
+            number_of_periods: Option::<u64>
+        ) -> (Array<Fixed>, u32) {
+            let oracle_address = self.oracle_address.read();
+            let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
+            let decimals = oracle_dispatcher.get_decimals(data_type);
+            let current_timestamp = starknet::get_block_timestamp();
+            let mut signal_line = array![];
+            let mut cur_idx: u32 = 1;
+            // In general, to compute the signal line, we use the 9th-period
+            let max_it = match number_of_periods {
+                Option::Some(val) => val,
+                Option::None(_) => 9_u64
+            };
+            let smoothing_factor = FixedTrait::new(
+                (2 * pow(10, decimals.into())) / (max_it + 1).into(), false
+            );
+            let (macd, _) = self
+                .calculate_macd(
+                    data_type, aggregation_mode, period, Option::Some(current_timestamp)
+                ); //timestamp error
+            signal_line.append(*macd.at(0));
+            loop {
+                if (cur_idx.into() == max_it) {
+                    break ();
+                }
+                // Here we are obliged to separate operations in order to avoid overflow
+                let signal_line_i = *signal_line.at(cur_idx - 1);
+                let fixed_macd_sign_diff = (*macd.at(cur_idx) - signal_line_i);
+                let smooth_macd_sign_diff = fixed_macd_sign_diff.mag
+                    * smoothing_factor.mag
+                    / pow(10, decimals.into()).into();
+                let fixed_smooth_macd_sign_diff = FixedTrait::new(
+                    smooth_macd_sign_diff, fixed_macd_sign_diff.sign
+                );
+                signal_line.append(fixed_smooth_macd_sign_diff + signal_line_i);
+                cur_idx += 1;
+            };
+            (signal_line, decimals)
         }
 
 
@@ -263,3 +478,4 @@ mod SummaryStats {
         return tick_arr;
     }
 }
+

@@ -173,6 +173,12 @@ enum AggregationMode {
     Error: (),
 }
 
+#[derive(Serde, Drop, Copy, starknet::Store)]
+struct EMA {
+    price: u128,
+    timestamp: u64
+}
+
 
 /// DataType should implement this trait
 /// If it has a `base_entry` field defined by `BaseEntry` struct
@@ -305,6 +311,19 @@ impl u8IntoAggregationMode of Into<u8, AggregationMode> {
         } else {
             AggregationMode::Error(())
         }
+    }
+}
+
+
+/// LegacyHash implementation for LongString.
+impl DataTypeLegacyHash of hash::LegacyHash<DataType> {
+    fn hash(state: felt252, value: DataType) -> felt252 {
+        let mut buf: Array<felt252> = ArrayTrait::new();
+        value.serialize(ref buf);
+        // Poseidon is used here on the whole span to have a unique
+        // key based on the content. Several other options are available here.
+        let k = poseidon::poseidon_hash_span(buf.span());
+        hash::LegacyHash::hash(state, k)
     }
 }
 
