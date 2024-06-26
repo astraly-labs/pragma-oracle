@@ -30,6 +30,9 @@ mod compute_engines {
     mod summary_stats {
         mod summary_stats;
     }
+    mod index_price_feed {
+        mod index_price_feed;
+    }
 }
 mod upgradeable {
     mod upgradeable;
@@ -45,5 +48,6 @@ mod tests {
     mod test_summary_stats;
     mod test_yield_curve;
     mod test_randomness;
+    mod test_index_price_feed;
 }
 
