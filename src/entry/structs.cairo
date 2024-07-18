@@ -44,7 +44,7 @@ struct SpotEntry {
 struct GenericEntry {
     base: BaseEntry,
     key: felt252,
-    value: u128,
+    value: u256,
 }
 
 #[derive(Copy, Drop, PartialOrd, Serde)]
@@ -245,7 +245,7 @@ impl FHasPriceImpl of HasPrice<FutureEntry> {
 
 impl GHasPriceImpl of HasPrice<GenericEntry> {
     fn get_price(self: @GenericEntry) -> u128 {
-        (*self).value
+        (*self).value.try_into().unwrap()
     }
 }
 impl ResponseHasPriceImpl of HasPrice<PragmaPricesResponse> {
