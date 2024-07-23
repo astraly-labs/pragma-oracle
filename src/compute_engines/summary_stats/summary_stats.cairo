@@ -1,5 +1,5 @@
 use starknet::ContractAddress;
-use pragma::entry::structs::{DataType, AggregationMode};
+use pragma::entry::structs::{DataType, AggregationMode, MerkleFeedData};
 use cubit::f128::types::fixed::{FixedTrait, ONE_u128};
 #[starknet::interface]
 trait ISummaryStatsABI<TContractState> {
@@ -10,6 +10,8 @@ trait ISummaryStatsABI<TContractState> {
         stop: u64,
         aggregation_mode: AggregationMode
     ) -> (u128, u32);
+
+    fn get_merkle_feed_data(self: @TContractState, feed_id: felt252) -> MerkleFeedData;
 
     fn calculate_volatility(
         self: @TContractState,
@@ -34,15 +36,16 @@ trait ISummaryStatsABI<TContractState> {
 
 #[starknet::contract]
 mod SummaryStats {
+    use core::array::SpanTrait;
     use starknet::ContractAddress;
-
     use array::ArrayTrait;
     use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
-    use pragma::entry::structs::{DataType, AggregationMode};
+    use pragma::entry::structs::PossibleEntries;
     use pragma::operations::time_series::structs::TickElem;
     use pragma::operations::time_series::metrics::{volatility, mean, twap};
     use pragma::operations::time_series::scaler::scale_data;
-    use super::{FixedTrait, ONE_u128, ISummaryStatsABI};
+    use super::{FixedTrait, ONE_u128, ISummaryStatsABI, MerkleFeedData, DataType, AggregationMode};
+
     #[storage]
     struct Storage {
         oracle_address: ContractAddress,
@@ -96,6 +99,32 @@ mod SummaryStats {
             let mean = mean(scaled_arr.span()) / ONE_u128;
 
             (mean, decimals)
+        }
+
+        fn get_merkle_feed_data(
+            self: @ContractState, feed_id: felt252, merkle_proof: Span<felt252>
+        ) -> MerkleFeedData {
+            let oracle_address = self.oracle_address.read();
+            let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
+
+            let latest_entry = oracle_dispatcher
+                .get_data_entries(DataType::GenericEntry(feed_id))
+                .get(0);
+            let merkle_root = match latest_entry {
+                Option::Some(entry) => {
+                    match entry.unbox() {
+                        PossibleEntries::Generic(entry) => {
+                            entry
+                        },
+                        _ => {
+                            assert(false, 'Invalid entry type');
+                        }
+                    }
+                },
+                Option::None => {
+                    assert(false, 'No data available for this feed.');
+                }
+            };
         }
 
 

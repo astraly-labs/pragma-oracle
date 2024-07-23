@@ -132,6 +132,9 @@ enum ArrayEntry {
 //  OptionEntry: Array<OptionEntry>,
 }
 
+#[derive(Drop, Serde)]
+struct MerkleFeedData {}
+
 
 #[derive(Serde, Drop, Copy, starknet::Store)]
 struct Pair {
