@@ -1369,3 +1369,103 @@ fn test_update_pair() {
     assert(pair.quote_currency_id == 111, 'wrong recorded pair');
     assert(pair.base_currency_id == 12345, 'wrong recorded pair');
 }
+
+
+#[test]
+#[available_gas(20000000000000)]
+fn test_future_publish_process() {
+    let mut currencies = ArrayTrait::<Currency>::new();
+    currencies
+        .append(
+            Currency {
+                id: 'BTC',
+                decimals: 8_u32,
+                is_abstract_currency: false, // True (1) if not a specific token but abstract, e.g. USD or ETH as a whole
+                starknet_address: 0
+                    .try_into()
+                    .unwrap(), // optional, e.g. can have synthetics for non-bridged assets
+                ethereum_address: 0.try_into().unwrap(), // optional
+            }
+        );
+    currencies
+        .append(
+            Currency {
+                id: 'USD',
+                decimals: 8_u32,
+                is_abstract_currency: false, // True (1) if not a specific token but abstract, e.g. USD or ETH as a whole
+                starknet_address: 0
+                    .try_into()
+                    .unwrap(), // optional, e.g. can have synthetics for non-bridged assets
+                ethereum_address: 0.try_into().unwrap(), // optional
+            }
+        );
+    let mut pairs = ArrayTrait::<Pair>::new();
+    pairs.append(Pair { id: 'BTC/USD', quote_currency_id: 'USD', base_currency_id: 'BTC' });
+
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+    set_block_timestamp(BLOCK_TIMESTAMP);
+    let now = 100000;
+    //Deploy the registry
+    let mut constructor_calldata = ArrayTrait::new();
+    constructor_calldata.append(admin.into());
+    let (publisher_registry_address, _) = deploy_syscall(
+        PublisherRegistry::TEST_CLASS_HASH.try_into().unwrap(), 0, constructor_calldata.span(), true
+    )
+        .unwrap_syscall();
+    let mut publisher_registry = IPublisherRegistryABIDispatcher {
+        contract_address: publisher_registry_address
+    };
+    let mut oracle_calldata = ArrayTrait::<felt252>::new();
+    admin.serialize(ref oracle_calldata);
+    publisher_registry_address.serialize(ref oracle_calldata);
+    currencies.serialize(ref oracle_calldata);
+    pairs.serialize(ref oracle_calldata);
+    let (oracle_address, _) = deploy_syscall(
+        Oracle::TEST_CLASS_HASH.try_into().unwrap(), 0, oracle_calldata.span(), true
+    )
+        .unwrap_syscall();
+    let mut oracle = IOracleABIDispatcher { contract_address: oracle_address };
+    publisher_registry.add_publisher('PUBLISHER_NAME', admin);
+    let sources = array!['BYBIT', 'BINANCE'];
+    publisher_registry.add_sources_for_publisher('PUBLISHER_NAME', sources.span());
+    let mut btc_entries = array![
+        // PossibleEntries::Future(FutureEntry{
+        //     base: BaseEntry { timestamp:now, source:'BINANCE',publisher:'PUBLISHER_NAME'},
+        //     pair_id:'BTC/USD',
+        //     price:4242424240,
+        //     expiration_timestamp:0,
+        //     volume: 0
+        // }),
+        PossibleEntries::Future(
+            FutureEntry {
+                base: BaseEntry { timestamp: now, source: 'BYBIT', publisher: 'PUBLISHER_NAME' },
+                pair_id: 'BTC/USD',
+                price: 4242424248,
+                expiration_timestamp: 0,
+                volume: 0,
+            }
+        ),
+        PossibleEntries::Future(
+            FutureEntry {
+                base: BaseEntry { timestamp: now, source: 'BYBIT', publisher: 'PUBLISHER_NAME' },
+                pair_id: 'BTC/USD',
+                price: 4242424241,
+                expiration_timestamp: 1784261474,
+                volume: 0,
+            }
+        ),
+    ];
+    loop {
+        match btc_entries.pop_front() {
+            Option::Some(entry) => {
+                oracle.publish_data(entry)
+            },
+            Option::None => {
+                break;
+            }
+        };
+    };
+    let sources = oracle.get_all_sources(DataType::FutureEntry(('BTC/USD', 1784261474)));
+    assert(sources.len() == 1, 'Crash test failed');
+}
