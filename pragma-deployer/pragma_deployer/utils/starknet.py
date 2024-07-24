@@ -89,6 +89,7 @@ async def get_eth_contract(port=None) -> Contract:
         ETH_TOKEN_ADDRESS,
         json.loads(erc_20_path.read_text())["abi"],
         await get_starknet_account(port=port),
+        cairo_version=0,
     )
 
 
@@ -97,6 +98,7 @@ async def get_contract(contract_name, port=None) -> Contract:
         get_deployments()[contract_name]["address"],
         json.loads(get_artifact(contract_name).read_text())["abi"],
         await get_starknet_account(port=port),
+        cairo_version=0,
     )
 
 
@@ -273,6 +275,7 @@ async def invoke_cairo0(contract_name, function_name, *inputs, address=None):
         deployments[contract_name]["address"] if address is None else address,
         json.load(open(get_artifact(contract_name)))["abi"],
         account,
+        cairo_version=0,
     )
     call = contract.functions[function_name].prepare(*inputs, max_fee=MAX_FEE)
     logger.info(f"ℹ️  Invoking {contract_name}.{function_name}({json.dumps(inputs)})")
