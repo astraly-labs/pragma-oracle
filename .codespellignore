@@ -1,1 +1,3 @@
 requestor
+.venv
+*.lock
