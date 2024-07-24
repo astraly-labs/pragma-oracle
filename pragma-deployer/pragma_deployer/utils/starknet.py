@@ -18,6 +18,7 @@ from starknet_py.hash.sierra_class_hash import compute_sierra_class_hash
 
 from pragma_deployer.utils.constants import (
     BUILD_DIR,
+    POETRY_ROOT,
     # CONTRACTS,
     DEPLOYMENTS_DIR,
     ETH_TOKEN_ADDRESS,
@@ -83,9 +84,10 @@ async def get_starknet_account(address=None, private_key=None, port=None) -> Acc
 
 
 async def get_eth_contract(port=None) -> Contract:
+    erc_20_path = POETRY_ROOT / "pragma_deployer" / "utils" / "erc20.json"
     return Contract(
         ETH_TOKEN_ADDRESS,
-        json.loads((Path("scripts") / "utils" / "erc20.json").read_text())["abi"],
+        json.loads(erc_20_path.read_text())["abi"],
         await get_starknet_account(port=port),
     )
 

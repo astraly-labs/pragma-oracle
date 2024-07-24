@@ -69,9 +69,8 @@ FULLNODE_CLIENT = FullNodeClient(
 
 
 CURRENT_FILE = Path(__file__).resolve()
-PROJECT_ROOT = CURRENT_FILE.parent.parent.parent.parent
-
-print(PROJECT_ROOT)
+POETRY_ROOT = CURRENT_FILE.parent.parent.parent
+PROJECT_ROOT = POETRY_ROOT.parent
 
 BUILD_DIR = PROJECT_ROOT / "target" / "dev"
 BUILD_DIR.mkdir(exist_ok=True, parents=True)
@@ -81,6 +80,7 @@ CONTRACTS = {p.stem: p for p in list(SOURCE_DIR.glob("**/*.cairo"))}
 
 DEPLOYMENTS_DIR = PROJECT_ROOT / "deployments" / NETWORK["name"]
 DEPLOYMENTS_DIR.mkdir(exist_ok=True, parents=True)
+
 
 COMPILED_CONTRACTS = [
     {"contract_name": "pragma_Oracle", "is_account_contract": False},
