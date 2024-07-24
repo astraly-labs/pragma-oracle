@@ -8,14 +8,14 @@ packages = [{ include = "pragma_deployer" }]
 
 [tool.poetry.scripts]
 deploy-pragma = 'pragma_deployer.deploy_pragma:cli_entrypoint'
-add-pairs = 'pragma_deployer.add_pairs:main'
-register-publishers = 'pragma_deployer.register_publishers:main'
-deploy-summary-stats = 'pragma_deployer.deploy_summary_stats:main'
-deploy-randomness = 'pragma_deployer.deploy_randomness:main'
-test-randomness = 'pragma_deployer.test_randomness:main'
-upgrade-pragma = 'pragma_deployer.upgrade_pragma:main'
-remove-source = 'pragma_deployer.remove_source:main'
-remove-publishers = 'pragma_deployer.remove_publishers:main'
+add-pairs = 'pragma_deployer.add_pairs:cli_entrypoint'
+register-publishers = 'pragma_deployer.register_publishers:cli_entrypoint'
+deploy-summary-stats = 'pragma_deployer.deploy_summary_stats:cli_entrypoint'
+deploy-randomness = 'pragma_deployer.deploy_randomness:cli_entrypoint'
+test-randomness = 'pragma_deployer.test_randomness:cli_entrypoint'
+upgrade-pragma = 'pragma_deployer.upgrade_pragma:cli_entrypoint'
+remove-source = 'pragma_deployer.remove_source:cli_entrypoint'
+remove-publishers = 'pragma_deployer.remove_publishers:cli_entrypoint'
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
