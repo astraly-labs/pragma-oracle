@@ -16,8 +16,6 @@ from pragma_deployer.utils.constants import (
 from pragma_deployer.utils.starknet import (
     dump_declarations,
     dump_deployments,
-    get_declarations,
-    get_eth_contract,
     get_starknet_account,
     declare_v2,
     deploy_v2,

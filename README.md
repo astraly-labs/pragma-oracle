@@ -63,7 +63,7 @@ Local Deployment
 
 Prerequisites:
 - [Scarb](https://docs.swmansion.com/scarb/)
-- Python >= 3.9
+- 3.9 <= Python  < 3.13
 - [Poetry](https://python-poetry.org/)
 
 1. Install dependencies
