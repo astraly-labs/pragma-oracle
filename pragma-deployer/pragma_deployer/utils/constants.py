@@ -170,9 +170,10 @@ currencies = [
     ),
 ]
 
+# TODO: This should be a global Pragma configuration.
 pairs = [
     Pair.from_tickers("ETH", "USD"),
-    Pair.from_tickers("ETH", "DAI"),
+    # Pair.from_tickers("ETH", "DAI"),
     Pair.from_tickers("BTC", "USD"),
     Pair.from_tickers("BTC", "EUR"),
     Pair.from_tickers("WBTC", "USD"),
@@ -180,11 +181,11 @@ pairs = [
     Pair.from_tickers("WBTC", "ETH"),
     Pair.from_tickers("USDC", "USD"),
     Pair.from_tickers("USDT", "USD"),
-    Pair.from_tickers("DAI", "USD"),
-    Pair.from_tickers("LORDS", "USD"),
+    # Pair.from_tickers("DAI", "USD"),
+    # Pair.from_tickers("LORDS", "USD"),
     Pair.from_tickers("LUSD", "USD"),
     Pair.from_tickers("LUSD", "ETH"),
     Pair.from_tickers("WSTETH", "USD"),
     Pair.from_tickers("WSTETH", "ETH"),
-    Pair.from_tickers("UNI", "USD"),
+    # Pair.from_tickers("UNI", "USD"),
 ]
