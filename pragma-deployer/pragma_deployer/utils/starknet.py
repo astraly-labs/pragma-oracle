@@ -1,26 +1,24 @@
 # source : https://github.com/kkrt-labs/kakarot/blob/main/scripts/utils/starknet.py
 # adapted to work with cairo1 contracts
-
 import json
 import logging
-from pathlib import Path
 
+from pathlib import Path
 from caseconverter import snakecase
+
+from starknet_py.hash.selector import get_selector_from_name
 from starknet_py.contract import Contract
 from starknet_py.net.account.account import Account
 from starknet_py.net.client_models import Call
 from starknet_py.net.signer.stark_curve_signer import KeyPair
-from starkware.starknet.public.abi import get_selector_from_name
 from starknet_py.net.full_node_client import FullNodeClient
-
-
 from starknet_py.common import create_casm_class, create_sierra_compiled_contract
 from starknet_py.hash.casm_class_hash import compute_casm_class_hash
 from starknet_py.hash.sierra_class_hash import compute_sierra_class_hash
-from starknet_py.contract import Contract
 
-from utils.constants import (
+from pragma_deployer.utils.constants import (
     BUILD_DIR,
+    POETRY_ROOT,
     # CONTRACTS,
     DEPLOYMENTS_DIR,
     ETH_TOKEN_ADDRESS,
@@ -51,7 +49,7 @@ def str_to_felt(text):
     return int.from_bytes(b_text, "big")
 
 
-def get_katana_fullnode_client(port):
+def get_devnet_fullnode_client(port):
     return FullNodeClient(node_url=f"http://127.0.0.1:{port}/rpc")
 
 
@@ -79,17 +77,19 @@ async def get_starknet_account(address=None, private_key=None, port=None) -> Acc
     else:
         return Account(
             address=address,
-            client=get_katana_fullnode_client(port=port),
+            client=get_devnet_fullnode_client(port=port),
             chain=NETWORK["chain_id"],
             key_pair=key_pair,
         )
 
 
 async def get_eth_contract(port=None) -> Contract:
+    erc_20_path = POETRY_ROOT / "pragma_deployer" / "utils" / "erc20.json"
     return Contract(
         ETH_TOKEN_ADDRESS,
-        json.loads((Path("scripts") / "utils" / "erc20.json").read_text())["abi"],
+        json.loads(erc_20_path.read_text())["abi"],
         await get_starknet_account(port=port),
+        cairo_version=0,
     )
 
 
@@ -98,6 +98,7 @@ async def get_contract(contract_name, port=None) -> Contract:
         get_deployments()[contract_name]["address"],
         json.loads(get_artifact(contract_name).read_text())["abi"],
         await get_starknet_account(port=port),
+        cairo_version=0,
     )
 
 
@@ -125,12 +126,12 @@ def dump_deployments(deployments):
                 **deployment,
                 "address": (
                     hex(deployment["address"])
-                    if type(deployment["address"]) == int
+                    if isinstance(deployment["address"], int)
                     else deployment["address"]
                 ),
                 "tx": (
                     hex(deployment["tx"])
-                    if type(deployment["tx"]) == int
+                    if isinstance(deployment["tx"], int)
                     else deployment["tx"]
                 ),
             }
@@ -189,11 +190,11 @@ async def declare_v2(contract_name, port=None):
     sierra_class_hash = compute_sierra_class_hash(sierra_class)
     # Check has not been declared before
     fullnode_client = (
-        FULLNODE_CLIENT if port is None else get_katana_fullnode_client(port=port)
+        FULLNODE_CLIENT if port is None else get_devnet_fullnode_client(port=port)
     )
     try:
         await fullnode_client.get_class_by_hash(class_hash=sierra_class_hash)
-        logger.info(f"✅ Class already declared, skipping")
+        logger.info("✅ Class already declared, skipping")
         return sierra_class_hash
     except Exception:
         pass
@@ -205,7 +206,6 @@ async def declare_v2(contract_name, port=None):
         compiled_class_hash=casm_class_hash,
         max_fee=MAX_FEE,
     )
-
 
     # # Send Declare v2 transaction
     resp = await account.client.declare(transaction=sign_declare_v2)
@@ -255,7 +255,7 @@ async def invoke(contract_name, function_name, inputs, address=None, port=None):
         selector=get_selector_from_name(function_name),
         calldata=inputs,
     )
-    logger.info(f"ℹ️  Invoking {contract_name}.{function_name}({json.dumps(inputs)})")
+    logger.info(f"ℹ️  Invoking {contract_name}.{function_name}")
     response = await account.execute_v1(
         calls=call,
         max_fee=MAX_FEE,
@@ -275,9 +275,10 @@ async def invoke_cairo0(contract_name, function_name, *inputs, address=None):
         deployments[contract_name]["address"] if address is None else address,
         json.load(open(get_artifact(contract_name)))["abi"],
         account,
+        cairo_version=0,
     )
     call = contract.functions[function_name].prepare(*inputs, max_fee=MAX_FEE)
-    logger.info(f"ℹ️  Invoking {contract_name}.{function_name}({json.dumps(inputs)})")
+    logger.info(f"ℹ️  Invoking {contract_name}.{function_name}")
     response = await account.execute_v1(call, max_fee=MAX_FEE).wait_for_acceptance()
     logger.info(
         f"✅ {contract_name}.{function_name} invoked at tx: %s",

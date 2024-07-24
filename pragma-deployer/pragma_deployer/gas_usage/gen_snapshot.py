@@ -3,7 +3,7 @@ import re
 import json
 
 # Execute the command and capture the output
-output = subprocess.check_output("scarb cairo-test", shell=True).decode('utf-8')
+output = subprocess.check_output("scarb cairo-test", shell=True).decode("utf-8")
 
 # Use regex to capture test names and their associated gas usage
 pattern = r"test (.+?) \.\.\. ok \(gas usage est.: (\d+)\)"

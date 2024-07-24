@@ -1,0 +1,96 @@
+[tool.poetry]
+name = "pragma-deployer"
+version = "1.0.0"
+description = "Deployment scripts for our Pragma Oracle."
+authors = ["0xevolve <matthias@pragmaoracle.com>"]
+readme = "../README.md"
+packages = [{ include = "pragma_deployer" }]
+
+[tool.poetry.scripts]
+deploy-pragma = 'pragma_deployer.deploy_pragma:cli_entrypoint'
+add-pairs = 'pragma_deployer.add_pairs:cli_entrypoint'
+register-publishers = 'pragma_deployer.register_publishers:cli_entrypoint'
+deploy-summary-stats = 'pragma_deployer.deploy_summary_stats:cli_entrypoint'
+deploy-randomness = 'pragma_deployer.deploy_randomness:cli_entrypoint'
+test-randomness = 'pragma_deployer.test_randomness:cli_entrypoint'
+upgrade-pragma = 'pragma_deployer.upgrade_pragma:cli_entrypoint'
+remove-source = 'pragma_deployer.remove_source:cli_entrypoint'
+remove-publishers = 'pragma_deployer.remove_publishers:cli_entrypoint'
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+"starknet.py" = "0.23.0"
+python-dotenv = "^1.0.0"
+case-converter = "^1.1.0"
+click = "^8.1.0"
+pragma-sdk = "2.0.0rc2"
+pragma-utils = { git = "https://github.com/astraly-labs/pragma-sdk", subdirectory = "pragma-utils" }
+
+[tool.poetry.group.dev.dependencies]
+poethepoet = "^0.27.0"
+ruff = "^0.4"
+
+[tool.poe.tasks]
+lint = "ruff check ."
+format = "ruff format ."
+format_check = "ruff format . --check"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+exclude = [
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".github",
+  ".git-rewrite",
+  ".hg",
+  ".ipynb_checkpoints",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".pyenv",
+  ".pytest_cache",
+  ".pytype",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  ".vscode",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "node_modules",
+  "site-packages",
+  "venv",
+  "scripts",
+  "pragma-oracle",
+]
+# Same as Black.
+line-length = 88
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+select = ["E4", "E7", "E9", "F"]
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
