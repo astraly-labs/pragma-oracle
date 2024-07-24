@@ -46,8 +46,6 @@ THIRD_PARTY_SOURCES = [
 
 DEX_SOURCES = ["MYSWAP", "MYSWAPV2", "EKUBO", "SITHSWAP", "JEDISWAP", "10KSWAP"]
 
-NETWORK = "sepolia"
-
 if NETWORK == "mainnet":
     publishers = [
         "PRAGMA",
