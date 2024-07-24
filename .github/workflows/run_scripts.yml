@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dojo
         run: |
-          dojoup --version nightly
+          dojoup -v v1.0.0-alpha.2
           sudo mv $HOME/.config/.dojo/bin/katana /usr/local/bin/
 
       - name: Make script executable
