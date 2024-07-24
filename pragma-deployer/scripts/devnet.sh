@@ -4,7 +4,7 @@
 PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
 
 echo "Starting starknet-devnet on port $PORT"
-starknet-devnet --chain-id MAINNET --host 127.0.0.1 --port $PORT --accounts "1" --seed "1" &
+starknet-devnet --chain-id TESTNET --host 127.0.0.1 --port $PORT --accounts "1" --seed "1" &
 
 while ! nc -z localhost $PORT; do   
   sleep 0.1 # wait for 1/10 of the second before check again
