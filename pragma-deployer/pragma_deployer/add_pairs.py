@@ -8,6 +8,7 @@ from typing import Optional
 from dotenv import load_dotenv
 from pragma_sdk.common.types.pair import Pair
 from pragma_sdk.common.types.currency import Currency
+from pragma_sdk.common.utils import str_to_felt
 from pragma_utils.logger import setup_logging
 
 from pragma_deployer.utils.starknet import (
@@ -17,17 +18,24 @@ from pragma_deployer.utils.starknet import (
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-
-CURRENCIES_TO_ADD = [
-    Currency(
-        "LUSD",
-        18,
-        0,
-        0x070A76FD48CA0EF910631754D77DD822147FE98A569B826EC85E3C33FDE586AC,
-        0x5F98805A4E8BE255A32880FDEC7F6728C6568BA0,
-    ),
-]
-PAIRS_TO_ADD = [Pair.from_tickers("LUSD", "USDT")]
+ETH = Currency(
+    "ETH",
+    18,
+    0,
+    0x049D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7,
+    0x0000000000000000000000000000000000000000,
+)
+DAI = Currency(
+    "DAI",
+    18,
+    0,
+    0x001108CDBE5D82737B9057590ADAF97D34E74B5452F0628161D237746B6FE69E,
+    0x6B175474E89094C44DA98B954EEDEAC495271D0F,
+)
+CURRENCIES_TO_ADD = [DAI]
+pair = Pair(ETH, DAI)
+pair.id = str_to_felt("ETH/DAI")
+PAIRS_TO_ADD = [pair]
 
 PAIRS_TO_UPDATE = [
     # Pair("WSTETH/ETH", "WSTETH", "ETH"),
@@ -41,7 +49,6 @@ async def main(port: Optional[int]) -> None:
     """
     # Add Currencies
     for currency in CURRENCIES_TO_ADD:
-        print(currency.to_dict())
         tx_hash = await invoke(
             "pragma_Oracle", "add_currency", currency.serialize(), port=port
         )

@@ -255,7 +255,7 @@ async def invoke(contract_name, function_name, inputs, address=None, port=None):
         selector=get_selector_from_name(function_name),
         calldata=inputs,
     )
-    logger.info(f"ℹ️  Invoking {contract_name}.{function_name}({json.dumps(inputs)})")
+    logger.info(f"ℹ️  Invoking {contract_name}.{function_name}")
     response = await account.execute_v1(
         calls=call,
         max_fee=MAX_FEE,
@@ -278,7 +278,7 @@ async def invoke_cairo0(contract_name, function_name, *inputs, address=None):
         cairo_version=0,
     )
     call = contract.functions[function_name].prepare(*inputs, max_fee=MAX_FEE)
-    logger.info(f"ℹ️  Invoking {contract_name}.{function_name}({json.dumps(inputs)})")
+    logger.info(f"ℹ️  Invoking {contract_name}.{function_name}")
     response = await account.execute_v1(call, max_fee=MAX_FEE).wait_for_acceptance()
     logger.info(
         f"✅ {contract_name}.{function_name} invoked at tx: %s",

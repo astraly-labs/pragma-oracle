@@ -127,13 +127,6 @@ currencies = [
         0xDAC17F958D2EE523A2206206994597C13D831EC7,
     ),
     Currency(
-        "DAI",
-        18,
-        0,
-        0x001108CDBE5D82737B9057590ADAF97D34E74B5452F0628161D237746B6FE69E,
-        0x6B175474E89094C44DA98B954EEDEAC495271D0F,
-    ),
-    Currency(
         "LORDS",
         18,
         0,

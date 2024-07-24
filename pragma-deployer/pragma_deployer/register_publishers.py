@@ -46,8 +46,12 @@ THIRD_PARTY_SOURCES = [
 
 DEX_SOURCES = ["MYSWAP", "MYSWAPV2", "EKUBO", "SITHSWAP", "JEDISWAP", "10KSWAP"]
 
+PUBLISHERS = []
+PUBLISHERS_SOURCES = []
+PUBLISHER_ADDRESS = []
+
 if NETWORK == "mainnet":
-    publishers = [
+    PUBLISHERS = [
         "PRAGMA",
         "FOURLEAF",
         "SPACESHARD",
@@ -55,7 +59,7 @@ if NETWORK == "mainnet":
         "AVNU",
         "FLOWDESK",
     ]
-    publishers_sources = [
+    PUBLISHERS_SOURCES = [
         THIRD_PARTY_SOURCES,
         ["FOURLEAF"],
         THIRD_PARTY_SOURCES,
@@ -63,7 +67,7 @@ if NETWORK == "mainnet":
         ["AVNU"],
         ["FLOWDESK"],
     ]
-    publisher_address = [
+    PUBLISHER_ADDRESS = [
         0x06707675CD7DD9256667ECA8284E46F4546711EE0054BC2DD02F0CE572056CF4,
         0x073335CC71C93FE46C04C14E09E7CDE7CA7F6147BB36C72DEE7968EC3ABAF70D,
         0x035DD30E84F7D61586C6B152524F3F2519DFC11B4DCB9998176B1DE9CFF9A6EA,
@@ -74,9 +78,9 @@ if NETWORK == "mainnet":
     admin_address = 0x02356B628D108863BAF8644C945D97BAD70190AF5957031F4852D00D0F690A77
 
 if NETWORK == "sepolia":
-    publishers = ["PRAGMA", "FOURLEAF", "AVNU"]
-    publishers_sources = [THIRD_PARTY_SOURCES, ["FOURLEAF"], ["AVNU"]]
-    publisher_address = [
+    PUBLISHERS = ["PRAGMA", "FOURLEAF", "AVNU"]
+    PUBLISHERS_SOURCES = [THIRD_PARTY_SOURCES, ["FOURLEAF"], ["AVNU"]]
+    PUBLISHER_ADDRESS = [
         0x04C1D9DA136846AB084AE18CF6CE7A652DF7793B666A16CE46B1BF5850CC739D,
         0x037A10F2808C05F4A328BDAC9A9344358547AE4676EBDDC005E24FF887B188FD,
         0x0279FDE026E3E6CCEACB9C263FECE0C8D66A8F59E8448F3DA5A1968976841C62,
@@ -88,7 +92,7 @@ async def main(port: Optional[int]) -> None:
     Main function to initialize the Publisher Registry.
     """
     for publisher, sources, address in zip(
-        publishers, publishers_sources, publisher_address
+        PUBLISHERS, PUBLISHERS_SOURCES, PUBLISHER_ADDRESS
     ):
         (existing_address,) = await call(
             "pragma_PublisherRegistry",
