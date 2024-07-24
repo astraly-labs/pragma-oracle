@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from caseconverter import snakecase
 
-from starkware.starknet.public.abi import get_selector_from_name
+from starknet_py.hash.selector import get_selector_from_name
 from starknet_py.contract import Contract
 from starknet_py.net.account.account import Account
 from starknet_py.net.client_models import Call
