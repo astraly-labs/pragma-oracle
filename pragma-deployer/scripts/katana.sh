@@ -12,13 +12,13 @@ done
 
 # Run your Python script
 echo "Running deploy_pragma.py with port $PORT"
-STARKNET_NETWORK=katana poetry run python3 scripts/deploy_pragma.py --port $PORT
-STARKNET_NETWORK=katana poetry run python3 scripts/add_pairs.py --port $PORT
-STARKNET_NETWORK=katana poetry run python3 scripts/register_publishers.py --port $PORT
-STARKNET_NETWORK=katana poetry run python3 scripts/deploy_summary_stats.py --port $PORT
-STARKNET_NETWORK=katana poetry run python3 scripts/deploy_randomness.py --port $PORT
-STARKNET_NETWORK=katana poetry run python3 scripts/test_randomness.py --port $PORT
-STARKNET_NETWORK=katana poetry run python3 scripts/upgrade_pragma.py --port $PORT
+STARKNET_NETWORK=katana poetry run deploy-pragma --port $PORT
+STARKNET_NETWORK=katana poetry run add-pairs --port $PORT
+STARKNET_NETWORK=katana poetry run register-publishers --port $PORT
+STARKNET_NETWORK=katana poetry run deploy-summary-stats --port $PORT
+STARKNET_NETWORK=katana poetry run deploy-randomness --port $PORT
+STARKNET_NETWORK=katana poetry run test-randomness --port $PORT
+STARKNET_NETWORK=katana poetry run upgrade-pragma --port $PORT
 # STARKNET_NETWORK=katana poetry run python3 scripts/remove_source.py --port $PORT
 # STARKNET_NETWORK=katana poetry run python3 scripts/remove_publishers.py --port $PORT
 

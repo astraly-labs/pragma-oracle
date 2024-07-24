@@ -1,25 +1,22 @@
 # source : https://github.com/kkrt-labs/kakarot/blob/main/scripts/utils/starknet.py
 # adapted to work with cairo1 contracts
-
 import json
 import logging
-from pathlib import Path
 
+from pathlib import Path
 from caseconverter import snakecase
+
+from starkware.starknet.public.abi import get_selector_from_name
 from starknet_py.contract import Contract
 from starknet_py.net.account.account import Account
 from starknet_py.net.client_models import Call
 from starknet_py.net.signer.stark_curve_signer import KeyPair
-from starkware.starknet.public.abi import get_selector_from_name
 from starknet_py.net.full_node_client import FullNodeClient
-
-
 from starknet_py.common import create_casm_class, create_sierra_compiled_contract
 from starknet_py.hash.casm_class_hash import compute_casm_class_hash
 from starknet_py.hash.sierra_class_hash import compute_sierra_class_hash
-from starknet_py.contract import Contract
 
-from utils.constants import (
+from pragma_deployer.utils.constants import (
     BUILD_DIR,
     # CONTRACTS,
     DEPLOYMENTS_DIR,
@@ -193,7 +190,7 @@ async def declare_v2(contract_name, port=None):
     )
     try:
         await fullnode_client.get_class_by_hash(class_hash=sierra_class_hash)
-        logger.info(f"✅ Class already declared, skipping")
+        logger.info("✅ Class already declared, skipping")
         return sierra_class_hash
     except Exception:
         pass
@@ -205,7 +202,6 @@ async def declare_v2(contract_name, port=None):
         compiled_class_hash=casm_class_hash,
         max_fee=MAX_FEE,
     )
-
 
     # # Send Declare v2 transaction
     resp = await account.client.declare(transaction=sign_declare_v2)

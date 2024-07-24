@@ -1,13 +1,14 @@
 import os
 import logging
-from enum import Enum
-from pathlib import Path
 
 from dotenv import load_dotenv
+from pathlib import Path
+
 from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.net.models.chains import StarknetChainId
-from pragma.core.types import Currency, Pair
-from typing import List
+
+from pragma_sdk.common.types.currency import Currency
+from pragma_sdk.common.types.pair import Pair
 
 load_dotenv()
 
@@ -22,7 +23,7 @@ ETH_TOKEN_ADDRESS = "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E
 NETWORKS = {
     "mainnet": {
         "name": "mainnet",
-        "rpc_url": f"https://starknet-mainnet.public.blastapi.io/rpc/v0_6",
+        "rpc_url": "https://starknet-mainnet.public.blastapi.io/rpc/v0_6",
     },
     "devnet": {
         "name": "devnet",
@@ -58,7 +59,7 @@ if NETWORK["private_key"] is None:
     NETWORK["private_key"] = os.getenv("PRIVATE_KEY")
 if NETWORK["name"] == "mainnet":
     NETWORK["chain_id"] = StarknetChainId.MAINNET
-else: 
+else:
     NETWORK["chain_id"] = StarknetChainId.SEPOLIA_TESTNET
 
 

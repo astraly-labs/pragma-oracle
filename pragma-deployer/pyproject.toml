@@ -6,18 +6,34 @@ authors = ["0xevolve <matthias@pragmaoracle.com>"]
 readme = "../README.md"
 packages = [{ include = "pragma_deployer" }]
 
+[tool.poetry.scripts]
+deploy-pragma = 'pragma_deployer.deploy_pragma:cli_entrypoint'
+add-pairs = 'pragma_deployer.add_pairs:main'
+register-publishers = 'pragma_deployer.register_publishers:main'
+deploy-summary-stats = 'pragma_deployer.deploy_summary_stats:main'
+deploy-randomness = 'pragma_deployer.deploy_randomness:main'
+test-randomness = 'pragma_deployer.test_randomness:main'
+upgrade-pragma = 'pragma_deployer.upgrade_pragma:main'
+remove-source = 'pragma_deployer.remove_source:main'
+remove-publishers = 'pragma_deployer.remove_publishers:main'
+
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
 "starknet.py" = "0.23.0"
-pragma-sdk = "2.0.0rc2"
 python-dotenv = "^1.0.0"
 case-converter = "^1.1.0"
 click = "^8.1.0"
-# Internal utilities
+pragma-sdk = "2.0.0rc2"
 pragma-utils = { git = "https://github.com/astraly-labs/pragma-sdk", subdirectory = "pragma-utils" }
 
 [tool.poetry.group.dev.dependencies]
+poethepoet = "^0.27.0"
 ruff = "^0.4"
+
+[tool.poe.tasks]
+lint = "ruff check ."
+format = "ruff format ."
+format_check = "ruff format . --check"
 
 [build-system]
 requires = ["poetry-core"]
