@@ -69,7 +69,9 @@ FULLNODE_CLIENT = FullNodeClient(
 
 
 CURRENT_FILE = Path(__file__).resolve()
-PROJECT_ROOT = CURRENT_FILE.parent.parent.parent
+PROJECT_ROOT = CURRENT_FILE.parent.parent.parent.parent
+
+print(PROJECT_ROOT)
 
 BUILD_DIR = PROJECT_ROOT / "target" / "dev"
 BUILD_DIR.mkdir(exist_ok=True, parents=True)
