@@ -60,7 +60,7 @@ if NETWORK["private_key"] is None:
 if NETWORK["name"] == "mainnet":
     NETWORK["chain_id"] = StarknetChainId.MAINNET
 else:
-    NETWORK["chain_id"] = StarknetChainId.SEPOLIA_TESTNET
+    NETWORK["chain_id"] = StarknetChainId.SEPOLIA
 
 
 FULLNODE_CLIENT = FullNodeClient(
