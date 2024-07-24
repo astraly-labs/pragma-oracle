@@ -122,12 +122,12 @@ def dump_deployments(deployments):
                 **deployment,
                 "address": (
                     hex(deployment["address"])
-                    if type(deployment["address"]) == int
+                    if isinstance(deployment["address"], int)
                     else deployment["address"]
                 ),
                 "tx": (
                     hex(deployment["tx"])
-                    if type(deployment["tx"]) == int
+                    if isinstance(deployment["tx"], int)
                     else deployment["tx"]
                 ),
             }
