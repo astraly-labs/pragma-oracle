@@ -25,19 +25,14 @@ NETWORKS = {
         "name": "mainnet",
         "rpc_url": "https://starknet-mainnet.public.blastapi.io/rpc/v0_6",
     },
-    "devnet": {
-        "name": "devnet",
-        "explorer_url": "https://devnet.starkscan.co",
-        "rpc_url": "http://127.0.0.1:5050/rpc",
-    },
     "sepolia": {
         "name": "sepolia",
         "explorer_url": "https://sepolia.starkscan.co/",
         "rpc_url": "https://starknet-sepolia.public.blastapi.io/rpc/v0_6",
     },
-    "katana": {
-        "name": "katana",
-        "explorer_url": "",
+    "devnet": {
+        "name": "devnet",
+        "explorer_url": "https://devnet.starkscan.co",
         "rpc_url": "http://127.0.0.1:5050/rpc",
     },
 }

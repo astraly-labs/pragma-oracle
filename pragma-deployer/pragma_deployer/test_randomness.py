@@ -71,7 +71,7 @@ async def main(port: Optional[int]) -> None:
     "--port",
     type=click.IntRange(min=0),
     required=False,
-    help="Port number (required for Katana network)",
+    help="Port number (required for Devnet network)",
 )
 def cli_entrypoint(log_level: str, port: Optional[int]) -> None:
     """
@@ -79,8 +79,8 @@ def cli_entrypoint(log_level: str, port: Optional[int]) -> None:
     """
     setup_logging(logger, log_level)
 
-    if os.getenv("STARKNET_NETWORK") == "katana" and port is None:
-        raise click.UsageError('⛔ "--port" must be set for Katana.')
+    if os.getenv("STARKNET_NETWORK") == "devnet" and port is None:
+        raise click.UsageError('⛔ "--port" must be set for Devnet.')
 
     asyncio.run(main(port))
 

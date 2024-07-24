@@ -80,15 +80,15 @@ scarb build
 
 3. Deploy contracts & setup
 
-Make sure your local devnet is running, see latest instructions [here](https://book.dojoengine.org/toolchain/katana/reference.html).
+Make sure your local devnet is running, see latest instructions [here](https://0xspaceshard.github.io/starknet-devnet-rs/).
 
 You can also specify a different network by setting `STARKNET_NETWORK` to a different value e.g `sepolia | testnet | mainnet`.
 
 ```bash
 
-STARKNET_NETWORK=katana poetry run python3 scripts/deploy_pragma.py
-STARKNET_NETWORK=katana poetry run python3 scripts/deploy_summary_stats.py
-STARKNET_NETWORK=katana poetry run python3 scripts/register_publishers.py
+STARKNET_NETWORK=devnet poetry run deploy-pragma
+STARKNET_NETWORK=devnet poetry run deploy-summary-stats
+STARKNET_NETWORK=devnet poetry run register-publishers
 
 ```
 

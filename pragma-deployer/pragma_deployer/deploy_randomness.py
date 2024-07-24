@@ -50,7 +50,7 @@ async def main(port: Optional[int]) -> None:
     deployments = get_deployments()
     deployments["pragma_Randomness"] = await deploy_v2(
         "pragma_Randomness",
-        int(os.getenv("KATANA_ACCOUNT_ADDRESS"), 16),
+        int(os.getenv("DEVNET_ACCOUNT_ADDRESS"), 16),
         2061139992776959994838533810929826594222370735645675137341826408353556487187,
         int(ETH_TOKEN_ADDRESS, 16),
         int(deployments["pragma_Oracle"]["address"], 16),
@@ -76,7 +76,7 @@ async def main(port: Optional[int]) -> None:
     "--port",
     type=click.IntRange(min=0),
     required=False,
-    help="Port number (required for Katana network)",
+    help="Port number (required for Devnet network)",
 )
 def cli_entrypoint(log_level: str, port: Optional[int]) -> None:
     """
@@ -84,8 +84,8 @@ def cli_entrypoint(log_level: str, port: Optional[int]) -> None:
     """
     setup_logging(logger, log_level)
 
-    if os.getenv("STARKNET_NETWORK") == "katana" and port is None:
-        raise click.UsageError('⛔ "--port" must be set for Katana.')
+    if os.getenv("STARKNET_NETWORK") == "devnet" and port is None:
+        raise click.UsageError('⛔ "--port" must be set for Devnet.')
 
     asyncio.run(main(port))
 

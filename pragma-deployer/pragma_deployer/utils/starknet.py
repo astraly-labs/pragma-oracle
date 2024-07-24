@@ -49,7 +49,7 @@ def str_to_felt(text):
     return int.from_bytes(b_text, "big")
 
 
-def get_katana_fullnode_client(port):
+def get_devnet_fullnode_client(port):
     return FullNodeClient(node_url=f"http://127.0.0.1:{port}/rpc")
 
 
@@ -77,7 +77,7 @@ async def get_starknet_account(address=None, private_key=None, port=None) -> Acc
     else:
         return Account(
             address=address,
-            client=get_katana_fullnode_client(port=port),
+            client=get_devnet_fullnode_client(port=port),
             chain=NETWORK["chain_id"],
             key_pair=key_pair,
         )
@@ -190,7 +190,7 @@ async def declare_v2(contract_name, port=None):
     sierra_class_hash = compute_sierra_class_hash(sierra_class)
     # Check has not been declared before
     fullnode_client = (
-        FULLNODE_CLIENT if port is None else get_katana_fullnode_client(port=port)
+        FULLNODE_CLIENT if port is None else get_devnet_fullnode_client(port=port)
     )
     try:
         await fullnode_client.get_class_by_hash(class_hash=sierra_class_hash)
