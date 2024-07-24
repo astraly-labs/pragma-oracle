@@ -20,15 +20,15 @@ load_dotenv()
 
 CURRENCIES_TO_ADD = [
     Currency(
-        "DPI",
+        "LUSD",
         18,
-        False,
         0,
-        0x1494CA1F11D487C2BBE4543E90080AEBA4BA3C2B,
-    )
+        0x070A76FD48CA0EF910631754D77DD822147FE98A569B826EC85E3C33FDE586AC,
+        0x5F98805A4E8BE255A32880FDEC7F6728C6568BA0,
+    ),
 ]
 PAIRS_TO_ADD = [
-    Pair("DPI/USD", "DPI", "USD"),
+    Pair.from_tickers("LUSD", "USDT")
 ]
 
 PAIRS_TO_UPDATE = [
