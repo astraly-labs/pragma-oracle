@@ -68,13 +68,16 @@ FULLNODE_CLIENT = FullNodeClient(
 )
 
 
-BUILD_DIR = Path("target/dev")
+CURRENT_FILE = Path(__file__).resolve()
+PROJECT_ROOT = CURRENT_FILE.parent.parent.parent
+
+BUILD_DIR = PROJECT_ROOT / "target" / "dev"
 BUILD_DIR.mkdir(exist_ok=True, parents=True)
 
-SOURCE_DIR = Path("src")
+SOURCE_DIR = PROJECT_ROOT / "src"
 CONTRACTS = {p.stem: p for p in list(SOURCE_DIR.glob("**/*.cairo"))}
 
-DEPLOYMENTS_DIR = Path("deployments") / NETWORK["name"]
+DEPLOYMENTS_DIR = PROJECT_ROOT / "deployments" / NETWORK["name"]
 DEPLOYMENTS_DIR.mkdir(exist_ok=True, parents=True)
 
 COMPILED_CONTRACTS = [

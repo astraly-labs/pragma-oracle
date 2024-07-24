@@ -27,9 +27,7 @@ CURRENCIES_TO_ADD = [
         0x5F98805A4E8BE255A32880FDEC7F6728C6568BA0,
     ),
 ]
-PAIRS_TO_ADD = [
-    Pair.from_tickers("LUSD", "USDT")
-]
+PAIRS_TO_ADD = [Pair.from_tickers("LUSD", "USDT")]
 
 PAIRS_TO_UPDATE = [
     # Pair("WSTETH/ETH", "WSTETH", "ETH"),
