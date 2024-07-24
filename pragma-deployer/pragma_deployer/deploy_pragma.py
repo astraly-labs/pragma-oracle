@@ -44,9 +44,6 @@ async def main(port: Optional[int]) -> None:
     dump_declarations(class_hash)
 
     # Deployments
-    class_hash = get_declarations()
-    await get_eth_contract(port=port)
-
     deployments = {}
     deployments["pragma_PublisherRegistry"] = await deploy_v2(
         "pragma_PublisherRegistry",
