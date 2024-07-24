@@ -15,8 +15,8 @@ jobs:
       run: |
         wget https://github.com/0xSpaceShard/starknet-devnet-rs/releases/download/v0.1.2/starknet-devnet-aarch64-unknown-linux-gnu.tar.gz
         tar -xvf starknet-devnet-aarch64-unknown-linux-gnu.tar.gz
-        chmod +x starknet-devnet/starknet-devnet
-        sudo mv starknet-devnet/starknet-devnet /usr/local/bin/
+        chmod +x starknet-devnet
+        sudo mv starknet-devnet /usr/local/bin/
         rm -rf starknet-devnet starknet-devnet-aarch64-unknown-linux-gnu.tar.gz
     
     - name: Make script executable
