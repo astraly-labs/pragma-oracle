@@ -37,8 +37,8 @@ NETWORKS = {
         "explorer_url": "",
         "rpc_url": "http://127.0.0.1:5050/rpc",
     },
-    "kakarot_juno": {
-        "name": "kakarot_juno",
+    "kakarot_sepolia": {
+        "name": "kakarot_sepolia",
         "explorer_url": "",
         "rpc_url": "https://juno-kakarot-dev.karnot.xyz/",
     }
@@ -62,7 +62,7 @@ if NETWORK["private_key"] is None:
 
 if NETWORK["name"] == "mainnet":
     NETWORK["chain_id"] = StarknetChainId.MAINNET
-elif NETWORK["name"] == "kakarot_juno":
+elif NETWORK["name"] == "kakarot_sepolia":
     NETWORK["chain_id"] = 1802203764
 else: 
     NETWORK["chain_id"] = StarknetChainId.SEPOLIA_TESTNET
