@@ -17,7 +17,6 @@ from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.common import create_casm_class, create_sierra_compiled_contract
 from starknet_py.hash.casm_class_hash import compute_casm_class_hash
 from starknet_py.hash.sierra_class_hash import compute_sierra_class_hash
-from starknet_py.contract import Contract
 
 from utils.constants import (
     BUILD_DIR,
@@ -172,6 +171,17 @@ def get_abi(contract_name):
         compiled_contract=contract_compiled_sierra
     ).abi
 
+async def wait_for_transaction(tx_hash):
+    try:
+        await FULLNODE_CLIENT.wait_for_tx(
+            tx_hash,
+            check_interval=1,
+            retries=10,
+        )
+        return "✅"
+    except Exception as e:
+        logger.error(f"Error while waiting for transaction {tx_hash}: {e}")
+        return "❌"
 
 async def declare_v2(contract_name, port=None):
     logger.info(f"ℹ️  Declaring {contract_name}")
@@ -206,22 +216,22 @@ async def declare_v2(contract_name, port=None):
         max_fee=MAX_FEE,
     )
 
-
-    # # Send Declare v2 transaction
+    # Send Declare v2 transaction
     resp = await account.client.declare(transaction=sign_declare_v2)
+    logger.info(f"Hash of declare TX: {resp.transaction_hash}")
+    await wait_for_transaction(resp.transaction_hash)
 
     logger.info(f"✅ {contract_name} class hash: {hex(resp.class_hash)}")
     return resp.class_hash
 
 
 async def deploy_v2(contract_name, *args, port=None):
-    logger.info(f"ℹ️  Deploying {contract_name}")
-
     account = await get_starknet_account(port=port)
 
     sierra_class_hash = get_declarations()[contract_name]
     abi = get_abi(contract_name)
 
+    logger.info(f"ℹ️  Deploying {contract_name}")
     deploy_result = await Contract.deploy_contract_v1(
         account=account,
         class_hash=sierra_class_hash,
@@ -230,7 +240,7 @@ async def deploy_v2(contract_name, *args, port=None):
         cairo_version=1,
         max_fee=MAX_FEE,
     )
-
+    logger.info(f"Hash of deployment TX: {deploy_result.hash}")
     await deploy_result.wait_for_acceptance()
 
     logger.info(

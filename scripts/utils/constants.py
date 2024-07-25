@@ -1,13 +1,11 @@
 import os
 import logging
-from enum import Enum
 from pathlib import Path
 
 from dotenv import load_dotenv
 from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.net.models.chains import StarknetChainId
 from pragma.core.types import Currency, Pair
-from typing import List
 
 load_dotenv()
 
@@ -15,9 +13,9 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-MAX_FEE = 70000000000000000  # 0.07 ETH
+MAX_FEE = 9000000000000060
 
-ETH_TOKEN_ADDRESS = "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7"
+ETH_TOKEN_ADDRESS = "0x761612F0C8bdf8cF10e6F10045E2Ca7cbffBa8A3"
 
 NETWORKS = {
     "mainnet": {
@@ -39,6 +37,11 @@ NETWORKS = {
         "explorer_url": "",
         "rpc_url": "http://127.0.0.1:5050/rpc",
     },
+    "kakarot_juno": {
+        "name": "kakarot_juno",
+        "explorer_url": "",
+        "rpc_url": "https://juno-kakarot-dev.karnot.xyz/",
+    }
 }
 
 NETWORK = NETWORKS[os.getenv("STARKNET_NETWORK", "devnet")]
@@ -56,8 +59,11 @@ if NETWORK["private_key"] is None:
         f"⚠️  {NETWORK['name'].upper()}_PRIVATE_KEY not set, defaulting to PRIVATE_KEY"
     )
     NETWORK["private_key"] = os.getenv("PRIVATE_KEY")
+
 if NETWORK["name"] == "mainnet":
     NETWORK["chain_id"] = StarknetChainId.MAINNET
+elif NETWORK["name"] == "kakarot_juno":
+    NETWORK["chain_id"] = 1802203764
 else: 
     NETWORK["chain_id"] = StarknetChainId.SEPOLIA_TESTNET
 
