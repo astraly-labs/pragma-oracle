@@ -6,5 +6,9 @@
   "pragma_Oracle": {
     "address": "0x3a99b4b9f711002f1976b3973f4b2031fe6056518615ff0f4e6dd829f972764",
     "tx": "0x194ea852f09468e5f42a4b0d79373bd1b08dfadbc225d6b23529b9d77ad4904"
+  },
+  "pragma_SummaryStats": {
+    "address": "0x18b0f6db8bc0f0eacf376f6938b03de82457cee224492e033aae81a22c1b512",
+    "tx": "0x78ab44ecc916867f85c1ed5a9bea5d6741b3d658068ffa5af6c0bed9890e971"
   }
 }
