@@ -22,9 +22,9 @@ PRAGMA_ORACLE_DEPLOYED_CAIRO_ADDRESS=0x3a99b4b9f711002f1976b3973f4b2031fe6056518
 PRAGMA_CALLER_DEPLOYED_ADDRESS=0x7491cA3699701a187C1a17308338Ad0bA258B082
 ```
 
-## Deploy
+## Deploy
 
-#### PragmaCaller
+#### PragmaCaller
 
 ```shell
 forge create \
@@ -67,7 +67,6 @@ forge verify-contract $EXAMPLE_ADDRESS src/CallerExample.sol:CallerExample \
 --compiler-version v0.8.26+commit.8a97fa7a \
 --constructor-args $(cast abi-encode "constructor(uint256 pragmaOracleAddress)" $PRAGMA_CALLER_DEPLOYED_ADDRESS)
 ```
-
 
 ## Documentation
 
