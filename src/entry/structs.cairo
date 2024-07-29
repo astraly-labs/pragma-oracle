@@ -132,7 +132,7 @@ enum ArrayEntry {
 //  OptionEntry: Array<OptionEntry>,
 }
 
-#[derive(Drop, Serde, starknet::Store, Hash, PartialEq, Debug)]
+#[derive(Drop, Serde, starknet::Store, Copy, Hash, PartialEq, Debug)]
 struct OptionsFeedData {
     instrument_name: felt252,
     base_currency_id: felt252,

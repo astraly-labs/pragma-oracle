@@ -12,7 +12,7 @@ trait ISummaryStatsABI<TContractState> {
     ) -> (u128, u32);
 
     fn update_options_data(
-        self: @TContractState, merkle_proof: Span<felt252>, update_data: OptionsFeedData
+        ref self: TContractState, merkle_proof: Span<felt252>, update_data: OptionsFeedData
     ) -> OptionsFeedData;
 
     fn calculate_volatility(
@@ -34,6 +34,8 @@ trait ISummaryStatsABI<TContractState> {
 
 
     fn get_oracle_address(self: @TContractState) -> ContractAddress;
+
+    fn get_options_data(self: @TContractState) -> OptionsFeedData;
 }
 
 const DERIBIT_OPTIONS_FEED_ID: felt252 = 'DERIBIT_OPTIONS_MERKLE_ROOT';
@@ -111,8 +113,12 @@ mod SummaryStats {
             (mean, decimals)
         }
 
+        // @notice Update the options data upon merkle proof verification
+        // @param merkle_proof: the merkle proof used to verify the data
+        // @param update_data: the new data to be updated
+        // @returns the updated data
         fn update_options_data(
-            self: @ContractState, merkle_proof: Span<felt252>, update_data: OptionsFeedData
+            ref self: ContractState, merkle_proof: Span<felt252>, update_data: OptionsFeedData
         ) -> OptionsFeedData {
             let oracle_address = self.oracle_address.read();
             let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
@@ -123,23 +129,29 @@ mod SummaryStats {
             let merkle_root = match latest_entry {
                 Option::Some(entry) => {
                     match entry.unbox() {
+                        PossibleEntries::Spot(_) => {
+                            assert(false, 'Invalid data type');
+                            Default::default()
+                        },
+                        PossibleEntries::Future(_) => {
+                            assert(false, 'Invalid data type');
+                            Default::default()
+                        },
                         PossibleEntries::Generic(entry) => {
                             entry
                         },
-                        _ => {
-                            assert(false, 'Invalid entry type');
-                            Default::default()
-                        }
                     }
                 },
                 Option::None => {
-                    assert(false, 'No data available for this feed.');
+                    assert(false, 'No data available');
                     Default::default()
                 }
             };
 
             // Verify the merkle proof
-            let leaf = LegacyHash::hash('pragma::summary_stats::OptionsFeedData', update_data);
+            let leaf = LegacyHash::hash(
+                selector!("pragma::structs::OptionsFeedData"), update_data.clone()
+            );
             let merkle_root_felt: felt252 = (*merkle_root.value).try_into().unwrap();
             assert(merkle_root_felt == compute_pedersen_root(leaf, merkle_proof), 'INVALID_PROOF');
 
@@ -147,6 +159,11 @@ mod SummaryStats {
             self.options_data.write(update_data);
 
             update_data
+        }
+
+        // @notice Get the options data
+        fn get_options_data(self: @ContractState) -> OptionsFeedData {
+            self.options_data.read()
         }
 
 
