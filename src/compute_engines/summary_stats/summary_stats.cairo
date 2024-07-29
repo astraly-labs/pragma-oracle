@@ -1,5 +1,5 @@
 use starknet::ContractAddress;
-use pragma::entry::structs::{DataType, AggregationMode, MerkleFeedData};
+use pragma::entry::structs::{DataType, AggregationMode, OptionsFeedData};
 use cubit::f128::types::fixed::{FixedTrait, ONE_u128};
 #[starknet::interface]
 trait ISummaryStatsABI<TContractState> {
@@ -11,7 +11,9 @@ trait ISummaryStatsABI<TContractState> {
         aggregation_mode: AggregationMode
     ) -> (u128, u32);
 
-    fn get_merkle_feed_data(self: @TContractState, feed_id: felt252) -> MerkleFeedData;
+    fn update_options_data(
+        self: @TContractState, merkle_proof: Span<felt252>, update_data: OptionsFeedData
+    ) -> OptionsFeedData;
 
     fn calculate_volatility(
         self: @TContractState,
@@ -34,21 +36,29 @@ trait ISummaryStatsABI<TContractState> {
     fn get_oracle_address(self: @TContractState) -> ContractAddress;
 }
 
+const DERIBIT_OPTIONS_FEED_ID: felt252 = 'DERIBIT_OPTIONS_MERKLE_ROOT';
+
 #[starknet::contract]
 mod SummaryStats {
     use core::array::SpanTrait;
+    use core::hash::{LegacyHash};
     use starknet::ContractAddress;
     use array::ArrayTrait;
+    use traits::TryInto;
     use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
-    use pragma::entry::structs::PossibleEntries;
+    use pragma::entry::structs::{PossibleEntries, GenericEntry};
     use pragma::operations::time_series::structs::TickElem;
     use pragma::operations::time_series::metrics::{volatility, mean, twap};
     use pragma::operations::time_series::scaler::scale_data;
-    use super::{FixedTrait, ONE_u128, ISummaryStatsABI, MerkleFeedData, DataType, AggregationMode};
+    use super::{
+        FixedTrait, ONE_u128, ISummaryStatsABI, OptionsFeedData, DataType, AggregationMode,
+        DERIBIT_OPTIONS_FEED_ID
+    };
 
     #[storage]
     struct Storage {
         oracle_address: ContractAddress,
+        options_data: OptionsFeedData,
     }
 
     #[constructor]
@@ -101,14 +111,14 @@ mod SummaryStats {
             (mean, decimals)
         }
 
-        fn get_merkle_feed_data(
-            self: @ContractState, feed_id: felt252, merkle_proof: Span<felt252>
-        ) -> MerkleFeedData {
+        fn update_options_data(
+            self: @ContractState, merkle_proof: Span<felt252>, update_data: OptionsFeedData
+        ) -> OptionsFeedData {
             let oracle_address = self.oracle_address.read();
             let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
 
             let latest_entry = oracle_dispatcher
-                .get_data_entries(DataType::GenericEntry(feed_id))
+                .get_data_entries(DataType::GenericEntry(DERIBIT_OPTIONS_FEED_ID))
                 .get(0);
             let merkle_root = match latest_entry {
                 Option::Some(entry) => {
@@ -118,13 +128,25 @@ mod SummaryStats {
                         },
                         _ => {
                             assert(false, 'Invalid entry type');
+                            Default::default()
                         }
                     }
                 },
                 Option::None => {
                     assert(false, 'No data available for this feed.');
+                    Default::default()
                 }
             };
+
+            // Verify the merkle proof
+            let leaf = LegacyHash::hash('pragma::summary_stats::OptionsFeedData', update_data);
+            let merkle_root_felt: felt252 = (*merkle_root.value).try_into().unwrap();
+            assert(merkle_root_felt == compute_pedersen_root(leaf, merkle_proof), 'INVALID_PROOF');
+
+            // Update the data
+            self.options_data.write(update_data);
+
+            update_data
         }
 
 
@@ -290,5 +312,26 @@ mod SummaryStats {
         };
         // let _scaled_arr = scale_data(start_tick, end_tick, tick_arr.span(), SCALED_ARR_SIZE);
         return tick_arr;
+    }
+
+    fn hash_function(a: felt252, b: felt252) -> felt252 {
+        let a_u256: u256 = a.into();
+        if a_u256 < b.into() {
+            core::pedersen::pedersen(a, b)
+        } else {
+            core::pedersen::pedersen(b, a)
+        }
+    }
+
+    // computes the pedersen root of a merkle tree by combining the current node with each sibling up the tree
+    fn compute_pedersen_root(current: felt252, mut proof: Span<felt252>) -> felt252 {
+        match proof.pop_front() {
+            Option::Some(proof_element) => {
+                compute_pedersen_root(hash_function(current, *proof_element), proof)
+            },
+            Option::None => {
+                current
+            },
+        }
     }
 }

@@ -26,7 +26,7 @@ const CHECKPOINT_AGGREGATION_MODE_SHIFT_U172: felt252 =
     0x10000000000000000000000000000000000000000000;
 
 
-#[derive(Copy, Drop, Serde)]
+#[derive(Copy, Drop, Serde, Default)]
 struct BaseEntry {
     timestamp: u64,
     source: felt252,
@@ -40,7 +40,7 @@ struct SpotEntry {
     pair_id: felt252,
     volume: u128,
 }
-#[derive(Copy, Drop, Serde)]
+#[derive(Copy, Drop, Serde, Default)]
 struct GenericEntry {
     base: BaseEntry,
     key: felt252,
@@ -132,8 +132,13 @@ enum ArrayEntry {
 //  OptionEntry: Array<OptionEntry>,
 }
 
-#[derive(Drop, Serde)]
-struct MerkleFeedData {}
+#[derive(Drop, Serde, starknet::Store, Hash, PartialEq, Debug)]
+struct OptionsFeedData {
+    instrument_name: felt252,
+    base_currency_id: felt252,
+    current_timestamp: u64,
+    mark_price: u128,
+}
 
 
 #[derive(Serde, Drop, Copy, starknet::Store)]
