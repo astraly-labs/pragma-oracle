@@ -1,8 +1,8 @@
-## PragmaCaller deployer
+# PragmaCaller deployer
 
 Sample scripts to be able to deploy the PragmaCaller contract to Kakarot and verify it.
 
-### Set up env variables
+## Set up env variables
 
 You'll need to set up the variables before doing anything:
 ```sh
@@ -21,6 +21,53 @@ PRAGMA_ORACLE_DEPLOYED_CAIRO_ADDRESS=0x3a99b4b9f711002f1976b3973f4b2031fe6056518
 # Once PragmaCaller has been deployed, write the address here and call `verify.sh`
 PRAGMA_CALLER_DEPLOYED_ADDRESS=0x7491cA3699701a187C1a17308338Ad0bA258B082
 ```
+
+## Deploy
+
+#### PragmaCaller
+
+```shell
+forge create \
+--rpc-url $RPC_URL \
+--private-key $DEPLOYER_PRIVATE_KEY \
+src/PragmaCaller.sol:PragmaCaller \
+--constructor-args $PRAGMA_ORACLE_DEPLOYED_CAIRO_ADDRESS
+```
+
+and verify with:
+
+```sh
+forge verify-contract $PRAGMA_CALLER_DEPLOYED_ADDRESS src/PragmaCaller.sol:PragmaCaller \
+--rpc-url $RPC_URL \
+--verifier-url $ETHERSCAN_VERIFY_URL \
+--etherscan-api-key "verifyContract" \
+--num-of-optimizations 200 \
+--compiler-version v0.8.26+commit.8a97fa7a \
+--constructor-args $(cast abi-encode "constructor(uint256 pragmaOracleAddress)" $PRAGMA_ORACLE_DEPLOYED_CAIRO_ADDRESS)
+```
+
+#### CallerExample
+
+```shell
+forge create \
+--rpc-url $RPC_URL \
+--private-key $DEPLOYER_PRIVATE_KEY \
+src/CallerExample.sol:CallerExample \
+--constructor-args $PRAGMA_CALLER_DEPLOYED_ADDRESS
+```
+
+and verify with:
+
+```sh
+forge verify-contract $EXAMPLE_ADDRESS src/CallerExample.sol:CallerExample \
+--rpc-url $RPC_URL \
+--verifier-url $ETHERSCAN_VERIFY_URL \
+--etherscan-api-key "verifyContract" \
+--num-of-optimizations 200 \
+--compiler-version v0.8.26+commit.8a97fa7a \
+--constructor-args $(cast abi-encode "constructor(uint256 pragmaOracleAddress)" $PRAGMA_CALLER_DEPLOYED_ADDRESS)
+```
+
 
 ## Documentation
 
@@ -50,12 +97,6 @@ $ forge snapshot
 
 ```shell
 $ anvil
-```
-
-### Deploy
-
-```shell
-$ sh scripts/deploy.sh
 ```
 
 ### Help
