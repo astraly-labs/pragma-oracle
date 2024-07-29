@@ -68,6 +68,18 @@ mod SummaryStats {
         self.oracle_address.write(oracle_address);
     }
 
+    #[derive(Drop, starknet::Event)]
+    struct OptionsDataUpdated {
+        previous_data: OptionsFeedData,
+        new_data: OptionsFeedData
+    }
+
+    #[derive(Drop, starknet::Event)]
+    #[event]
+    enum Event {
+        OptionsDataUpdated: OptionsDataUpdated
+    }
+
     #[external(v0)]
     impl SummaryStatsImpl of ISummaryStatsABI<ContractState> {
         // @notice: compute the mean price for a given data type, for a given interval 
@@ -156,7 +168,15 @@ mod SummaryStats {
             assert(merkle_root_felt == compute_pedersen_root(leaf, merkle_proof), 'INVALID_PROOF');
 
             // Update the data
+            let old_data = self.options_data.read();
             self.options_data.write(update_data);
+
+            self
+                .emit(
+                    Event::OptionsDataUpdated(
+                        OptionsDataUpdated { previous_data: old_data, new_data: update_data }
+                    )
+                );
 
             update_data
         }
