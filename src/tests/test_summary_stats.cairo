@@ -12,7 +12,7 @@ use traits::Into;
 use serde::Serde;
 use traits::TryInto;
 use pragma::oracle::oracle::Oracle;
-use pragma::compute_engines::summary_stats::summary_stats::SummaryStats;
+use pragma::compute_engines::summary_stats::summary_stats::{SummaryStats, DERIBIT_OPTIONS_FEED_ID};
 use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
 use pragma::publisher_registry::publisher_registry::{
     IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
@@ -668,4 +668,20 @@ fn test_set_future_checkpoint() {
         );
     assert(twap_test_6 == 3000000, 'wrong twap(6)');
     return ();
+}
+
+#[test]
+#[available_gas(10000000000000)]
+fn test_update_options_data() {
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+    let (summary_stats, oracle) = setup_twap();
+
+    // Publish generic entry
+    let now = 100000;
+    let source = 1;
+    let publisher = 1;
+    let merkle_root: felt252 = 0;
+    let base = BaseEntry { timestamp: now, source, publisher };
+    let generic_entry = GenericEntry { base, key: DERIBIT_OPTIONS_FEED_ID, value: merkle_root, };
 }

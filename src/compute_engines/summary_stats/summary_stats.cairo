@@ -43,7 +43,8 @@ const DERIBIT_OPTIONS_FEED_ID: felt252 = 'DERIBIT_OPTIONS_MERKLE_ROOT';
 #[starknet::contract]
 mod SummaryStats {
     use core::array::SpanTrait;
-    use core::hash::{LegacyHash};
+    use core::pedersen::PedersenTrait;
+    use core::hash::{HashStateTrait, HashStateExTrait};
     use starknet::ContractAddress;
     use array::ArrayTrait;
     use traits::TryInto;
@@ -161,9 +162,25 @@ mod SummaryStats {
             };
 
             // Verify the merkle proof
-            let leaf = LegacyHash::hash(
-                selector!("pragma::structs::OptionsFeedData"), update_data.clone()
-            );
+            let mut serialized_struct: Array<felt252> = ArrayTrait::new();
+            Serde::serialize(@update_data, ref serialized_struct);
+            let first_element = serialized_struct.pop_front().unwrap();
+            let mut state = PedersenTrait::new(first_element);
+
+            loop {
+                match serialized_struct.pop_front() {
+                    Option::Some(value) => {
+                        state = state.update(value);
+                    },
+                    Option::None => {
+                        break ();
+                    },
+                };
+            };
+
+            // leaf is the result of hashing only the fields of the struct
+            let leaf = state.finalize();
+
             let merkle_root_felt: felt252 = (*merkle_root.value).try_into().unwrap();
             assert(merkle_root_felt == compute_pedersen_root(leaf, merkle_proof), 'INVALID_PROOF');
 
