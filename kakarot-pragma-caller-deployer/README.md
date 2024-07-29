@@ -46,6 +46,28 @@ forge verify-contract $PRAGMA_CALLER_DEPLOYED_ADDRESS src/PragmaCaller.sol:Pragm
 --constructor-args $(cast abi-encode "constructor(uint256 pragmaOracleAddress)" $PRAGMA_ORACLE_DEPLOYED_CAIRO_ADDRESS)
 ```
 
+#### Feeds
+
+```shell
+forge create \
+--rpc-url $RPC_URL \
+--private-key $DEPLOYER_PRIVATE_KEY \
+src/PragmaAggregatorV3.sol:PragmaAggregatorV3 \
+--constructor-args $PRAGMA_CALLER_DEPLOYED_ADDRESS 18669995996566340 # BTC/USD
+```
+
+and verify it:
+
+```shell
+forge verify-contract [THE_DEPLOYED_ADDRESS_ABOVE] src/CallerExample.sol:CallerExample \
+--rpc-url $RPC_URL \
+--verifier-url $ETHERSCAN_VERIFY_URL \
+--etherscan-api-key "verifyContract" \
+--num-of-optimizations 200 \
+--compiler-version v0.8.26+commit.8a97fa7a \
+--constructor-args $(cast abi-encode "constructor(address _pragmaCaller, uint256 _pairId)" $PRAGMA_CALLER_DEPLOYED_ADDRESS 18669995996566340)
+```
+
 #### CallerExample
 
 ```shell
