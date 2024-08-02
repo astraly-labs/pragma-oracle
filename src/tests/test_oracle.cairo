@@ -446,6 +446,7 @@ fn test_get_data() {
     let entry = oracle.get_data(DataType::FutureEntry((5, 11111110)), AggregationMode::Median(()));
     assert(entry.price == (5 * 1000000), 'wrong price');
 }
+
 fn data_treatment(entry: PossibleEntries) -> (u128, u64, u128) {
     match entry {
         PossibleEntries::Spot(entry) => {
@@ -456,10 +457,11 @@ fn data_treatment(entry: PossibleEntries) -> (u128, u64, u128) {
             (entry.price, entry.base.timestamp, entry.volume)
         },
         PossibleEntries::Generic(entry) => {
-            (entry.value, entry.base.timestamp, 0)
+            (entry.value.try_into().unwrap(), entry.base.timestamp, 0)
         }
     }
 }
+
 #[test]
 #[available_gas(10000000000)]
 fn test_get_admin_address() {

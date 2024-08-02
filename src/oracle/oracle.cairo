@@ -1002,7 +1002,7 @@ mod Oracle {
                                 timestamp: _entry.timestamp, source: source, publisher: publisher
                             },
                             key: key,
-                            value: _entry.price
+                            value: _entry.price.into()
                         }
                     )
                 }
@@ -1132,7 +1132,7 @@ mod Oracle {
                                 timestamp: last_updated_timestamp, source: source, publisher: 0
                             },
                             key: key,
-                            value: median
+                            value: median.into()
                         }
                     );
                 }
@@ -1448,7 +1448,7 @@ mod Oracle {
                     let element = EntryStorage {
                         timestamp: generic_entry.base.timestamp,
                         volume: 0,
-                        price: generic_entry.value,
+                        price: generic_entry.value.try_into().unwrap(),
                     };
                     set_entry_storage(
                         ref self,
