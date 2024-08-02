@@ -18,12 +18,12 @@ remove-source = 'pragma_deployer.remove_source:cli_entrypoint'
 remove-publishers = 'pragma_deployer.remove_publishers:cli_entrypoint'
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.13"
+python = ">=3.11,<3.13"
 "starknet.py" = "0.23.0"
 python-dotenv = "^1.0.0"
 case-converter = "^1.1.0"
 click = "^8.1.0"
-pragma-sdk = "2.0.0rc2"
+pragma-sdk = "2.0.5"
 pragma-utils = { git = "https://github.com/astraly-labs/pragma-sdk", subdirectory = "pragma-utils" }
 
 [tool.poetry.group.dev.dependencies]

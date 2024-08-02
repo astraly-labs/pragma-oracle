@@ -42,6 +42,7 @@ THIRD_PARTY_SOURCES = [
     "INDEXCOOP",
     "MEXC",
     "GATEIO",
+    "EKUBO",
 ]
 
 DEX_SOURCES = ["MYSWAP", "MYSWAPV2", "EKUBO", "SITHSWAP", "JEDISWAP", "10KSWAP"]
@@ -50,7 +51,7 @@ PUBLISHERS = []
 PUBLISHERS_SOURCES = []
 PUBLISHER_ADDRESS = []
 
-if NETWORK['name'] == "mainnet":
+if NETWORK["name"] == "mainnet":
     PUBLISHERS = [
         "PRAGMA",
         "FOURLEAF",
@@ -77,7 +78,7 @@ if NETWORK['name'] == "mainnet":
     ]
     admin_address = 0x02356B628D108863BAF8644C945D97BAD70190AF5957031F4852D00D0F690A77
 
-if NETWORK['name'] == "sepolia":
+if NETWORK["name"] == "sepolia":
     PUBLISHERS = ["PRAGMA", "FOURLEAF", "AVNU", "ALENO"]
     PUBLISHERS_SOURCES = [THIRD_PARTY_SOURCES, ["FOURLEAF"], ["AVNU"], ["ALENO"]]
     PUBLISHER_ADDRESS = [
