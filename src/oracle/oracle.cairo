@@ -954,24 +954,10 @@ mod Oracle {
         fn get_data_entry(
             self: @ContractState, data_type: DataType, source: felt252, publisher: felt252
         ) -> PossibleEntries {
-            let _entry = match data_type {
+            let result = match data_type {
                 DataType::SpotEntry(pair_id) => {
-                    get_entry_storage(self, pair_id, SPOT, source, publisher, 0)
-                },
-                DataType::FutureEntry((
-                    pair_id, expiration_timestamp
-                )) => {
-                    get_entry_storage(
-                        self, pair_id, FUTURE, source, publisher, expiration_timestamp
-                    )
-                },
-                DataType::GenericEntry(key) => {
-                    get_entry_storage(self, key, GENERIC, source, publisher, 0)
-                }
-            };
-            assert(!_entry.timestamp.is_zero(), 'No data entry found');
-            match data_type {
-                DataType::SpotEntry(pair_id) => {
+                    let _entry = get_entry_storage(self, pair_id, SPOT, source, publisher, 0);
+                    assert(!_entry.timestamp.is_zero(), 'No data entry found');
                     PossibleEntries::Spot(
                         SpotEntry {
                             base: BaseEntry {
@@ -986,6 +972,10 @@ mod Oracle {
                 DataType::FutureEntry((
                     pair_id, expiration_timestamp
                 )) => {
+                    let _entry = get_entry_storage(
+                        self, pair_id, FUTURE, source, publisher, expiration_timestamp
+                    );
+                    assert(!_entry.timestamp.is_zero(), 'No data entry found');
                     PossibleEntries::Future(
                         FutureEntry {
                             base: BaseEntry {
@@ -999,17 +989,21 @@ mod Oracle {
                     )
                 },
                 DataType::GenericEntry(key) => {
+                    let _entry = get_generic_entry_storage(self, key, source, publisher);
+                    assert(!_entry.timestamp.is_zero(), 'No data entry found');
                     PossibleEntries::Generic(
                         GenericEntry {
                             base: BaseEntry {
                                 timestamp: _entry.timestamp, source: source, publisher: publisher
                             },
                             key: key,
-                            value: _entry.price.into()
+                            value: _entry.value
                         }
                     )
                 }
-            }
+            };
+
+            result
         }
 
         // @notice get the data entry for a given data type and a source (realise a median of the publishers for the source)

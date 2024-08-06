@@ -36,6 +36,7 @@ trait ISummaryStatsABI<TContractState> {
     fn get_oracle_address(self: @TContractState) -> ContractAddress;
 
     fn get_options_data(self: @TContractState, instrument_name: felt252) -> OptionsFeedData;
+    fn get_options_data_hash(self: @TContractState, update_data: OptionsFeedData) -> felt252;
 }
 
 const DERIBIT_OPTIONS_FEED_ID: felt252 = 'DERIBIT_OPTIONS_MERKLE_ROOT';
@@ -162,24 +163,7 @@ mod SummaryStats {
             };
 
             // Verify the merkle proof
-            let mut serialized_struct: Array<felt252> = ArrayTrait::new();
-            Serde::serialize(@update_data, ref serialized_struct);
-            let first_element = serialized_struct.pop_front().unwrap();
-            let mut state = PedersenTrait::new(first_element);
-
-            loop {
-                match serialized_struct.pop_front() {
-                    Option::Some(value) => {
-                        state = state.update(value);
-                    },
-                    Option::None => {
-                        break ();
-                    },
-                };
-            };
-
-            // leaf is the result of hashing only the fields of the struct
-            let leaf = state.finalize();
+            let leaf = self.get_options_data_hash(update_data);
 
             let merkle_root_felt: felt252 = (*merkle_root.value).try_into().unwrap();
             assert(merkle_root_felt == compute_pedersen_root(leaf, merkle_proof), 'INVALID_PROOF');
@@ -201,6 +185,31 @@ mod SummaryStats {
         // @notice Get the options data
         fn get_options_data(self: @ContractState, instrument_name: felt252) -> OptionsFeedData {
             self.options_data.read(instrument_name)
+        }
+
+        // @notice Get the hash of the options data
+        fn get_options_data_hash(self: @ContractState, update_data: OptionsFeedData) -> felt252 {
+            let mut serialized_struct: Array<felt252> = ArrayTrait::new();
+            Serde::serialize(@update_data, ref serialized_struct);
+            let data_len = serialized_struct.len();
+            let mut state = PedersenTrait::new(0);
+
+            loop {
+                match serialized_struct.pop_front() {
+                    Option::Some(value) => {
+                        state = state.update(value);
+                    },
+                    Option::None => {
+                        break ();
+                    },
+                };
+            };
+
+            // Add length to avoid collisions
+            state.update(data_len.into());
+
+            // leaf is the result of hashing only the fields of the struct
+            state.finalize()
         }
 
 

@@ -33,21 +33,21 @@ struct BaseEntry {
     publisher: felt252,
 }
 
-#[derive(Copy, Drop, Serde)]
+#[derive(Copy, Drop, Serde, Debug)]
 struct SpotEntry {
     base: BaseEntry,
     price: u128,
     pair_id: felt252,
     volume: u128,
 }
-#[derive(Copy, Drop, Serde, Default)]
+#[derive(Copy, Drop, Serde, Default, Debug)]
 struct GenericEntry {
     base: BaseEntry,
     key: felt252,
     value: u256,
 }
 
-#[derive(Copy, Drop, PartialOrd, Serde)]
+#[derive(Copy, Drop, PartialOrd, Serde, Debug)]
 struct FutureEntry {
     base: BaseEntry,
     price: u128,
@@ -56,7 +56,7 @@ struct FutureEntry {
     expiration_timestamp: u64,
 }
 
-#[derive(Serde, Drop, Copy)]
+#[derive(Serde, Drop, Copy, Debug)]
 struct OptionEntry {
     base: BaseEntry,
     rawParameters: rawSVI,
@@ -84,14 +84,14 @@ struct eSSVI {
 }
 
 
-#[derive(Serde, Drop, Copy)]
+#[derive(Serde, Drop, Copy, Debug)]
 struct EntryStorage {
     timestamp: u64,
     volume: u128,
     price: u128,
 }
 
-#[derive(Serde, Drop, Copy, starknet::Store)]
+#[derive(Serde, Drop, Copy, Debug, starknet::Store)]
 struct GenericEntryStorage {
     timestamp: u64,
     value: u256,
@@ -121,7 +121,7 @@ enum SimpleDataType {
 //  OptionEntry: (),
 }
 
-#[derive(Drop, Copy, Serde)]
+#[derive(Drop, Copy, Serde, Debug)]
 enum PossibleEntries {
     Spot: SpotEntry,
     Future: FutureEntry,
