@@ -35,7 +35,7 @@ trait ISummaryStatsABI<TContractState> {
 
     fn get_oracle_address(self: @TContractState) -> ContractAddress;
 
-    fn get_options_data(self: @TContractState) -> OptionsFeedData;
+    fn get_options_data(self: @TContractState, instrument_name: felt252) -> OptionsFeedData;
 }
 
 const DERIBIT_OPTIONS_FEED_ID: felt252 = 'DERIBIT_OPTIONS_MERKLE_ROOT';
@@ -61,7 +61,7 @@ mod SummaryStats {
     #[storage]
     struct Storage {
         oracle_address: ContractAddress,
-        options_data: OptionsFeedData,
+        options_data: LegacyMap<felt252, OptionsFeedData>,
     }
 
     #[constructor]
@@ -185,8 +185,8 @@ mod SummaryStats {
             assert(merkle_root_felt == compute_pedersen_root(leaf, merkle_proof), 'INVALID_PROOF');
 
             // Update the data
-            let old_data = self.options_data.read();
-            self.options_data.write(update_data);
+            let old_data = self.options_data.read(update_data.instrument_name);
+            self.options_data.write(update_data.instrument_name, update_data);
 
             self
                 .emit(
@@ -199,8 +199,8 @@ mod SummaryStats {
         }
 
         // @notice Get the options data
-        fn get_options_data(self: @ContractState) -> OptionsFeedData {
-            self.options_data.read()
+        fn get_options_data(self: @ContractState, instrument_name: felt252) -> OptionsFeedData {
+            self.options_data.read(instrument_name)
         }
 
 
