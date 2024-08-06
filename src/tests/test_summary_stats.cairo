@@ -5,7 +5,7 @@ use starknet::ContractAddress;
 use pragma::entry::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
     USD_CURRENCY_ID, SPOT, FUTURE, OPTION, PossibleEntries, FutureEntry, OptionEntry,
-    AggregationMode, SimpleDataType
+    AggregationMode, SimpleDataType, GenericEntry
 };
 use starknet::class_hash::class_hash_const;
 use traits::Into;
@@ -681,7 +681,11 @@ fn test_update_options_data() {
     let now = 100000;
     let source = 1;
     let publisher = 1;
-    let merkle_root: felt252 = 0;
+    let merkle_root: felt252 = 0x31d84dd2db2edb4b74a651b0f86351612efdedc51b51a178d5967a3cdfd319f;
     let base = BaseEntry { timestamp: now, source, publisher };
-    let generic_entry = GenericEntry { base, key: DERIBIT_OPTIONS_FEED_ID, value: merkle_root, };
+    let generic_entry = GenericEntry {
+        base, key: DERIBIT_OPTIONS_FEED_ID, value: merkle_root.into()
+    };
+
+    oracle.publish_data(PossibleEntries::Generic(generic_entry));
 }

@@ -91,6 +91,12 @@ struct EntryStorage {
     price: u128,
 }
 
+#[derive(Serde, Drop, Copy, starknet::Store)]
+struct GenericEntryStorage {
+    timestamp: u64,
+    value: u256,
+}
+
 
 /// Data Types
 /// The value is the `pair_id` of the data
