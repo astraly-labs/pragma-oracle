@@ -2,7 +2,7 @@ use pragma::entry::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
     USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, FutureEntry, OptionEntry, GenericEntry,
     SimpleDataType, AggregationMode, PossibleEntries, ArrayEntry, EntryStorage, HasPrice,
-    HasBaseEntry
+    HasBaseEntry, GenericEntryStorage
 };
 use pragma::admin::admin::Ownable;
 use pragma::upgradeable::upgradeable::Upgradeable;
@@ -182,7 +182,7 @@ mod Oracle {
         storage_base_address_from_felt252, Store, StorageBaseAddress, SyscallResult,
         ContractAddress, get_caller_address, ClassHash, Into, TryInto, ResultTrait, ResultTraitImpl,
         BoxTrait, ArrayTrait, SpanTrait, Zeroable, IOracleABI, EntryStorage, List, ListTrait,
-        HasPrice, HasBaseEntry
+        HasPrice, HasBaseEntry, GenericEntryStorage
     };
     use alexandria_data_structures::array_ext::SpanTraitExt;
     use hash::LegacyHash;
@@ -222,6 +222,9 @@ mod Oracle {
         //oracle_data_entry_storage, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS/GENERIC), source, publisher, expiration_timestamp (0 for SPOT))
         oracle_data_entry_storage: LegacyMap::<(felt252, felt252, felt252, felt252, u64),
         EntryStorage>,
+        //oracle_data_entry_storage, legacyMap between (pair_id, source, publisher)
+        oracle_data_generic_entry_storage: LegacyMap::<(felt252, felt252, felt252),
+        GenericEntryStorage>,
         //oracle_list_of_publishers_for_sources_storage, legacyMap between (source,(SPOT/FUTURES/OPTIONS/GENERIC), and the pair_id) and the list of publishers
         oracle_list_of_publishers_for_sources_storage: LegacyMap::<(felt252, felt252, felt252),
         List<felt252>>,
@@ -951,24 +954,10 @@ mod Oracle {
         fn get_data_entry(
             self: @ContractState, data_type: DataType, source: felt252, publisher: felt252
         ) -> PossibleEntries {
-            let _entry = match data_type {
+            let result = match data_type {
                 DataType::SpotEntry(pair_id) => {
-                    get_entry_storage(self, pair_id, SPOT, source, publisher, 0)
-                },
-                DataType::FutureEntry((
-                    pair_id, expiration_timestamp
-                )) => {
-                    get_entry_storage(
-                        self, pair_id, FUTURE, source, publisher, expiration_timestamp
-                    )
-                },
-                DataType::GenericEntry(key) => {
-                    get_entry_storage(self, key, GENERIC, source, publisher, 0)
-                }
-            };
-            assert(!_entry.timestamp.is_zero(), 'No data entry found');
-            match data_type {
-                DataType::SpotEntry(pair_id) => {
+                    let _entry = get_entry_storage(self, pair_id, SPOT, source, publisher, 0);
+                    assert(!_entry.timestamp.is_zero(), 'No data entry found');
                     PossibleEntries::Spot(
                         SpotEntry {
                             base: BaseEntry {
@@ -983,6 +972,10 @@ mod Oracle {
                 DataType::FutureEntry((
                     pair_id, expiration_timestamp
                 )) => {
+                    let _entry = get_entry_storage(
+                        self, pair_id, FUTURE, source, publisher, expiration_timestamp
+                    );
+                    assert(!_entry.timestamp.is_zero(), 'No data entry found');
                     PossibleEntries::Future(
                         FutureEntry {
                             base: BaseEntry {
@@ -996,17 +989,21 @@ mod Oracle {
                     )
                 },
                 DataType::GenericEntry(key) => {
+                    let _entry = get_generic_entry_storage(self, key, source, publisher);
+                    assert(!_entry.timestamp.is_zero(), 'No data entry found');
                     PossibleEntries::Generic(
                         GenericEntry {
                             base: BaseEntry {
                                 timestamp: _entry.timestamp, source: source, publisher: publisher
                             },
                             key: key,
-                            value: _entry.price.into()
+                            value: _entry.value
                         }
                     )
                 }
-            }
+            };
+
+            result
         }
 
         // @notice get the data entry for a given data type and a source (realise a median of the publishers for the source)
@@ -1371,13 +1368,11 @@ mod Oracle {
                 },
                 PossibleEntries::Generic(generic_entry) => {
                     validate_sender_for_source(@self, generic_entry);
-                    let res = get_entry_storage(
+                    let res = get_generic_entry_storage(
                         @self,
                         generic_entry.key,
-                        GENERIC,
                         generic_entry.base.source,
                         generic_entry.base.publisher,
-                        0
                     );
 
                     if (res.timestamp != 0) {
@@ -1441,24 +1436,19 @@ mod Oracle {
                         .emit(
                             Event::SubmittedGenericEntry(SubmittedGenericEntry { generic_entry })
                         );
-                    let test = self
-                        .oracle_sources_len_storage
-                        .read((generic_entry.key, GENERIC, 0));
 
-                    let element = EntryStorage {
-                        timestamp: generic_entry.base.timestamp,
-                        volume: 0,
-                        price: generic_entry.value.try_into().unwrap(),
+                    let element = GenericEntryStorage {
+                        timestamp: generic_entry.base.timestamp, value: generic_entry.value,
                     };
-                    set_entry_storage(
+
+                    set_generic_entry_storage(
                         ref self,
                         generic_entry.key,
-                        GENERIC,
                         generic_entry.base.source,
                         generic_entry.base.publisher,
-                        0,
                         element
                     );
+
                     let storage_len = self
                         .oracle_data_len_all_sources
                         .read((generic_entry.key, GENERIC, 0));
@@ -2577,6 +2567,22 @@ mod Oracle {
         expiration_timestamp: u64
     ) -> EntryStorage {
         self.oracle_data_entry_storage.read((key, type_of, source, publisher, expiration_timestamp))
+    }
+
+    fn get_generic_entry_storage(
+        self: @ContractState, key: felt252, source: felt252, publisher: felt252,
+    ) -> GenericEntryStorage {
+        self.oracle_data_generic_entry_storage.read((key, source, publisher))
+    }
+
+    fn set_generic_entry_storage(
+        ref self: ContractState,
+        key: felt252,
+        source: felt252,
+        publisher: felt252,
+        entry: GenericEntryStorage
+    ) {
+        self.oracle_data_generic_entry_storage.write((key, source, publisher), entry);
     }
 
     fn set_entry_storage(

@@ -5,14 +5,14 @@ use starknet::ContractAddress;
 use pragma::entry::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
     USD_CURRENCY_ID, SPOT, FUTURE, OPTION, PossibleEntries, FutureEntry, OptionEntry,
-    AggregationMode, SimpleDataType
+    AggregationMode, SimpleDataType, GenericEntry, OptionsFeedData
 };
 use starknet::class_hash::class_hash_const;
 use traits::Into;
 use serde::Serde;
 use traits::TryInto;
 use pragma::oracle::oracle::Oracle;
-use pragma::compute_engines::summary_stats::summary_stats::SummaryStats;
+use pragma::compute_engines::summary_stats::summary_stats::{SummaryStats, DERIBIT_OPTIONS_FEED_ID};
 use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
 use pragma::publisher_registry::publisher_registry::{
     IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
@@ -668,4 +668,165 @@ fn test_set_future_checkpoint() {
         );
     assert(twap_test_6 == 3000000, 'wrong twap(6)');
     return ();
+}
+
+/// Mock data has been computed in the pragma-node repository
+#[test]
+#[available_gas(10000000000000)]
+fn test_update_options_data() {
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+    let (summary_stats, oracle) = setup_twap();
+
+    // Publish generic entry
+    let now = 100000;
+    let source = 1;
+    let publisher = 1;
+    let merkle_root: felt252 = 0x31d84dd2db2edb4b74a651b0f86351612efdedc51b51a178d5967a3cdfd319f;
+    let base = BaseEntry { timestamp: now, source, publisher };
+    let generic_entry = GenericEntry {
+        base, key: DERIBIT_OPTIONS_FEED_ID, value: merkle_root.into()
+    };
+
+    oracle.publish_data(PossibleEntries::Generic(generic_entry));
+
+    let data_entry = oracle
+        .get_data_entries(DataType::GenericEntry(DERIBIT_OPTIONS_FEED_ID))
+        .get(0);
+
+    // Update options data
+    let mut merkle_proof = ArrayTrait::<felt252>::new();
+    merkle_proof.append(0x78626d4f8f1e24c24a41d90457688b436463d7595c4dd483671b1d5297518d2);
+    merkle_proof.append(0x14eb21a8e98fbd61f20d0bbdba2b32cb2bcb61082dfcf5229370aca5b2dbd2);
+    merkle_proof.append(0x73a5b6ab2f3ed2647ed316e5d4acac4db4b5f8da8f6e4707e633ebe02006043);
+    merkle_proof.append(0x1c156b5dedc44a27e73968ebe3d464538d7bb0332f1c8191b2eb4a5afca8c7a);
+    merkle_proof.append(0x39b52ee5f605f57cc893d398b09cb558c87ec9c956e11cd066df82e1006b33b);
+    merkle_proof.append(0x698ea138d770764c65cb171627c57ebc1efb7c495b2c7098872cb485fd2e0bc);
+    merkle_proof.append(0x313f2d7dc97dabc9a7fea0b42a5357787cabe78cdcca0d8274eabe170aaa79d);
+    merkle_proof.append(0x6b35594ee638d1baa9932b306753fbd43a300435af0d51abd3dd7bd06159e80);
+    merkle_proof.append(0x6e9f8a80ebebac7ba997448a1c50cd093e1b9c858cac81537446bafa4aa9431);
+    merkle_proof.append(0x3082dc1a8f44267c1b9bea29a3df4bd421e9c33ee1594bf297a94dfd34c7ae4);
+    merkle_proof.append(0x16356d27fc23e31a3570926c593bb37430201f51282f2628780264d3a399867);
+
+    let instrument_name = 'BTC-16AUG24-52000-P';
+
+    let update_data: OptionsFeedData = OptionsFeedData {
+        instrument_name: instrument_name,
+        base_currency_id: 'BTC',
+        current_timestamp: 1722805873,
+        mark_price: 45431835920,
+    };
+
+    let leaf = summary_stats.get_options_data_hash(update_data);
+
+    assert(leaf == 0x7866fd2ec3bc6bd1a2efb6e1f02337d62064a86e8d5755bdc568d92a06f320a, 'wrong leaf');
+
+    summary_stats.update_options_data(merkle_proof.span(), update_data);
+
+    // Check that storage was updated
+    let updated_data = summary_stats.get_options_data(instrument_name);
+    assert(updated_data == update_data, 'wrong data');
+}
+
+#[test]
+#[should_panic]
+#[available_gas(10000000000000)]
+fn test_update_options_data_fail_with_invalid_data() {
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+    let (summary_stats, oracle) = setup_twap();
+
+    // Publish generic entry
+    let now = 100000;
+    let source = 1;
+    let publisher = 1;
+    let merkle_root: felt252 = 0x31d84dd2db2edb4b74a651b0f86351612efdedc51b51a178d5967a3cdfd319f;
+    let base = BaseEntry { timestamp: now, source, publisher };
+    let generic_entry = GenericEntry {
+        base, key: DERIBIT_OPTIONS_FEED_ID, value: merkle_root.into()
+    };
+
+    oracle.publish_data(PossibleEntries::Generic(generic_entry));
+
+    let data_entry = oracle
+        .get_data_entries(DataType::GenericEntry(DERIBIT_OPTIONS_FEED_ID))
+        .get(0);
+
+    // Update options data
+    let mut merkle_proof = ArrayTrait::<felt252>::new();
+    merkle_proof.append(0x78626d4f8f1e24c24a41d90457688b436463d7595c4dd483671b1d5297518d2);
+    merkle_proof.append(0x14eb21a8e98fbd61f20d0bbdba2b32cb2bcb61082dfcf5229370aca5b2dbd2);
+    merkle_proof.append(0x73a5b6ab2f3ed2647ed316e5d4acac4db4b5f8da8f6e4707e633ebe02006043);
+    merkle_proof.append(0x1c156b5dedc44a27e73968ebe3d464538d7bb0332f1c8191b2eb4a5afca8c7a);
+    merkle_proof.append(0x39b52ee5f605f57cc893d398b09cb558c87ec9c956e11cd066df82e1006b33b);
+    merkle_proof.append(0x698ea138d770764c65cb171627c57ebc1efb7c495b2c7098872cb485fd2e0bc);
+    merkle_proof.append(0x313f2d7dc97dabc9a7fea0b42a5357787cabe78cdcca0d8274eabe170aaa79d);
+    merkle_proof.append(0x6b35594ee638d1baa9932b306753fbd43a300435af0d51abd3dd7bd06159e80);
+    merkle_proof.append(0x6e9f8a80ebebac7ba997448a1c50cd093e1b9c858cac81537446bafa4aa9431);
+    merkle_proof.append(0x3082dc1a8f44267c1b9bea29a3df4bd421e9c33ee1594bf297a94dfd34c7ae4);
+    merkle_proof.append(0x16356d27fc23e31a3570926c593bb37430201f51282f2628780264d3a399867);
+
+    let instrument_name = 'BTC-16AUG24-52000-P';
+
+    let update_data: OptionsFeedData = OptionsFeedData {
+        instrument_name: instrument_name,
+        base_currency_id: 'ETH', // Invalid base currency
+        current_timestamp: 1722805873,
+        mark_price: 45431835920,
+    };
+
+    let leaf = summary_stats.get_options_data_hash(update_data);
+
+    summary_stats.update_options_data(merkle_proof.span(), update_data);
+}
+
+#[test]
+#[should_panic]
+#[available_gas(10000000000000)]
+fn test_update_options_data_fail_with_invalid_proof() {
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+    let (summary_stats, oracle) = setup_twap();
+
+    // Publish generic entry
+    let now = 100000;
+    let source = 1;
+    let publisher = 1;
+    let merkle_root: felt252 = 0x31d84dd2db2edb4b74a651b0f86351612efdedc51b51a178d5967a3cdfd319f;
+    let base = BaseEntry { timestamp: now, source, publisher };
+    let generic_entry = GenericEntry {
+        base, key: DERIBIT_OPTIONS_FEED_ID, value: merkle_root.into()
+    };
+
+    oracle.publish_data(PossibleEntries::Generic(generic_entry));
+
+    let data_entry = oracle
+        .get_data_entries(DataType::GenericEntry(DERIBIT_OPTIONS_FEED_ID))
+        .get(0);
+
+    // Update options data
+    let mut merkle_proof = ArrayTrait::<felt252>::new();
+    merkle_proof.append(0x78626d4f8f1e24c24a41d90457688b436463d7595c4dd483671b1d5297518d2);
+    merkle_proof.append(0x14eb21a8e98fbd61f20d0bbdba2b32cb2bcb61082dfcf5229370aca5b2dbd2);
+    merkle_proof.append(0x73a5b6ab2f3ed2647ed316e5d4acac4db4b5f8da8f6e4707e633ebe02006043);
+    merkle_proof.append(0x1c156b5dedc44a27e73968ebe3d464538d7bb0332f1c8191b2eb4a5afca8c7a);
+    merkle_proof.append(0x39b52ee5f605f57cc893d398b09cb558c87ec9c956e11cd066df82e1006b33b);
+    merkle_proof.append(0x698ea138d770764c65cb171627c57ebc1efb7c495b2c7098872cb485fd2e0bc);
+    merkle_proof.append(0x313f2d7dc97dabc9a7fea0b42a5357787cabe78cdcca0d8274eabe170aaa79d);
+    merkle_proof.append(0x6b35594ee638d1baa9932b306753fbd43a300435af0d51abd3dd7bd06159e80);
+    merkle_proof.append(0x6e9f8a80ebebac7ba997448a1c50cd093e1b9c858cac81537446bafa4aa9431);
+    merkle_proof.append(0x3082dc1a8f44267c1b9bea29a3df4bd421e9c33ee1594bf297a94dfd34c7ae4);
+    // We omit the last part of the proof
+    // merkle_proof.append(0x16356d27fc23e31a3570926c593bb37430201f51282f2628780264d3a399867);
+
+    let update_data: OptionsFeedData = OptionsFeedData {
+        instrument_name: 'BTC-16AUG24-52000-P',
+        base_currency_id: 'BTC',
+        current_timestamp: 1722805873,
+        mark_price: 45431835920,
+    };
+
+    let leaf = summary_stats.get_options_data_hash(update_data);
+
+    summary_stats.update_options_data(merkle_proof.span(), update_data);
 }

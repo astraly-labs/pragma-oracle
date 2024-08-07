@@ -26,28 +26,28 @@ const CHECKPOINT_AGGREGATION_MODE_SHIFT_U172: felt252 =
     0x10000000000000000000000000000000000000000000;
 
 
-#[derive(Copy, Drop, Serde)]
+#[derive(Copy, Drop, Serde, Default)]
 struct BaseEntry {
     timestamp: u64,
     source: felt252,
     publisher: felt252,
 }
 
-#[derive(Copy, Drop, Serde)]
+#[derive(Copy, Drop, Serde, Debug)]
 struct SpotEntry {
     base: BaseEntry,
     price: u128,
     pair_id: felt252,
     volume: u128,
 }
-#[derive(Copy, Drop, Serde)]
+#[derive(Copy, Drop, Serde, Default, Debug)]
 struct GenericEntry {
     base: BaseEntry,
     key: felt252,
     value: u256,
 }
 
-#[derive(Copy, Drop, PartialOrd, Serde)]
+#[derive(Copy, Drop, PartialOrd, Serde, Debug)]
 struct FutureEntry {
     base: BaseEntry,
     price: u128,
@@ -56,7 +56,7 @@ struct FutureEntry {
     expiration_timestamp: u64,
 }
 
-#[derive(Serde, Drop, Copy)]
+#[derive(Serde, Drop, Copy, Debug)]
 struct OptionEntry {
     base: BaseEntry,
     rawParameters: rawSVI,
@@ -84,11 +84,17 @@ struct eSSVI {
 }
 
 
-#[derive(Serde, Drop, Copy)]
+#[derive(Serde, Drop, Copy, Debug)]
 struct EntryStorage {
     timestamp: u64,
     volume: u128,
     price: u128,
+}
+
+#[derive(Serde, Drop, Copy, Debug, starknet::Store)]
+struct GenericEntryStorage {
+    timestamp: u64,
+    value: u256,
 }
 
 
@@ -115,7 +121,7 @@ enum SimpleDataType {
 //  OptionEntry: (),
 }
 
-#[derive(Drop, Copy, Serde)]
+#[derive(Drop, Copy, Serde, Debug)]
 enum PossibleEntries {
     Spot: SpotEntry,
     Future: FutureEntry,
@@ -130,6 +136,14 @@ enum ArrayEntry {
     FutureEntry: Array<FutureEntry>,
     GenericEntry: Array<GenericEntry>,
 //  OptionEntry: Array<OptionEntry>,
+}
+
+#[derive(Drop, Serde, starknet::Store, Copy, Hash, PartialEq, Debug)]
+struct OptionsFeedData {
+    instrument_name: felt252,
+    base_currency_id: felt252,
+    current_timestamp: u64,
+    mark_price: u128,
 }
 
 
