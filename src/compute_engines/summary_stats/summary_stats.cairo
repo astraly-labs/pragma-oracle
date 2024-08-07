@@ -206,7 +206,7 @@ mod SummaryStats {
             };
 
             // Add length to avoid collisions
-            state.update(data_len.into());
+            state = state.update(data_len.into());
 
             // leaf is the result of hashing only the fields of the struct
             state.finalize()
