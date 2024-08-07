@@ -26,7 +26,6 @@ casm-add-pythonic-hints = true
 allowed-libfuncs-list.name = "audited"
 
 [scripts]
-gen-project = "sh scripts/generate_cairo_project.sh"
 sierra = "cairo-compile . -r"
 test-cairo = "cairo-test --starknet ."
 

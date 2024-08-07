@@ -27,7 +27,9 @@ def get_github_token_from_env(file_path=".env"):
 
 
 def get_previous_snapshot():
-    REPO = "Astraly-Labs/pragma-oracle"  # Replace with your GitHub username and repo name
+    REPO = (
+        "Astraly-Labs/pragma-oracle"  # Replace with your GitHub username and repo name
+    )
     GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", get_github_token_from_env())
     if GITHUB_TOKEN is None:
         raise ValueError(
@@ -140,7 +142,7 @@ def print_colored_output(improvements, worsened, gas_changes):
             print(RED + "None" + ENDC)
         for elem in worsened:
             print(RED + elem + ENDC)
-            
+
         print("\n")
         color = RED if gas_changes > 0 else GREEN
         gas_statement = (

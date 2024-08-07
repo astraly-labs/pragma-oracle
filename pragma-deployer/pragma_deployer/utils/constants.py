@@ -1,13 +1,14 @@
 import os
 import logging
-from enum import Enum
-from pathlib import Path
 
 from dotenv import load_dotenv
+from pathlib import Path
+
 from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.net.models.chains import StarknetChainId
-from pragma.core.types import Currency, Pair
-from typing import List
+
+from pragma_sdk.common.types.currency import Currency
+from pragma_sdk.common.types.pair import Pair
 
 load_dotenv()
 
@@ -22,21 +23,16 @@ ETH_TOKEN_ADDRESS = "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E
 NETWORKS = {
     "mainnet": {
         "name": "mainnet",
-        "rpc_url": f"https://starknet-mainnet.public.blastapi.io/rpc/v0_6",
-    },
-    "devnet": {
-        "name": "devnet",
-        "explorer_url": "https://devnet.starkscan.co",
-        "rpc_url": "http://127.0.0.1:5050/rpc",
+        "rpc_url": "https://starknet-mainnet.public.blastapi.io/rpc/v0_7",
     },
     "sepolia": {
         "name": "sepolia",
         "explorer_url": "https://sepolia.starkscan.co/",
-        "rpc_url": "https://starknet-sepolia.public.blastapi.io/rpc/v0_6",
+        "rpc_url": "https://starknet-sepolia.public.blastapi.io/rpc/v0_7",
     },
-    "katana": {
-        "name": "katana",
-        "explorer_url": "",
+    "devnet": {
+        "name": "devnet",
+        "explorer_url": "https://devnet.starkscan.co",
         "rpc_url": "http://127.0.0.1:5050/rpc",
     },
 }
@@ -58,8 +54,8 @@ if NETWORK["private_key"] is None:
     NETWORK["private_key"] = os.getenv("PRIVATE_KEY")
 if NETWORK["name"] == "mainnet":
     NETWORK["chain_id"] = StarknetChainId.MAINNET
-else: 
-    NETWORK["chain_id"] = StarknetChainId.SEPOLIA_TESTNET
+else:
+    NETWORK["chain_id"] = StarknetChainId.SEPOLIA
 
 
 FULLNODE_CLIENT = FullNodeClient(
@@ -67,14 +63,19 @@ FULLNODE_CLIENT = FullNodeClient(
 )
 
 
-BUILD_DIR = Path("target/dev")
+CURRENT_FILE = Path(__file__).resolve()
+POETRY_ROOT = CURRENT_FILE.parent.parent.parent
+PROJECT_ROOT = POETRY_ROOT.parent
+
+BUILD_DIR = PROJECT_ROOT / "target" / "dev"
 BUILD_DIR.mkdir(exist_ok=True, parents=True)
 
-SOURCE_DIR = Path("src")
+SOURCE_DIR = PROJECT_ROOT / "src"
 CONTRACTS = {p.stem: p for p in list(SOURCE_DIR.glob("**/*.cairo"))}
 
-DEPLOYMENTS_DIR = Path("deployments") / NETWORK["name"]
+DEPLOYMENTS_DIR = PROJECT_ROOT / "deployments" / NETWORK["name"]
 DEPLOYMENTS_DIR.mkdir(exist_ok=True, parents=True)
+
 
 COMPILED_CONTRACTS = [
     {"contract_name": "pragma_Oracle", "is_account_contract": False},
@@ -126,13 +127,6 @@ currencies = [
         0xDAC17F958D2EE523A2206206994597C13D831EC7,
     ),
     Currency(
-        "DAI",
-        18,
-        0,
-        0x001108CDBE5D82737B9057590ADAF97D34E74B5452F0628161D237746B6FE69E,
-        0x6B175474E89094C44DA98B954EEDEAC495271D0F,
-    ),
-    Currency(
         "LORDS",
         18,
         0,
@@ -168,21 +162,23 @@ currencies = [
         0x1F9840A85D5AF5BF1D1762F925BDADDC4201F984,
     ),
 ]
+
+# TODO: This should be a global Pragma configuration.
 pairs = [
-    Pair("ETH/USD", "ETH", "USD"),
-    Pair("ETH/DAI", "ETH", "DAI"),
-    Pair("BTC/USD", "BTC", "USD"),
-    Pair("BTC/EUR", "BTC", "EUR"),
-    Pair("WBTC/USD", "WBTC", "USD"),
-    Pair("WBTC/BTC", "WBTC", "BTC"),
-    Pair("WBTC/ETH", "WBTC", "ETH"),
-    Pair("USDC/USD", "USDC", "USD"),
-    Pair("USDT/USD", "USDT", "USD"),
-    Pair("DAI/USD", "DAI", "USD"),
-    Pair("LORDS/USD", "LORDS", "USD"),
-    Pair("LUSD/USD", "LUSD", "USD"),
-    Pair("LUSD/ETH", "LUSD", "ETH"),
-    Pair("WSTETH/USD", "WSTETH", "USD"),
-    Pair("WSTETH/ETH", "WSTETH", "USD"),
-    Pair("UNI/USD", "UNI", "USD"),
+    Pair.from_tickers("ETH", "USD"),
+    # Pair.from_tickers("ETH", "DAI"),
+    Pair.from_tickers("BTC", "USD"),
+    Pair.from_tickers("BTC", "EUR"),
+    Pair.from_tickers("WBTC", "USD"),
+    Pair.from_tickers("WBTC", "BTC"),
+    Pair.from_tickers("WBTC", "ETH"),
+    Pair.from_tickers("USDC", "USD"),
+    Pair.from_tickers("USDT", "USD"),
+    # Pair.from_tickers("DAI", "USD"),
+    # Pair.from_tickers("LORDS", "USD"),
+    Pair.from_tickers("LUSD", "USD"),
+    Pair.from_tickers("LUSD", "ETH"),
+    Pair.from_tickers("WSTETH", "USD"),
+    Pair.from_tickers("WSTETH", "ETH"),
+    # Pair.from_tickers("UNI", "USD"),
 ]
