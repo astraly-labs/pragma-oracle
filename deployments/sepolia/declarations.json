@@ -1,9 +1,9 @@
 {
-  "pragma_Oracle": "0x5e269051bec902aa2bd421d348e023c3893c4ff93de6c5f4b8964cd67cc3fc5",
+  "pragma_Oracle": "0x230f20832d73433a0ef69663545aabb607a3bbc0ff0a5f75e5d9716730e4141",
   "pragma_Ownable": "0x7b50a7a9bbb75d08248135003f1c87f0d44ba23018dc0ca480ac37a901531f3",
   "pragma_PublisherRegistry": "0x306288971002bd7906e3a607d504dfb28dcbdc7655a115984e567dce3b67e8f",
-  "pragma_SummaryStats": "0x3b5bf1c2f918de14620b3c63e2c6543cf0a138df258bce3d03e3fb0b7d2183a",
+  "pragma_SummaryStats": "0x30f6d03650b88c1268fd285e89ce660082439e8496b3359efa5dcda2d9ff12e",
   "pragma_Randomness": "0x2e167703c1deef69c6c5076133d3491fc75d1d1f486e6a8375712d28ff10fa4",
   "pragma_ExampleRandomness": "0x2f8197e47fa9776db20a22e009fdeee079f0387cbc823fad5bf0d8e285e81a7",
-  "pragma_YieldCurve": "0x55a7af6d2df5730c784ec31ca9f71e66f19e8cb78359d23f51aececcc1c04eb"
+  "pragma_YieldCurve": "0x1d59490811990de9a28095a519c045eeae60e5a7c6b976a207fcd56716b4171"
 }

@@ -9,9 +9,12 @@ from dotenv import load_dotenv
 from pragma_utils.logger import setup_logging
 
 from pragma_deployer.utils.constants import (
+    COMPILED_CONTRACTS,
     NETWORK,
 )
 from pragma_deployer.utils.starknet import (
+    declare_v2,
+    dump_declarations,
     dump_deployments,
     get_deployments,
     get_starknet_account,
@@ -32,6 +35,13 @@ async def main(port: Optional[int]) -> None:
     logger.info(f"ℹ️  Connected to CHAIN_ID {chain_id}")
     account = await get_starknet_account(port=port)
     logger.info(f"ℹ️  Using account {hex(account.address)} as deployer")
+
+    # Declaration
+    class_hash = {
+        contract["contract_name"]: await declare_v2(contract["contract_name"], port)
+        for contract in COMPILED_CONTRACTS
+    }
+    dump_declarations(class_hash)
 
     # Deployment
     deployments = get_deployments()

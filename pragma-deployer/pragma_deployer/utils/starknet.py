@@ -207,10 +207,10 @@ async def declare_v2(contract_name, port=None):
         max_fee=MAX_FEE,
     )
 
-    # # Send Declare v2 transaction
+    # Send Declare v2 transaction
     resp = await account.client.declare(transaction=sign_declare_v2)
 
-    logger.info(f"✅ {contract_name} class hash: {hex(resp.class_hash)}")
+    logger.info(f"✅ {contract_name} class hash {hex(resp.class_hash)} at tx {hex(resp.transaction_hash)}")
     return resp.class_hash
 
 
@@ -230,6 +230,8 @@ async def deploy_v2(contract_name, *args, port=None):
         cairo_version=1,
         max_fee=MAX_FEE,
     )
+
+    logger.info(f"Transaction hash: {hex(deploy_result.hash)}")
 
     await deploy_result.wait_for_acceptance()
 
@@ -260,11 +262,11 @@ async def invoke(contract_name, function_name, inputs, address=None, port=None):
         calls=call,
         max_fee=MAX_FEE,
     )
-    await account.client.wait_for_tx(response.transaction_hash)
     logger.info(
         f"✅ {contract_name}.{function_name} invoked at tx: %s",
         hex(response.transaction_hash),
     )
+    await account.client.wait_for_tx(response.transaction_hash)
     return response.transaction_hash
 
 
