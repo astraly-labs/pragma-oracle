@@ -36,10 +36,10 @@ async def main(port: Optional[int]) -> None:
 
     declarations = get_declarations()
     cur_class_hash = declarations["pragma_Oracle"]
-    logger.info(f"ℹ️  Current implementation hash: {cur_class_hash}")
+    logger.info(f"ℹ️  Current implementation hash: {hex(cur_class_hash)}")
 
     new_implementation_hash = await declare_v2("pragma_Oracle", port=port)
-    logger.info(f"ℹ️  New implementation hash: {new_implementation_hash}")
+    logger.info(f"ℹ️  New implementation hash: {hex(new_implementation_hash)}")
 
     tx_hash = await invoke(
         "pragma_Oracle", "upgrade", [new_implementation_hash], port=port
