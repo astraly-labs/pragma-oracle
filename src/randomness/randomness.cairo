@@ -544,10 +544,14 @@ mod Randomness {
 
             // Loot realms contract can make 300 requests for free
             let loot_realms = contract_address_const::<0x01153499afc678b92c825c86219d742f86c9385465c64aeb41a950e2ee34b1fd>();
-            if caller_address == loot_realms && request_number < 300 {
-                return 0;
+            if caller_address == loot_realms {
+                if request_number < 300 {
+                    0
+                } else {
+                    MAX_PREMIUM_FEE
+                }
             }
-            
+
             if (request_number < 10) {
                 MAX_PREMIUM_FEE
             } else if (request_number < 30) {
