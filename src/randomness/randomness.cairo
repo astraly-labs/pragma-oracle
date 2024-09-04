@@ -96,6 +96,7 @@ mod Randomness {
         ERC20CamelABIDispatcher, ERC20CamelABIDispatcherTrait
     };
     use openzeppelin::security::reentrancyguard::ReentrancyGuard;
+    use starknet::contract_address::contract_address_const;
     use array::{ArrayTrait, SpanTrait};
     use traits::{TryInto, Into};
     const MAX_PREMIUM_FEE: u128 = 100000000; // 1$ with 8 decimals
@@ -543,13 +544,9 @@ mod Randomness {
             let request_number = self.request_id.read(caller_address);
 
             // Loot realms contract can make 300 requests for free
-            let loot_realms = contract_address_const::<0x01153499afc678b92c825c86219d742f86c9385465c64aeb41a950e2ee34b1fd>();
-            if caller_address == loot_realms {
-                if request_number < 300 {
-                    0
-                } else {
-                    MAX_PREMIUM_FEE
-                }
+            let loot_realms: ContractAddress = contract_address_const::<0x01153499afc678b92c825c86219d742f86c9385465c64aeb41a950e2ee34b1fd>().into();
+            if (caller_address == loot_realms) {
+                return 0_u128;
             }
 
             if (request_number < 10) {
