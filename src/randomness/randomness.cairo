@@ -543,7 +543,6 @@ mod Randomness {
         fn compute_premium_fee(self: @ContractState, caller_address: ContractAddress) -> u128 {
             let request_number = self.request_id.read(caller_address);
 
-            // Loot realms contract can make 300 requests for free
             let loot_realms: ContractAddress = contract_address_const::<0x01153499afc678b92c825c86219d742f86c9385465c64aeb41a950e2ee34b1fd>().into();
             if (caller_address == loot_realms) {
                 return 0_u128;

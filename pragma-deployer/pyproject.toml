@@ -14,6 +14,7 @@ deploy-summary-stats = 'pragma_deployer.deploy_summary_stats:cli_entrypoint'
 deploy-randomness = 'pragma_deployer.deploy_randomness:cli_entrypoint'
 test-randomness = 'pragma_deployer.test_randomness:cli_entrypoint'
 upgrade-pragma = 'pragma_deployer.upgrade_pragma:cli_entrypoint'
+upgrade-vrf = 'pragma_deployer.upgrade_vrf:cli_entrypoint'
 remove-source = 'pragma_deployer.remove_source:cli_entrypoint'
 remove-publishers = 'pragma_deployer.remove_publishers:cli_entrypoint'
 
