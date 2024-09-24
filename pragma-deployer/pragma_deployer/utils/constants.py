@@ -24,16 +24,25 @@ NETWORKS = {
     "mainnet": {
         "name": "mainnet",
         "rpc_url": "https://starknet-mainnet.public.blastapi.io/rpc/v0_7",
+        "chain_id": StarknetChainId.MAINNET,
     },
     "sepolia": {
         "name": "sepolia",
         "explorer_url": "https://sepolia.starkscan.co/",
         "rpc_url": "https://starknet-sepolia.public.blastapi.io/rpc/v0_7",
+        "chain_id": StarknetChainId.SEPOLIA,
     },
     "devnet": {
         "name": "devnet",
         "explorer_url": "https://devnet.starkscan.co",
         "rpc_url": "http://127.0.0.1:5050/rpc",
+        "chain_id": StarknetChainId.SEPOLIA,
+    },
+    "madara_test": {
+        "name": "madara_test",
+        "explorer_url": "",
+        "rpc_url": "http://pragma-devnet.karnot.xyz/",
+        "chain_id": 93395501017206423887893332,
     },
 }
 
@@ -52,11 +61,6 @@ if NETWORK["private_key"] is None:
         f"⚠️  {NETWORK['name'].upper()}_PRIVATE_KEY not set, defaulting to PRIVATE_KEY"
     )
     NETWORK["private_key"] = os.getenv("PRIVATE_KEY")
-if NETWORK["name"] == "mainnet":
-    NETWORK["chain_id"] = StarknetChainId.MAINNET
-else:
-    NETWORK["chain_id"] = StarknetChainId.SEPOLIA
-
 
 FULLNODE_CLIENT = FullNodeClient(
     node_url=NETWORK["rpc_url"],
