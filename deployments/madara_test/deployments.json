@@ -1,0 +1,10 @@
+{
+  "pragma_PublisherRegistry": {
+    "address": "0x1051e6a2110d4b9d18344214180415f8d524867e42794f09e4ca975668db541",
+    "tx": "0x18600c869f848e9663232e2c25a196c34a4ac54ac2651ebaf32ef17cd72235e"
+  },
+  "pragma_Oracle": {
+    "address": "0x5bec6ca0be39624d95818d17857428c9995d4db5ddd088aefbf218b6d280f2a",
+    "tx": "0xfad6c97fc9869d0bee86a5c47bf19d2083e18eedea50781e796fd42a9ef254"
+  }
+}
