@@ -10,6 +10,21 @@ struct PoolInfo {
 }
 
 #[starknet::interface]
+trait IERC20<TContractState> {
+    fn name(self: @TContractState) -> felt252;
+    fn symbol(self: @TContractState) -> felt252;
+    fn decimals(self: @TContractState) -> u8;
+    fn total_supply(self: @TContractState) -> u256;
+    fn balance_of(self: @TContractState, account: ContractAddress) -> u256;
+    fn allowance(self: @TContractState, owner: ContractAddress, spender: ContractAddress) -> u256;
+    fn transfer(ref self: TContractState, recipient: ContractAddress, amount: u256) -> bool;
+    fn transfer_from(
+        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256
+    ) -> bool;
+    fn approve(ref self: TContractState, spender: ContractAddress, amount: u256) -> bool;
+}
+
+#[starknet::interface]
 trait IPool<TContractState> {
     fn name(self: @TContractState) -> felt252;
     fn symbol(self: @TContractState) -> felt252;
@@ -23,7 +38,7 @@ trait IPool<TContractState> {
 #[starknet::interface]
 trait ILpPricer<TContractState> {
     /// Prices a pool in USD.
-    fn get_usd_price(self: @TContractState, pool_address: ContractAddress) -> u128;
+    fn get_pool_usd_price(self: @TContractState, pool_address: ContractAddress) -> u256;
 
     /// Register a pool into the supported list.
     fn add_pool(ref self: TContractState, pool_address: ContractAddress);
@@ -56,7 +71,10 @@ mod LpPricer {
     use traits::TryInto;
     use pragma::admin::admin::Ownable;
     use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
-    use super::{PoolInfo, ILpPricer, IPoolDispatcher, IPoolDispatcherTrait};
+    use super::{
+        PoolInfo, ILpPricer, IPoolDispatcher, IPoolDispatcherTrait, IERC20Dispatcher,
+        IERC20DispatcherTrait
+    };
 
     // ================== ERRORS ==================
 
@@ -66,6 +84,7 @@ mod LpPricer {
         const ALREADY_ADMIN: felt252 = 'Already admin';
         const POOL_ALREADY_REGISTED: felt252 = 'Pool already registered';
         const UNSUPPORTED_POOL: felt252 = 'Pool not supported';
+        const UNSUPPORTED_CURRENCY: felt252 = 'Currency not supported';
     }
 
     // ================== STORAGE ==================
@@ -123,8 +142,29 @@ mod LpPricer {
     #[external(v0)]
     impl LpPricerImpl of ILpPricer<ContractState> {
         /// Prices a pool in USD.
-        fn get_usd_price(self: @ContractState, pool_address: ContractAddress) -> u128 {
-            0
+        /// 
+        /// The current formula is:
+        /// (token A reserve * token A price + token B reserve * token B price) / total supply
+        /// 
+        /// The prices of the underlying tokens are retrieved from the Pragma Oracle.
+        fn get_pool_usd_price(self: @ContractState, pool_address: ContractAddress) -> u256 {
+            // [Check] Pool is supported
+            assert(self.is_supported_pool(pool_address), errors::UNSUPPORTED_POOL);
+
+            // [Effect] Get the pool total supply
+            let pool = self.supported_pools.read(pool_address);
+            let total_supply = pool.total_supply();
+
+            // [Effect] Get the addresses & reserves
+            let (token_a_address, token_b_address) = get_tokens_addresses(pool);
+            let (token_a_reserve, token_b_reserve) = pool.get_reserves();
+
+            // [Effect] Get token prices
+            let oracle = self.oracle.read();
+            let token_a_price = get_price_in_usd(oracle, token_a_address);
+            let token_b_price = get_price_in_usd(oracle, token_b_address);
+
+            (token_a_reserve * token_a_price + token_b_reserve * token_b_price) / total_supply
         }
 
         /// Register a pool into the supported list.
@@ -136,8 +176,14 @@ mod LpPricer {
             // [Check] Pool is not already registered
             assert(!self.is_supported_pool(pool_address), errors::POOL_ALREADY_REGISTED);
 
-            // [Effect] Add the pool to the storage
+            // [Check] Assert that both pool assets are supported by Pragma
+            let oracle = self.oracle.read();
             let pool = IPoolDispatcher { contract_address: pool_address };
+            let (token_a_address, token_b_address) = get_tokens_addresses(pool);
+            assert(currency_is_supported(oracle, token_a_address), errors::UNSUPPORTED_CURRENCY);
+            assert(currency_is_supported(oracle, token_b_address), errors::UNSUPPORTED_CURRENCY);
+
+            // [Effect] Add the pool to the storage
             self.supported_pools.write(pool_address, pool);
 
             // [Interaction] Pool registered event
@@ -147,7 +193,7 @@ mod LpPricer {
                         RegisteredPool {
                             pool_name: pool.name(),
                             pool_symbol: pool.symbol(),
-                            pool_address: pool_address,
+                            pool_address: pool.contract_address,
                         }
                     )
                 );
@@ -174,7 +220,7 @@ mod LpPricer {
                         RemovedPool {
                             pool_name: pool.name(),
                             pool_symbol: pool.symbol(),
-                            pool_address: pool_address,
+                            pool_address: pool.contract_address,
                         }
                     )
                 );
@@ -253,5 +299,23 @@ mod LpPricer {
         let admin = Ownable::OwnableImpl::owner(@state);
         let caller = get_caller_address();
         assert(caller == admin, errors::NOT_ADMIN);
+    }
+
+    /// Retrieves both underlying tokens addresses of a Pool.
+    fn get_tokens_addresses(pool: IPoolDispatcher) -> (ContractAddress, ContractAddress) {
+        (pool.token_0(), pool.token_1())
+    }
+
+    /// Returns true if the currency is supported by Pragma, else false.
+    fn currency_is_supported(
+        oracle: IOracleABIDispatcher, currency_address: ContractAddress
+    ) -> bool {
+        let currency = IERC20Dispatcher { contract_address: currency_address };
+        oracle.get_currency(currency.name()).id != 0
+    }
+
+    /// Returns the price in USD for a currency by fetching the Pragma Oracle.
+    fn get_price_in_usd(oracle: IOracleABIDispatcher, currency_address: ContractAddress) -> u256 {
+        0
     }
 }
