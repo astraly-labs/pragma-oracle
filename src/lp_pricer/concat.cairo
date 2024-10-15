@@ -1,3 +1,5 @@
+// This whoooole module is necessary so we can use the `concat` method on two felts.
+// Needed so we can construct a pair id from two felts.
 // Source:
 // https://github.com/underware-gg/underdark/blob/258c3ca96a728a605b70b21a3fa697d290d31409/dojo/src/utils/string.cairo#L4
 
