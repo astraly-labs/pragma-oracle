@@ -39,6 +39,7 @@ mod randomness {
     mod randomness;
 }
 mod lp_pricer {
+    mod concat;
     mod lp_pricer;
 }
 #[cfg(test)]

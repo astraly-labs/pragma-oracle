@@ -2,26 +2,16 @@ use starknet::ContractAddress;
 
 #[derive(Copy, Drop, Serde, Debug)]
 struct PoolInfo {
+    address: ContractAddress,
     name: felt252,
     symbol: felt252,
-    address: ContractAddress,
     decimals: u8,
     total_supply: u256,
 }
 
 #[starknet::interface]
 trait IERC20<TContractState> {
-    fn name(self: @TContractState) -> felt252;
     fn symbol(self: @TContractState) -> felt252;
-    fn decimals(self: @TContractState) -> u8;
-    fn total_supply(self: @TContractState) -> u256;
-    fn balance_of(self: @TContractState, account: ContractAddress) -> u256;
-    fn allowance(self: @TContractState, owner: ContractAddress, spender: ContractAddress) -> u256;
-    fn transfer(ref self: TContractState, recipient: ContractAddress, amount: u256) -> bool;
-    fn transfer_from(
-        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256
-    ) -> bool;
-    fn approve(ref self: TContractState, spender: ContractAddress, amount: u256) -> bool;
 }
 
 #[starknet::interface]
@@ -70,11 +60,14 @@ mod LpPricer {
     use traits::Into;
     use traits::TryInto;
     use pragma::admin::admin::Ownable;
-    use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
+    use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait, DataType};
     use super::{
         PoolInfo, ILpPricer, IPoolDispatcher, IPoolDispatcherTrait, IERC20Dispatcher,
         IERC20DispatcherTrait
     };
+    use pragma::lp_pricer::concat::concat;
+
+    const USD_PAIR_SUFFIX: felt252 = '/USD';
 
     // ================== ERRORS ==================
 
@@ -155,14 +148,15 @@ mod LpPricer {
             let pool = self.supported_pools.read(pool_address);
             let total_supply = pool.total_supply();
 
-            // [Effect] Get the addresses & reserves
+            // [Effect] Get the addresses, reserves & symbols
             let (token_a_address, token_b_address) = get_tokens_addresses(pool);
             let (token_a_reserve, token_b_reserve) = pool.get_reserves();
+            let (token_a_id, token_b_id) = get_tokens_symbols(token_a_address, token_b_address);
 
             // [Effect] Get token prices
             let oracle = self.oracle.read();
-            let token_a_price = get_price_in_usd(oracle, token_a_address);
-            let token_b_price = get_price_in_usd(oracle, token_b_address);
+            let token_a_price = get_currency_price_in_usd(oracle, token_a_id);
+            let token_b_price = get_currency_price_in_usd(oracle, token_b_id);
 
             (token_a_reserve * token_a_price + token_b_reserve * token_b_price) / total_supply
         }
@@ -180,8 +174,9 @@ mod LpPricer {
             let oracle = self.oracle.read();
             let pool = IPoolDispatcher { contract_address: pool_address };
             let (token_a_address, token_b_address) = get_tokens_addresses(pool);
-            assert(currency_is_supported(oracle, token_a_address), errors::UNSUPPORTED_CURRENCY);
-            assert(currency_is_supported(oracle, token_b_address), errors::UNSUPPORTED_CURRENCY);
+            let (token_a_id, token_b_id) = get_tokens_symbols(token_a_address, token_b_address);
+            assert(currency_is_supported(oracle, token_a_id), errors::UNSUPPORTED_CURRENCY);
+            assert(currency_is_supported(oracle, token_b_id), errors::UNSUPPORTED_CURRENCY);
 
             // [Effect] Add the pool to the storage
             self.supported_pools.write(pool_address, pool);
@@ -237,9 +232,9 @@ mod LpPricer {
 
             // [Interaction] Return the pool informations
             PoolInfo {
+                address: pool.contract_address,
                 name: pool.name(),
                 symbol: pool.symbol(),
-                address: pool.contract_address,
                 decimals: pool.decimals(),
                 total_supply: pool.total_supply()
             }
@@ -306,16 +301,26 @@ mod LpPricer {
         (pool.token_0(), pool.token_1())
     }
 
-    /// Returns true if the currency is supported by Pragma, else false.
-    fn currency_is_supported(
-        oracle: IOracleABIDispatcher, currency_address: ContractAddress
-    ) -> bool {
-        let currency = IERC20Dispatcher { contract_address: currency_address };
-        oracle.get_currency(currency.name()).id != 0
+    /// Retrieves the token symbols from the underlying currencies.
+    fn get_tokens_symbols(
+        token_a_address: ContractAddress, token_b_address: ContractAddress
+    ) -> (felt252, felt252) {
+        let token_a = IERC20Dispatcher { contract_address: token_a_address };
+        let token_b = IERC20Dispatcher { contract_address: token_b_address };
+        (token_a.symbol(), token_b.symbol())
     }
 
-    /// Returns the price in USD for a currency by fetching the Pragma Oracle.
-    fn get_price_in_usd(oracle: IOracleABIDispatcher, currency_address: ContractAddress) -> u256 {
-        0
+    /// Returns true if the currency is supported by Pragma, else false.
+    fn currency_is_supported(oracle: IOracleABIDispatcher, currency_id: felt252) -> bool {
+        oracle.get_currency(currency_id).id != 0
+    }
+
+    /// Returns the price in USD for a currency by fetching it from the Pragma Oracle.
+    fn get_currency_price_in_usd(oracle: IOracleABIDispatcher, currency_id: felt252) -> u256 {
+        let pair_id = concat(currency_id, USD_PAIR_SUFFIX);
+        let data_type = DataType::SpotEntry(pair_id);
+        let data = oracle.get_data_median(data_type);
+
+        data.price.into()
     }
 }
