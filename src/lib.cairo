@@ -38,6 +38,9 @@ mod randomness {
     mod example_randomness;
     mod randomness;
 }
+mod lp_pricer {
+    mod lp_pricer;
+}
 #[cfg(test)]
 mod tests {
     mod test_oracle;
