@@ -287,6 +287,7 @@ mod LpPricer {
     }
 
     // ================== PRIVATE FUNCTIONS ==================
+    // Utilities used in the Public ABI.
 
     /// Asserts that the caller is the Admin.
     fn assert_only_admin() {
