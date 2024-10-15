@@ -170,11 +170,12 @@ mod LpPricer {
             // [Check] Pool is not already registered
             assert(!self.is_supported_pool(pool_address), errors::POOL_ALREADY_REGISTED);
 
-            // [Check] Assert that both pool assets are supported by Pragma
-            let oracle = self.oracle.read();
             let pool = IPoolDispatcher { contract_address: pool_address };
             let (token_a_address, token_b_address) = get_tokens_addresses(pool);
             let (token_a_id, token_b_id) = get_tokens_symbols(token_a_address, token_b_address);
+
+            // [Check] Assert that both pool assets are supported by Pragma
+            let oracle = self.oracle.read();
             assert(currency_is_supported(oracle, token_a_id), errors::UNSUPPORTED_CURRENCY);
             assert(currency_is_supported(oracle, token_b_id), errors::UNSUPPORTED_CURRENCY);
 
