@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 async def main(port: Optional[int]) -> None:
     """
-    Main function to deploy Summary Stats contract to Starknet.
+    Main function to deploy the LP Pricer contract to Starknet.
     """
     # Declarations
     chain_id = NETWORK["chain_id"]
@@ -75,7 +75,7 @@ async def main(port: Optional[int]) -> None:
 )
 def cli_entrypoint(log_level: str, port: Optional[int]) -> None:
     """
-    CLI entrypoint to deploy Summary Stats contract to Starknet.
+    CLI entrypoint to deploy the LP Pricer contract to Starknet.
     """
     setup_logging(logger, log_level)
 
