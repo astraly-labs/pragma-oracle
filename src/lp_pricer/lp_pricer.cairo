@@ -65,7 +65,7 @@ mod LpPricer {
         PoolInfo, ILpPricer, IPoolDispatcher, IPoolDispatcherTrait, IERC20Dispatcher,
         IERC20DispatcherTrait
     };
-    use pragma::lp_pricer::concat::concat;
+    use pragma::utils::strings::StringTrait;
 
     const USD_PAIR_SUFFIX: felt252 = '/USD';
 
@@ -319,10 +319,9 @@ mod LpPricer {
 
     /// Returns the price in USD for a currency by fetching it from the Pragma Oracle.
     fn get_currency_price_in_usd(oracle: IOracleABIDispatcher, currency_id: felt252) -> u256 {
-        let pair_id = concat(currency_id, USD_PAIR_SUFFIX);
+        let pair_id = StringTrait::concat(currency_id, USD_PAIR_SUFFIX);
         let data_type = DataType::SpotEntry(pair_id);
         let data = oracle.get_data_median(data_type);
-
         data.price.into()
     }
 }

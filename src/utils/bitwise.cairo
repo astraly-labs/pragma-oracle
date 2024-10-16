@@ -331,20 +331,3 @@ impl U256Bitwise of Bitwise<u256> {
         result
     }
 }
-
-fn concat(left: felt252, right: felt252) -> felt252 {
-    let _left: u256 = left.into();
-    let _right: u256 = right.into();
-    let mut offset: usize = 0;
-    let mut i: usize = 0;
-    loop {
-        if (i == 256) {
-            break;
-        }
-        if (_right & U256Bitwise::shl(0xff, i) != 0) {
-            offset = i + 8;
-        }
-        i += 8;
-    };
-    (_right | U256Bitwise::shl(_left, offset)).try_into().unwrap()
-}

@@ -5,6 +5,10 @@ mod entry {
     mod entry;
     mod structs;
 }
+mod utils {
+    mod bitwise;
+    mod strings;
+}
 mod operations {
     mod sorting {
         mod merge_sort;
@@ -39,7 +43,6 @@ mod randomness {
     mod randomness;
 }
 mod lp_pricer {
-    mod concat;
     mod lp_pricer;
 }
 #[cfg(test)]
