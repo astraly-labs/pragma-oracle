@@ -9,36 +9,36 @@ jobs:
       run:
         working-directory: pragma-deployer
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Install Starknet Devnet RS
-      run: |
-        wget https://github.com/0xSpaceShard/starknet-devnet-rs/releases/download/v0.1.2/starknet-devnet-x86_64-unknown-linux-gnu.tar.gz
-        tar -xvf starknet-devnet-x86_64-unknown-linux-gnu.tar.gz
-        chmod +x starknet-devnet
-        sudo mv starknet-devnet /usr/local/bin/
-        rm -f starknet-devnet-x86_64-unknown-linux-gnu.tar.gz
-    
-    - name: Make script executable
-      run: chmod +x scripts/devnet.sh
-    
-    - name: Set up Python and install Poetry
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.12'
-    - run: pip install poetry
-    
-    - name: Install dependencies
-      run: poetry install
-    
-    - name: Set up Scarb
-      uses: software-mansion/setup-scarb@v1
-    
-    - name: Build with Scarb
-      run: scarb build
-    
-    - name: Run Starknet Devnet and scripts
-      env:
-        DEVNET_ACCOUNT_ADDRESS: "0x260a8311b4f1092db620b923e8d7d20e76dedcc615fb4b6fdf28315b81de201"
-        DEVNET_PRIVATE_KEY: "0xc10662b7b247c7cecf7e8a30726cff12"
-      run: bash scripts/devnet.sh
+      - uses: actions/checkout@v3
+
+      - name: Install Starknet Devnet RS
+        run: |
+          wget https://github.com/0xSpaceShard/starknet-devnet-rs/releases/download/v0.1.2/starknet-devnet-x86_64-unknown-linux-gnu.tar.gz
+          tar -xvf starknet-devnet-x86_64-unknown-linux-gnu.tar.gz
+          chmod +x starknet-devnet
+          sudo mv starknet-devnet /usr/local/bin/
+          rm -f starknet-devnet-x86_64-unknown-linux-gnu.tar.gz
+
+      - name: Make script executable
+        run: chmod +x scripts/devnet.sh
+
+      - name: Set up Python and install Poetry
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      - run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Set up Scarb
+        uses: software-mansion/setup-scarb@v1
+
+      - name: Build with Scarb
+        run: scarb build
+
+      - name: Run Starknet Devnet and scripts
+        env:
+          DEVNET_ACCOUNT_ADDRESS: "0x260a8311b4f1092db620b923e8d7d20e76dedcc615fb4b6fdf28315b81de201"
+          DEVNET_PRIVATE_KEY: "0xc10662b7b247c7cecf7e8a30726cff12"
+        run: bash scripts/devnet.sh
