@@ -210,7 +210,9 @@ async def declare_v2(contract_name, port=None):
     # Send Declare v2 transaction
     resp = await account.client.declare(transaction=sign_declare_v2)
 
-    logger.info(f"✅ {contract_name} class hash {hex(resp.class_hash)} at tx {hex(resp.transaction_hash)}")
+    logger.info(
+        f"✅ {contract_name} class hash {hex(resp.class_hash)} at tx {hex(resp.transaction_hash)}"
+    )
     return resp.class_hash
 
 
