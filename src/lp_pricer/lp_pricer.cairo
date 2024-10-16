@@ -1,15 +1,6 @@
-use starknet::ContractAddress;
+use starknet::{ContractAddress, contract_address_const};
 
-#[derive(Copy, Drop, Serde, Debug)]
-struct PoolInfo {
-    address: ContractAddress,
-    name: felt252,
-    symbol: felt252,
-    decimals: u8,
-    total_supply: u256,
-}
-
-/// Represents a Pool contract.
+/// Represents a Pool.
 #[starknet::interface]
 trait IPool<TContractState> {
     fn name(self: @TContractState) -> felt252;
@@ -60,7 +51,10 @@ mod LpPricer {
     use openzeppelin::token::erc20::interface::{
         ERC20CamelABIDispatcher, ERC20CamelABIDispatcherTrait
     };
-    use super::{PoolInfo, ILpPricer, IPoolDispatcher, IPoolDispatcherTrait};
+    use super::{
+        PoolInfo, ILpPricer, IPoolDispatcher, IPoolDispatcherTrait, Pool, PoolTrait, Token,
+        TokenTrait
+    };
     use pragma::utils::strings::StringTrait;
 
     const USD_PAIR_SUFFIX: felt252 = '/USD';
@@ -70,6 +64,7 @@ mod LpPricer {
     mod errors {
         const NOT_ADMIN: felt252 = 'Caller is not the admin';
         const ZERO_ADDRESS_ADMIN: felt252 = 'New admin is the zero address';
+        const ZERO_ADDRESS_ORACLE: felt252 = 'Oracle is the zero address';
         const ALREADY_ADMIN: felt252 = 'Already admin';
         const POOL_ALREADY_REGISTED: felt252 = 'Pool already registered';
         const UNSUPPORTED_POOL: felt252 = 'Pool not supported';
@@ -81,21 +76,19 @@ mod LpPricer {
     #[storage]
     struct Storage {
         oracle: IOracleABIDispatcher,
-        supported_pools: LegacyMap<ContractAddress, IPoolDispatcher>
+        supported_pools: LegacyMap<ContractAddress, Pool>,
     }
 
     // ================== EVENTS ==================
 
     #[derive(Drop, starknet::Event)]
     struct RegisteredPool {
-        pool_name: felt252,
         pool_symbol: felt252,
         pool_address: ContractAddress,
     }
 
     #[derive(Drop, starknet::Event)]
     struct RemovedPool {
-        pool_name: felt252,
         pool_symbol: felt252,
         pool_address: ContractAddress,
     }
@@ -120,8 +113,15 @@ mod LpPricer {
     fn constructor(
         ref self: ContractState, admin_address: ContractAddress, oracle_address: ContractAddress
     ) {
+        // [Check] Addresses are not zero
+        assert(!admin_address.is_zero(), errors::ZERO_ADDRESS_ADMIN);
+        assert(!oracle_address.is_zero(), errors::ZERO_ADDRESS_ORACLE);
+
+        // [Effect] Set owner
         let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
         Ownable::InternalImpl::initializer(ref state, admin_address);
+
+        // [Effect] Set Oracle
         let oracle = IOracleABIDispatcher { contract_address: oracle_address };
         self.oracle.write(oracle);
     }
@@ -140,21 +140,18 @@ mod LpPricer {
             // [Check] Pool is supported
             assert(self.is_supported_pool(pool_address), errors::UNSUPPORTED_POOL);
 
-            // [Effect] Get the pool total supply
+            // [Effect] Get the addresses, symbols & reserves 
             let pool = self.supported_pools.read(pool_address);
-            let total_supply = pool.total_supply();
-
-            // [Effect] Get the addresses, reserves & symbols
-            let (token_a_address, token_b_address) = get_tokens_addresses(pool);
-            let (token_a_reserve, token_b_reserve) = pool.get_reserves();
-            let (token_a_id, token_b_id) = get_tokens_symbols(token_a_address, token_b_address);
+            let (token_a_address, token_b_address) = pool.get_tokens_addresses();
+            let (token_a_id, token_b_id) = pool.get_tokens_symbols();
+            let (token_a_reserve, token_b_reserve) = pool.dispatcher.get_reserves();
 
             // [Effect] Get token prices
             let oracle = self.oracle.read();
             let token_a_price = get_currency_price_in_usd(oracle, token_a_id);
             let token_b_price = get_currency_price_in_usd(oracle, token_b_id);
 
-            (token_a_reserve * token_a_price + token_b_reserve * token_b_price) / total_supply
+            (token_a_reserve * token_a_price + token_b_reserve * token_b_price) / pool.total_supply
         }
 
         /// Register a pool into the supported list.
@@ -166,9 +163,10 @@ mod LpPricer {
             // [Check] Pool is not already registered
             assert(!self.is_supported_pool(pool_address), errors::POOL_ALREADY_REGISTED);
 
-            let pool = IPoolDispatcher { contract_address: pool_address };
-            let (token_a_address, token_b_address) = get_tokens_addresses(pool);
-            let (token_a_id, token_b_id) = get_tokens_symbols(token_a_address, token_b_address);
+            // [Effect] Fetch the underlying token of the pool (address + symbol)
+            let pool_dispatcher = IPoolDispatcher { contract_address: pool_address };
+            let (token_a_address, token_b_address) = fetch_tokens_addresses(pool_dispatcher);
+            let (token_a_id, token_b_id) = fetch_tokens_symbols(token_a_address, token_b_address);
 
             // [Check] Assert that both pool assets are supported by Pragma
             let oracle = self.oracle.read();
@@ -176,6 +174,13 @@ mod LpPricer {
             assert(currency_is_supported(oracle, token_b_id), errors::UNSUPPORTED_CURRENCY);
 
             // [Effect] Add the pool to the storage
+            let pool = Pool {
+                id: pool_dispatcher.symbol(),
+                token_a: TokenTrait::new(token_a_id, token_a_address),
+                token_b: TokenTrait::new(token_b_id, token_b_address),
+                total_supply: pool_dispatcher.total_supply(),
+                dispatcher: pool_dispatcher,
+            };
             self.supported_pools.write(pool_address, pool);
 
             // [Interaction] Pool registered event
@@ -183,9 +188,7 @@ mod LpPricer {
                 .emit(
                     Event::RegisteredPool(
                         RegisteredPool {
-                            pool_name: pool.name(),
-                            pool_symbol: pool.symbol(),
-                            pool_address: pool.contract_address,
+                            pool_symbol: pool.id, pool_address: pool.dispatcher.contract_address,
                         }
                     )
                 );
@@ -202,18 +205,14 @@ mod LpPricer {
 
             // [Effect] Remove the Pool contract from the storage
             let pool = self.supported_pools.read(pool_address);
-            let zero_pool = IPoolDispatcher { contract_address: contract_address_const::<0>() };
-            self.supported_pools.write(pool_address, zero_pool);
+            let non_existing_pool = PoolTrait::zero();
+            self.supported_pools.write(pool_address, non_existing_pool);
 
             // [Interaction] Pool unregistered event
             self
                 .emit(
                     Event::RemovedPool(
-                        RemovedPool {
-                            pool_name: pool.name(),
-                            pool_symbol: pool.symbol(),
-                            pool_address: pool.contract_address,
-                        }
+                        RemovedPool { pool_symbol: pool.id, pool_address: pool_address, }
                     )
                 );
         }
@@ -229,19 +228,22 @@ mod LpPricer {
 
             // [Interaction] Return the pool informations
             PoolInfo {
-                address: pool.contract_address,
-                name: pool.name(),
-                symbol: pool.symbol(),
-                decimals: pool.decimals(),
-                total_supply: pool.total_supply()
+                address: pool.dispatcher.contract_address,
+                name: pool.dispatcher.name(),
+                symbol: pool.id,
+                decimals: pool.dispatcher.decimals(),
+                total_supply: pool.total_supply,
+                token_a: pool.token_a.address,
+                token_b: pool.token_b.address,
             }
         }
 
         /// Returns true if the pool is supported, else false.
         fn is_supported_pool(self: @ContractState, pool_address: ContractAddress) -> bool {
             // [Interaction] Return if the pool is supported
-            !self.supported_pools.read(pool_address).contract_address.is_zero()
+            !self.supported_pools.read(pool_address).id.is_zero()
         }
+
 
         /// Update the admin address.
         /// 
@@ -294,13 +296,15 @@ mod LpPricer {
         assert(caller == admin, errors::NOT_ADMIN);
     }
 
-    /// Retrieves both underlying tokens addresses of a Pool.
-    fn get_tokens_addresses(pool: IPoolDispatcher) -> (ContractAddress, ContractAddress) {
-        (pool.token_0(), pool.token_1())
+    /// Retrieves the token addresses from from the Pool Dispatcher.
+    fn fetch_tokens_addresses(
+        pool_dispatcher: IPoolDispatcher
+    ) -> (ContractAddress, ContractAddress) {
+        (pool_dispatcher.token_0(), pool_dispatcher.token_1())
     }
 
     /// Retrieves the token symbols from the underlying currencies.
-    fn get_tokens_symbols(
+    fn fetch_tokens_symbols(
         token_a_address: ContractAddress, token_b_address: ContractAddress
     ) -> (felt252, felt252) {
         let token_a = ERC20CamelABIDispatcher { contract_address: token_a_address };
@@ -320,4 +324,64 @@ mod LpPricer {
         let data = oracle.get_data_median(data_type);
         data.price.into()
     }
+}
+
+// ===================== STRUCTS =====================
+//
+// Below, you will find utils structs used for the LpPricer contract.
+
+#[derive(Copy, Drop, Serde, Debug)]
+struct Token {
+    symbol: felt252,
+    address: ContractAddress,
+}
+
+#[generate_trait]
+impl TokenImpl of TokenTrait {
+    fn new(symbol: felt252, address: ContractAddress) -> Token {
+        Token { symbol, address }
+    }
+}
+
+#[derive(Copy, Drop, Serde, Debug)]
+struct Pool {
+    id: felt252,
+    dispatcher: IPoolDispatcher,
+    token_a: Token,
+    token_b: Token,
+    total_supply: u256,
+}
+
+#[generate_trait]
+impl PoolImpl of PoolTrait {
+    fn zero() -> Pool {
+        Pool {
+            id: 0,
+            dispatcher: IPoolDispatcher { contract_address: contract_address_const::<0>() },
+            token_a: TokenTrait::new(0, contract_address_const::<0>()),
+            token_b: TokenTrait::new(0, contract_address_const::<0>()),
+            total_supply: 0,
+        }
+    }
+
+    /// Retrieves both underlying tokens addresses of a Pool.
+    fn get_tokens_addresses(self: @Pool) -> (ContractAddress, ContractAddress) {
+        (*self.token_a.address, *self.token_b.address)
+    }
+
+    /// Retrieves the token symbols from the underlying currencies.
+    fn get_tokens_symbols(self: @Pool) -> (felt252, felt252) {
+        (*self.token_a.symbol, *self.token_b.symbol)
+    }
+}
+
+#[derive(Copy, Drop, Serde, Debug)]
+struct PoolInfo {
+    address: ContractAddress,
+    name: felt252,
+    symbol: felt252,
+    decimals: u8,
+    total_supply: u256,
+    token_a: ContractAddress,
+    token_b: ContractAddress,
 }
