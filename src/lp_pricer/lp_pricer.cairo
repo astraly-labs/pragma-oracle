@@ -69,6 +69,8 @@ mod LpPricer {
         const POOL_ALREADY_REGISTED: felt252 = 'Pool already registered';
         const UNSUPPORTED_POOL: felt252 = 'Pool not supported';
         const UNSUPPORTED_CURRENCY: felt252 = 'Currency not supported';
+        const FAILED_TO_FETCH_PRICE: felt252 = 'Failed to fetch price';
+        const POOL_ID_IS_NULL: felt252 = 'Pool id cannot be null';
     }
 
     // ================== STORAGE ==================
@@ -173,6 +175,9 @@ mod LpPricer {
             assert(currency_is_supported(oracle, token_a_id), errors::UNSUPPORTED_CURRENCY);
             assert(currency_is_supported(oracle, token_b_id), errors::UNSUPPORTED_CURRENCY);
 
+            // [Check] Verify that the id is not null
+            assert(!pool_dispatcher.symbol().is_zero(), errors::POOL_ID_IS_NULL);
+
             // [Effect] Add the pool to the storage
             let pool = Pool {
                 id: pool_dispatcher.symbol(),
@@ -231,7 +236,7 @@ mod LpPricer {
                 name: pool.dispatcher.name(),
                 symbol: pool.id,
                 decimals: pool.dispatcher.decimals(),
-                total_supply: pool.total_supply,
+                total_supply: pool.dispatcher.total_supply(),
                 token_a: pool.token_a.address,
                 token_b: pool.token_b.address,
             }
@@ -280,7 +285,7 @@ mod LpPricer {
 
         /// Returns the Pragma Oracle address.
         fn get_oracle_address(self: @ContractState) -> ContractAddress {
-            self.get_oracle_address()
+            self.oracle.read().contract_address
         }
     }
 
@@ -321,6 +326,7 @@ mod LpPricer {
         let pair_id = StringTrait::concat(currency_id, USD_PAIR_SUFFIX);
         let data_type = DataType::SpotEntry(pair_id);
         let data = oracle.get_data_median(data_type);
+        assert(!data.price.is_zero(), errors::FAILED_TO_FETCH_PRICE);
         data.price.into()
     }
 }
