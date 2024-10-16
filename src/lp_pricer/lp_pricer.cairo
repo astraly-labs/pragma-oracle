@@ -329,7 +329,7 @@ mod LpPricer {
 //
 // Below, you will find utils structs used for the LpPricer contract.
 
-#[derive(Copy, Drop, Serde, Debug)]
+#[derive(Copy, Drop, Serde, Debug, starknet::Store)]
 struct Token {
     symbol: felt252,
     address: ContractAddress,
@@ -342,7 +342,7 @@ impl TokenImpl of TokenTrait {
     }
 }
 
-#[derive(Copy, Drop, Serde, Debug)]
+#[derive(Copy, Drop, Serde, Debug, starknet::Store)]
 struct Pool {
     id: felt252,
     dispatcher: IPoolDispatcher,
