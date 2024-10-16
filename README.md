@@ -20,6 +20,7 @@ Pragma is a decentralized oracle built natively on Starknet. It leverages cairo 
 - <a href="/src/publisher_registry">Publisher Registry</a> handles the registration of different publishers along with the sources they are allowed to push data from.
 - <a href="/src/compute_engines">Summary Stats</a> acts as a proxy contract for more sophisticated kind of data aggregation such as _volatility_ and _mean_.
 - <a href="/src/randomness">Randomness</a> is the VRF requestor implementation, also includes an example on how to request random words.
+- <a href="/src/lp_pricer">LP Pricer</a> is a Pricing contract for LP tokens. It allows registering pools (which underlying assets are supported by Pragma) and prices them in USD.
 
 ## Testing
 
