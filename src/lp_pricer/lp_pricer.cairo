@@ -205,8 +205,7 @@ mod LpPricer {
 
             // [Effect] Remove the Pool contract from the storage
             let pool = self.supported_pools.read(pool_address);
-            let non_existing_pool = PoolTrait::zero();
-            self.supported_pools.write(pool_address, non_existing_pool);
+            self.supported_pools.write(pool_address, PoolTrait::zero());
 
             // [Interaction] Pool unregistered event
             self
@@ -241,7 +240,7 @@ mod LpPricer {
         /// Returns true if the pool is supported, else false.
         fn is_supported_pool(self: @ContractState, pool_address: ContractAddress) -> bool {
             // [Interaction] Return if the pool is supported
-            !self.supported_pools.read(pool_address).id.is_zero()
+            !self.supported_pools.read(pool_address).is_zero()
         }
 
 
@@ -354,6 +353,17 @@ struct Pool {
 
 #[generate_trait]
 impl PoolImpl of PoolTrait {
+    /// Retrieves both underlying tokens addresses of a Pool.
+    fn get_tokens_addresses(self: @Pool) -> (ContractAddress, ContractAddress) {
+        (*self.token_a.address, *self.token_b.address)
+    }
+
+    /// Retrieves the token symbols from the underlying currencies.
+    fn get_tokens_symbols(self: @Pool) -> (felt252, felt252) {
+        (*self.token_a.symbol, *self.token_b.symbol)
+    }
+
+    /// Returns the equivalent of "O" for a Pool.
     fn zero() -> Pool {
         Pool {
             id: 0,
@@ -364,14 +374,8 @@ impl PoolImpl of PoolTrait {
         }
     }
 
-    /// Retrieves both underlying tokens addresses of a Pool.
-    fn get_tokens_addresses(self: @Pool) -> (ContractAddress, ContractAddress) {
-        (*self.token_a.address, *self.token_b.address)
-    }
-
-    /// Retrieves the token symbols from the underlying currencies.
-    fn get_tokens_symbols(self: @Pool) -> (felt252, felt252) {
-        (*self.token_a.symbol, *self.token_b.symbol)
+    fn is_zero(self: @Pool) -> bool {
+        *self.id == 0
     }
 }
 
