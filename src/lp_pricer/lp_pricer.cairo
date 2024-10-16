@@ -9,11 +9,7 @@ struct PoolInfo {
     total_supply: u256,
 }
 
-#[starknet::interface]
-trait IERC20<TContractState> {
-    fn symbol(self: @TContractState) -> felt252;
-}
-
+/// Represents a Pool contract.
 #[starknet::interface]
 trait IPool<TContractState> {
     fn name(self: @TContractState) -> felt252;
@@ -61,10 +57,10 @@ mod LpPricer {
     use traits::TryInto;
     use pragma::admin::admin::Ownable;
     use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait, DataType};
-    use super::{
-        PoolInfo, ILpPricer, IPoolDispatcher, IPoolDispatcherTrait, IERC20Dispatcher,
-        IERC20DispatcherTrait
+    use openzeppelin::token::erc20::interface::{
+        ERC20CamelABIDispatcher, ERC20CamelABIDispatcherTrait
     };
+    use super::{PoolInfo, ILpPricer, IPoolDispatcher, IPoolDispatcherTrait};
     use pragma::utils::strings::StringTrait;
 
     const USD_PAIR_SUFFIX: felt252 = '/USD';
@@ -307,8 +303,8 @@ mod LpPricer {
     fn get_tokens_symbols(
         token_a_address: ContractAddress, token_b_address: ContractAddress
     ) -> (felt252, felt252) {
-        let token_a = IERC20Dispatcher { contract_address: token_a_address };
-        let token_b = IERC20Dispatcher { contract_address: token_b_address };
+        let token_a = ERC20CamelABIDispatcher { contract_address: token_a_address };
+        let token_b = ERC20CamelABIDispatcher { contract_address: token_b_address };
         (token_a.symbol(), token_b.symbol())
     }
 
