@@ -258,7 +258,7 @@ mod LpPricer {
             // [Check] New admin is not already registered
             assert(new_admin_address != old_admin, errors::ALREADY_ADMIN);
             // [Check] New admin is not zero
-            assert(new_admin_address.is_zero(), errors::ZERO_ADDRESS_ADMIN);
+            assert(!new_admin_address.is_zero(), errors::ZERO_ADDRESS_ADMIN);
 
             // [Effect] Transfer ownership
             Ownable::OwnableImpl::transfer_ownership(ref state, new_admin_address);
