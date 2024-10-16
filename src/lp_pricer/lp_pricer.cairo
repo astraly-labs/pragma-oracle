@@ -146,14 +146,17 @@ mod LpPricer {
             let pool = self.supported_pools.read(pool_address);
             let (token_a_address, token_b_address) = pool.get_tokens_addresses();
             let (token_a_id, token_b_id) = pool.get_tokens_symbols();
+
+            // [Effect] Get the total supply & reserves from the dispatcher
+            let total_supply = pool.dispatcher.total_supply();
             let (token_a_reserve, token_b_reserve) = pool.dispatcher.get_reserves();
 
-            // [Effect] Get token prices
+            // [Effect] Get token prices (panics if one price of the prices is zero)
             let oracle = self.oracle.read();
             let token_a_price = get_currency_price_in_usd(oracle, token_a_id);
             let token_b_price = get_currency_price_in_usd(oracle, token_b_id);
 
-            (token_a_reserve * token_a_price + token_b_reserve * token_b_price) / pool.total_supply
+            (token_a_reserve * token_a_price + token_b_reserve * token_b_price) / total_supply
         }
 
         /// Register a pool into the supported list.
@@ -183,7 +186,6 @@ mod LpPricer {
                 id: pool_dispatcher.symbol(),
                 token_a: TokenTrait::new(token_a_id, token_a_address),
                 token_b: TokenTrait::new(token_b_id, token_b_address),
-                total_supply: pool_dispatcher.total_supply(),
                 dispatcher: pool_dispatcher,
             };
             self.supported_pools.write(pool_address, pool);
@@ -256,10 +258,10 @@ mod LpPricer {
             // [Check] Only admin
             assert_only_admin();
 
+            // [Check] New admin is not already registered
             let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
             Ownable::InternalImpl::assert_only_owner(@state);
             let old_admin = Ownable::OwnableImpl::owner(@state);
-            // [Check] New admin is not already registered
             assert(new_admin_address != old_admin, errors::ALREADY_ADMIN);
             // [Check] New admin is not zero
             assert(!new_admin_address.is_zero(), errors::ZERO_ADDRESS_ADMIN);
@@ -322,6 +324,8 @@ mod LpPricer {
     }
 
     /// Returns the price in USD for a currency by fetching it from the Pragma Oracle.
+    /// 
+    /// Panics if the price returned from the Oracle is zero.
     fn get_currency_price_in_usd(oracle: IOracleABIDispatcher, currency_id: felt252) -> u256 {
         let pair_id = StringTrait::concat(currency_id, USD_PAIR_SUFFIX);
         let data_type = DataType::SpotEntry(pair_id);
@@ -354,7 +358,6 @@ struct Pool {
     dispatcher: IPoolDispatcher,
     token_a: Token,
     token_b: Token,
-    total_supply: u256,
 }
 
 #[generate_trait]
@@ -376,7 +379,6 @@ impl PoolImpl of PoolTrait {
             dispatcher: IPoolDispatcher { contract_address: contract_address_const::<0>() },
             token_a: TokenTrait::new(0, contract_address_const::<0>()),
             token_b: TokenTrait::new(0, contract_address_const::<0>()),
-            total_supply: 0,
         }
     }
 
