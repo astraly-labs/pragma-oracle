@@ -2,17 +2,15 @@
 
 **Pragma, Starknet's native provable oracle.**
 
-What's Pragma ?
----
+## What's Pragma ?
 
 Pragma is a decentralized oracle built natively on Starknet. It leverages cairo to make data feeds computation fully trustless.
 
--  Pragma is built from the ground up to remove any trust assumptions in current oracles' design.
-There isn't any off-chain infrastructure, raw-data is directly pushed on-chain by *whitelisted* data providers. Then the aggregation happens at the smart contract level.
+- Pragma is built from the ground up to remove any trust assumptions in current oracles' design.
+  There isn't any off-chain infrastructure, raw-data is directly pushed on-chain by _whitelisted_ data providers. Then the aggregation happens at the smart contract level.
 - Pragma offers a top-notch developer experience, reviewed by key actors of DeFi on Starknet. The goal is to make the life of DeFi protocols as easy as possible.
 
-Overview
----
+## Overview
 
 - <a href="/src/account">Account contract</a> mostly use for testing purposes and as a reference.
 - <a href="/src/admin">Ownable contract</a> used for access control.
@@ -20,50 +18,49 @@ Overview
 - <a href="/src/operations">Operations</a> defines a few utilities libraries (time series, sorting, bits manipulation) that will be used for different aggregation methods and optimizing storage operations.
 - <a href="/src/oracle">Oracle</a> is the main entrypoint of the protocol. It is the contract that end developers will interact with to fetch any kind of data. It's been thought and built for retro-compatibility and heavily leverages unique aspects of Cairo, notably enums, traits and generics.
 - <a href="/src/publisher_registry">Publisher Registry</a> handles the registration of different publishers along with the sources they are allowed to push data from.
-- <a href="/src/compute_engines">Summary Stats</a> acts as a proxy contract for more sophisticated kind of data aggregation such as *volatility* and *mean*.
+- <a href="/src/compute_engines">Summary Stats</a> acts as a proxy contract for more sophisticated kind of data aggregation such as _volatility_ and _mean_.
 - <a href="/src/randomness">Randomness</a> is the VRF requestor implementation, also includes an example on how to request random words.
+- <a href="/src/lp_pricer">LP Pricer</a> is a Pricing contract for LP tokens. It allows registering pools (which underlying assets are supported by Pragma) and prices them in USD.
 
 ## Testing
 
 - <a href="/src/tests">Test suite</a>, unit tests are provided under the functions' implementations directly whereas full flow integration tests lie within this test suite. It uses cairo-test for now and test thoroughly for any edge case.
 
-A few key testing features are missing such as *fuzzing* and proper hooks, mocking cheatcodes. This will come as cairo tooling matures and improves.
+A few key testing features are missing such as _fuzzing_ and proper hooks, mocking cheatcodes. This will come as cairo tooling matures and improves.
 
-Documentation
----
+## Documentation
 
 More extensive documentation can be found on our [official website](https://docs.pragma.build/).
 
-Audit
----
+## Audit
 
 Pragma Starknet has been peer-reviewed by many other key-projects in the industries.
 It has also been audited by Nethermind, you can find the full report under the <a href='/audits'>audits</a> folder.
 
-
-Deployment addresses
----
+## Deployment addresses
 
 This repo will gradually replace the previous Pragma implementation in Cairo 0 which you can find [here](https://github.com/Astraly-Labs/pragma-contracts).
 
 **Starknet Sepolia**
+
 - Oracle : [0x36031daa264c24520b11d93af622c848b2499b66b41d611bac95e13cfca131a](https://sepolia.voyager.online/contract/0x36031daa264c24520b11d93af622c848b2499b66b41d611bac95e13cfca131a)
 - Publisher Registry : [0x1b08e27ab436cd491631156da5f3aa7ff04aee1e6ca925eb2ca84397c22b74d](https://sepolia.voyager.online/contract/0x1b08e27ab436cd491631156da5f3aa7ff04aee1e6ca925eb2ca84397c22b74d)
 - Summary Stats : [0x54563a0537b3ae0ba91032d674a6d468f30a59dc4deb8f0dce4e642b94be15c](https://sepolia.voyager.online/contract/0x54563a0537b3ae0ba91032d674a6d468f30a59dc4deb8f0dce4e642b94be15c)
 - VRF : [0x60c69136b39319547a4df303b6b3a26fab8b2d78de90b6bd215ce82e9cb515c](https://sepolia.voyager.online/contract/0x60c69136b39319547a4df303b6b3a26fab8b2d78de90b6bd215ce82e9cb515c)
 
 **Starknet Mainnet**
+
 - Oracle : [0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b](https://voyager.online/contract/0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b)
 - Publisher Registry : [0x24a55b928496ef83468fdb9a5430fe031ac386b8f62f5c2eb7dd20ef7237415](https://voyager.online/contract/0x24a55b928496ef83468fdb9a5430fe031ac386b8f62f5c2eb7dd20ef7237415)
 - Summary Stats : [0x49eefafae944d07744d07cc72a5bf14728a6fb463c3eae5bca13552f5d455fd](https://voyager.online/contract/0x49eefafae944d07744d07cc72a5bf14728a6fb463c3eae5bca13552f5d455fd)
 - VRF : [0x4fb09ce7113bbdf568f225bc757a29cb2b72959c21ca63a7d59bdb9026da661](https://voyager.online/contract/0x4fb09ce7113bbdf568f225bc757a29cb2b72959c21ca63a7d59bdb9026da661)
 
-Local Deployment
----
+## Local Deployment
 
 Prerequisites:
+
 - [Scarb](https://docs.swmansion.com/scarb/)
-- 3.9 <= Python  < 3.13
+- 3.9 <= Python < 3.13
 - [Poetry](https://python-poetry.org/)
 
 1. Install dependencies
@@ -94,13 +91,10 @@ STARKNET_NETWORK=devnet poetry run register-publishers
 
 Once the contracts are declared/deployed you'll find them under the `deployments/` folder at the root of the repo.
 
-
-Questions and feedback
----
+## Questions and feedback
 
 For any question or feedback you can send an email to <matthias@pragma.build>
 
-License
----
+## License
 
 The code is under the GNU AFFERO GENERAL PUBLIC LICENSE v3.0, see <a href="./LICENSE">LICENSE</a>.
