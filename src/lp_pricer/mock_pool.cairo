@@ -35,8 +35,7 @@ mod Pool {
         self.reserves.write((10000, 1000));
     }
 
-
-    #[abi(embed_v0)]
+    #[external(v0)]
     impl IPoolImpl of IPool<ContractState> {
         fn name(self: @ContractState) -> felt252 {
             self.name.read()
@@ -69,7 +68,7 @@ mod Pool {
 
 
     // Additional implementation for testing purpose only
-    #[abi(embed_v0)]
+    #[external(v0)]
     impl ISetPoolImpl of ISetPool<ContractState> {
         fn set_total_supply(ref self: ContractState, supply: u256) {
             self.total_supply.write(supply);
