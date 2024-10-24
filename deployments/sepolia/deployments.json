@@ -14,5 +14,9 @@
   "pragma_Randomness": {
     "address": "0x60c69136b39319547a4df303b6b3a26fab8b2d78de90b6bd215ce82e9cb515c",
     "tx": "0x59493788ed2789da7be4fa48fc5fa92cc3e60d5040761d4142fdbe59c15cf0e"
+  },
+  "pragma_MockPool": {
+    "address": "0x39d99e803534dcffbc319514031376c0b3572e7f40315ba861b2ebecb293aa9",
+    "tx": "0x34ff74deda3ea12d9b3e53eff8092b9964cc5814d92ee92dbfec3d961e48744"
   }
 }
