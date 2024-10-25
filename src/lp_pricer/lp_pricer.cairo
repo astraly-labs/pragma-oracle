@@ -49,6 +49,7 @@ mod LpPricer {
     use array::{ArrayTrait, SpanTrait};
     use serde::Serde;
     use traits::Into;
+    use alexandria_math::pow;
     use traits::TryInto;
     use pragma::admin::admin::Ownable;
     use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait, DataType};
@@ -62,7 +63,6 @@ mod LpPricer {
     use pragma::utils::strings::StringTrait;
 
     const USD_PAIR_SUFFIX: felt252 = '/USD';
-
     // ================== ERRORS ==================
 
     mod errors {
@@ -76,7 +76,6 @@ mod LpPricer {
         const FAILED_TO_FETCH_PRICE: felt252 = 'Failed to fetch price';
         const POOL_ID_IS_NULL: felt252 = 'Pool id cannot be null';
     }
-
     // ================== STORAGE ==================
 
     #[storage]
@@ -146,10 +145,11 @@ mod LpPricer {
             // [Check] Pool is supported
             assert(self.is_supported_pool(pool_address), errors::UNSUPPORTED_POOL);
 
-            // [Effect] Get the addresses, symbols & reserves 
+            // [Effect] Get the addresses, symbols, reserves and decimals
             let pool = self.supported_pools.read(pool_address);
             let (token_a_address, token_b_address) = pool.get_tokens_addresses();
             let (token_a_id, token_b_id) = pool.get_tokens_symbols();
+            let decimals: u128 = pool.get_decimals().into();
 
             // [Effect] Get the total supply & reserves from the dispatcher
             let total_supply = pool.dispatcher.total_supply();
@@ -157,8 +157,30 @@ mod LpPricer {
 
             // [Effect] Get token prices (panics if one price of the prices is zero)
             let oracle = self.oracle.read();
-            let token_a_price = get_currency_price_in_usd(oracle, token_a_id);
-            let token_b_price = get_currency_price_in_usd(oracle, token_b_id);
+            let (mut token_a_price, token_a_decimals) = get_currency_price_in_usd(
+                oracle, token_a_id
+            );
+            let (mut token_b_price, token_b_decimals) = get_currency_price_in_usd(
+                oracle, token_b_id
+            );
+
+            // Adjust token A price to the pool decimals 
+            if token_a_decimals < decimals {
+                let exponent: u256 = pow(10, (decimals - token_a_decimals)).into();
+                token_a_price = token_a_price * exponent;
+            } else if token_a_decimals > decimals {
+                let exponent: u256 = pow(10, (token_a_decimals - decimals)).into();
+                token_a_price = token_a_price / exponent;
+            }
+
+            // Adjust token B price to decimals (18)
+            if token_b_decimals < decimals {
+                let exponent: u256 = pow(10, (decimals - token_b_decimals)).into();
+                token_b_price = token_b_price * exponent;
+            } else if token_b_decimals > decimals {
+                let exponent: u256 = pow(10, (token_b_decimals - decimals)).into();
+                token_b_price = token_b_price / exponent;
+            }
 
             (token_a_reserve * token_a_price + token_b_reserve * token_b_price) / total_supply
         }
@@ -350,12 +372,14 @@ mod LpPricer {
     /// Returns the price in USD for a currency by fetching it from the Pragma Oracle.
     /// 
     /// Panics if the price returned from the Oracle is zero.
-    fn get_currency_price_in_usd(oracle: IOracleABIDispatcher, currency_id: felt252) -> u256 {
+    fn get_currency_price_in_usd(
+        oracle: IOracleABIDispatcher, currency_id: felt252
+    ) -> (u256, u128) {
         let pair_id = StringTrait::concat(currency_id, USD_PAIR_SUFFIX);
         let data_type = DataType::SpotEntry(pair_id);
         let data = oracle.get_data_median(data_type);
         assert(!data.price.is_zero(), errors::FAILED_TO_FETCH_PRICE);
-        data.price.into()
+        (data.price.into(), data.decimals.into())
     }
 }
 
@@ -394,6 +418,11 @@ impl PoolImpl of PoolTrait {
     /// Retrieves the token symbols from the underlying currencies.
     fn get_tokens_symbols(self: @Pool) -> (felt252, felt252) {
         (*self.token_a.symbol, *self.token_b.symbol)
+    }
+
+    /// Retrieves the decimals for the pool
+    fn get_decimals(self: @Pool) -> u8 {
+        (*self.dispatcher).decimals()
     }
 
     /// Returns the equivalent of "O" for a Pool.
