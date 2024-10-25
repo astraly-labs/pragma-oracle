@@ -213,18 +213,16 @@ mod LpPricer {
             assert_only_admin();
 
             // [Effect] Add pools to the storage
-            let mut cur_idx = 0; 
+            let mut cur_idx = 0;
             loop {
-                if (cur_idx == pool_addresses.len()){
-                    break; 
+                if (cur_idx == pool_addresses.len()) {
+                    break;
                 }
-                let pool = *pool_addresses.at(cur_idx); 
+                let pool = *pool_addresses.at(cur_idx);
                 self.add_pool(pool);
-                cur_idx +=1;
+                cur_idx += 1;
             }
         }
-
-
 
 
         /// Removes a pool from the supported list.
