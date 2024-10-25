@@ -19,6 +19,10 @@ trait ILpPricer<TContractState> {
 
     /// Register a pool into the supported list.
     fn add_pool(ref self: TContractState, pool_address: ContractAddress);
+
+    /// Register multiple pools into the supported list.
+    fn add_pools(ref self: TContractState, pool_addresses: Span<ContractAddress>);
+
     /// Removes a pool from the supported list.
     fn remove_pool(ref self: TContractState, pool_address: ContractAddress);
     /// Retrieves information about a Pool, i.e its name, the symbol, the address, the
@@ -200,6 +204,28 @@ mod LpPricer {
                     )
                 );
         }
+
+        /// Register multiple pool into the supported list.
+        /// 
+        /// Can only be called by the admin.
+        fn add_pools(ref self: ContractState, pool_addresses: Span<ContractAddress>) {
+            // [Check] Only admin
+            assert_only_admin();
+
+            // [Effect] Add pools to the storage
+            let mut cur_idx = 0; 
+            loop {
+                if (cur_idx == pool_addresses.len()){
+                    break; 
+                }
+                let pool = *pool_addresses.at(cur_idx); 
+                self.add_pool(pool);
+                cur_idx +=1;
+            }
+        }
+
+
+
 
         /// Removes a pool from the supported list.
         /// 
