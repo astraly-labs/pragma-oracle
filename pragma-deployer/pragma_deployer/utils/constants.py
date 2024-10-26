@@ -38,8 +38,8 @@ NETWORKS = {
         "rpc_url": "http://127.0.0.1:5050/rpc",
         "chain_id": StarknetChainId.SEPOLIA,
     },
-    "madara_test": {
-        "name": "madara_test",
+    "pragma_devnet": {
+        "name": "pragma-devnet",
         "explorer_url": "",
         "rpc_url": "http://pragma-devnet.karnot.xyz/",
         "chain_id": 93395501017206423887893332,
@@ -68,8 +68,8 @@ FULLNODE_CLIENT = FullNodeClient(
 
 
 CURRENT_FILE = Path(__file__).resolve()
-POETRY_ROOT = CURRENT_FILE.parent.parent.parent
-PROJECT_ROOT = POETRY_ROOT.parent
+REPO_ROOT = CURRENT_FILE.parent.parent.parent
+PROJECT_ROOT = REPO_ROOT.parent / "pragma-oracle"
 
 BUILD_DIR = PROJECT_ROOT / "target" / "dev"
 BUILD_DIR.mkdir(exist_ok=True, parents=True)
@@ -77,7 +77,7 @@ BUILD_DIR.mkdir(exist_ok=True, parents=True)
 SOURCE_DIR = PROJECT_ROOT / "src"
 CONTRACTS = {p.stem: p for p in list(SOURCE_DIR.glob("**/*.cairo"))}
 
-DEPLOYMENTS_DIR = PROJECT_ROOT / "deployments" / NETWORK["name"]
+DEPLOYMENTS_DIR = REPO_ROOT / "deployments" / NETWORK["name"]
 DEPLOYMENTS_DIR.mkdir(exist_ok=True, parents=True)
 
 

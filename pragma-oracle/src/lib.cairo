@@ -42,8 +42,7 @@ mod randomness {
     mod example_randomness;
     mod randomness;
 }
-mod lp_pricer {
-    mod lp_pricer;
+mod pool {
     mod mock_pool;
 }
 #[cfg(test)]
