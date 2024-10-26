@@ -77,7 +77,16 @@ python -m venv .venv && source .venv/bin/activate
 poetry install
 ```
 
-3. Deploy contracts & setup
+3. Setup env file
+
+```bash
+# Make sure you are in the pragma-deployer folder
+cp .env.example .env
+```
+
+Populate the variables depending on where you wish to deploy.
+
+4. Deploy contracts & setup
 
 Make sure your local devnet is running, see latest instructions [here](https://0xspaceshard.github.io/starknet-devnet-rs/).
 
