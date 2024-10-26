@@ -28,13 +28,9 @@ EKUBO = Currency(
 USD = Currency("USD", 8, 1, 0, 0)
 pair = Pair(EKUBO, USD)
 
-CURRENCIES_TO_ADD = [
-    EKUBO
-]
+CURRENCIES_TO_ADD = [EKUBO]
 
-PAIRS_TO_ADD = [
-    pair
-]
+PAIRS_TO_ADD = [pair]
 
 PAIRS_TO_UPDATE = [
     # Pair("WSTETH/ETH", "WSTETH", "ETH"),

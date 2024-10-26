@@ -47,8 +47,12 @@ async def main(port: Optional[int]) -> None:
     deployments = get_deployments()
     deployments["pragma_MockPool"] = await deploy_v2(
         "pragma_Pool",
-        int('0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7', 16), # ETH 
-        int('0x03fe2b97c1fd336e750087d68b9b867997fd64a2661ff3ca5a7c771641e8e7ac', 16), # BTC 
+        int(
+            "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7", 16
+        ),  # ETH
+        int(
+            "0x03fe2b97c1fd336e750087d68b9b867997fd64a2661ff3ca5a7c771641e8e7ac", 16
+        ),  # BTC
         port=port,
     )
 
