@@ -97,7 +97,7 @@ def get_previous_snapshot():
 
 def get_current_gas_snapshot():
     """Execute command and return current gas snapshots."""
-    output = subprocess.check_output("scarb cairo-test", shell=True).decode("utf-8")
+    output = subprocess.check_output("cd pragma-oracle && scarb cairo-test", shell=True).decode("utf-8")
     pattern = r"test (.+?) \.\.\. ok \(gas usage est.: (\d+)\)"
     matches = re.findall(pattern, output)
     matches.sort()

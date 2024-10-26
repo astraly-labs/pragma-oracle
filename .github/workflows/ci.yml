@@ -5,6 +5,9 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pragma-oracle
     steps:
       - uses: actions/checkout@v3
       - uses: software-mansion/setup-scarb@v1
