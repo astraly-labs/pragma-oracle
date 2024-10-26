@@ -36,7 +36,7 @@ jobs:
 
       - name: Build with Scarb
         run: |
-          cd pragma-oracle
+          cd ../pragma-oracle
           scarb build
 
       - name: Run Starknet Devnet and scripts
