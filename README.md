@@ -20,7 +20,6 @@ Pragma is a decentralized oracle built natively on Starknet. It leverages cairo 
 - <a href="/src/publisher_registry">Publisher Registry</a> handles the registration of different publishers along with the sources they are allowed to push data from.
 - <a href="/src/compute_engines">Summary Stats</a> acts as a proxy contract for more sophisticated kind of data aggregation such as _volatility_ and _mean_.
 - <a href="/src/randomness">Randomness</a> is the VRF requestor implementation, also includes an example on how to request random words.
-- <a href="/src/lp_pricer">LP Pricer</a> is a Pricing contract for LP tokens. It allows registering pools (which underlying assets are supported by Pragma) and prices them in USD.
 
 ## Testing
 
@@ -60,32 +59,35 @@ This repo will gradually replace the previous Pragma implementation in Cairo 0 w
 Prerequisites:
 
 - [Scarb](https://docs.swmansion.com/scarb/)
-- 3.9 <= Python < 3.13
+- 3.12 <= Python < 3.13
 - [Poetry](https://python-poetry.org/)
 
-1. Install dependencies
+1. Compile contracts
 
 ```bash
-poetry install
+cd pragma-oracle
+scarb build
 ```
 
-2. Compile contracts
+2. Install dependencies
 
 ```bash
-scarb build
+cd ../pragma-deployer
+python -m venv .venv && source .venv/bin/activate
+poetry install
 ```
 
 3. Deploy contracts & setup
 
 Make sure your local devnet is running, see latest instructions [here](https://0xspaceshard.github.io/starknet-devnet-rs/).
 
-You can also specify a different network by setting `STARKNET_NETWORK` to a different value e.g `sepolia | testnet | mainnet`.
+You can also specify a different network by setting `STARKNET_NETWORK` to a different value e.g `sepolia` or `mainnet`.
 
 ```bash
 
-STARKNET_NETWORK=devnet poetry run deploy-pragma
-STARKNET_NETWORK=devnet poetry run deploy-summary-stats
-STARKNET_NETWORK=devnet poetry run register-publishers
+STARKNET_NETWORK=devnet poetry run deploy-pragma --port [DEVNET_PORT]
+STARKNET_NETWORK=devnet poetry run deploy-summary-stats --port [DEVNET_PORT]
+STARKNET_NETWORK=devnet poetry run register-publishers --port [DEVNET_PORT]
 
 ```
 
@@ -97,4 +99,4 @@ For any question or feedback you can send an email to <matthias@pragma.build>
 
 ## License
 
-The code is under the GNU AFFERO GENERAL PUBLIC LICENSE v3.0, see <a href="./LICENSE">LICENSE</a>.
+The code is under the MIT LICENSE, see <a href="./LICENSE">LICENSE</a>.

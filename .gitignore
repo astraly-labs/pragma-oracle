@@ -48,3 +48,6 @@ target
 scripts/__pycache__
 scripts/venv
 .venv
+
+# Devnet deployments should not be pushed
+deployments/devnet
