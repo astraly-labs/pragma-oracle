@@ -35,7 +35,9 @@ jobs:
         uses: software-mansion/setup-scarb@v1
 
       - name: Build with Scarb
-        run: scarb build
+        run: |
+          cd pragma-oracle
+          scarb build
 
       - name: Run Starknet Devnet and scripts
         env:
