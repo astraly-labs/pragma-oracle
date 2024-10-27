@@ -1,17 +1,27 @@
+use starknet::ContractAddress;
+
+// A simple mock pool contract
+#[starknet::interface]
+trait IPool<TContractState> {
+    fn name(self: @TContractState) -> felt252;
+    fn symbol(self: @TContractState) -> felt252;
+    fn decimals(self: @TContractState) -> u8;
+    fn total_supply(self: @TContractState) -> u256;
+    fn token_0(self: @TContractState) -> ContractAddress;
+    fn token_1(self: @TContractState) -> ContractAddress;
+    fn get_reserves(self: @TContractState) -> (u256, u256);
+}
+
 #[starknet::interface]
 trait ISetPool<TContractState> {
     fn set_total_supply(ref self: TContractState, supply: u256);
     fn set_reserves(ref self: TContractState, reserves: (u256, u256));
 }
 
-
-// A simple mock pool contract
-
 #[starknet::contract]
 mod Pool {
-    use super::ISetPool;
+    use super::{ISetPool, IPool};
     use starknet::ContractAddress;
-    use pragma::lp_pricer::lp_pricer::IPool;
 
     #[storage]
     struct Storage {

@@ -8,7 +8,6 @@ from typing import Optional
 from dotenv import load_dotenv
 from pragma_sdk.common.types.pair import Pair
 from pragma_sdk.common.types.currency import Currency
-from pragma_sdk.common.utils import str_to_felt
 from pragma_utils.logger import setup_logging
 
 from pragma_deployer.utils.starknet import (
@@ -18,6 +17,7 @@ from pragma_deployer.utils.starknet import (
 logger = logging.getLogger(__name__)
 
 load_dotenv()
+
 EKUBO = Currency(
     "EKUBO",
     18,
@@ -26,9 +26,10 @@ EKUBO = Currency(
     0x0000000000000000000000000000000000000000,
 )
 USD = Currency("USD", 8, 1, 0, 0)
-CURRENCIES_TO_ADD = []
 pair = Pair(EKUBO, USD)
-pair.id = str_to_felt("EKUBO/USD")
+
+CURRENCIES_TO_ADD = [EKUBO]
+
 PAIRS_TO_ADD = [pair]
 
 PAIRS_TO_UPDATE = [
@@ -44,20 +45,31 @@ async def main(port: Optional[int]) -> None:
     # Add Currencies
     for currency in CURRENCIES_TO_ADD:
         tx_hash = await invoke(
-            "pragma_Oracle", "add_currency", currency.serialize(), port=port
+            "pragma_Oracle",
+            "add_currency",
+            currency.serialize(),
+            port=port,
         )
         logger.info(f"Added currency {currency} with tx hash {hex(tx_hash)}")
 
     # Update Pairs
     for pair in PAIRS_TO_UPDATE:
         tx_hash = await invoke(
-            "pragma_Oracle", "update_pair", [pair.id] + pair.serialize(), port=port
+            "pragma_Oracle",
+            "update_pair",
+            [pair.id] + pair.serialize(),
+            port=port,
         )
         logger.info(f"Updated pair {pair} with tx hash {hex(tx_hash)}")
 
     # Add Pairs
     for pair in PAIRS_TO_ADD:
-        tx_hash = await invoke("pragma_Oracle", "add_pair", pair.serialize(), port=port)
+        tx_hash = await invoke(
+            "pragma_Oracle",
+            "add_pair",
+            pair.serialize(),
+            port=port,
+        )
         logger.info(f"Added pair {pair} with tx hash {hex(tx_hash)}")
 
 

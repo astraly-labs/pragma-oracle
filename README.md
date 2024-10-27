@@ -20,7 +20,6 @@ Pragma is a decentralized oracle built natively on Starknet. It leverages cairo 
 - <a href="/src/publisher_registry">Publisher Registry</a> handles the registration of different publishers along with the sources they are allowed to push data from.
 - <a href="/src/compute_engines">Summary Stats</a> acts as a proxy contract for more sophisticated kind of data aggregation such as _volatility_ and _mean_.
 - <a href="/src/randomness">Randomness</a> is the VRF requestor implementation, also includes an example on how to request random words.
-- <a href="/src/lp_pricer">LP Pricer</a> is a Pricing contract for LP tokens. It allows registering pools (which underlying assets are supported by Pragma) and prices them in USD.
 
 ## Testing
 
@@ -55,37 +54,55 @@ This repo will gradually replace the previous Pragma implementation in Cairo 0 w
 - Summary Stats : [0x49eefafae944d07744d07cc72a5bf14728a6fb463c3eae5bca13552f5d455fd](https://voyager.online/contract/0x49eefafae944d07744d07cc72a5bf14728a6fb463c3eae5bca13552f5d455fd)
 - VRF : [0x4fb09ce7113bbdf568f225bc757a29cb2b72959c21ca63a7d59bdb9026da661](https://voyager.online/contract/0x4fb09ce7113bbdf568f225bc757a29cb2b72959c21ca63a7d59bdb9026da661)
 
+**Pragma Devnet**
+
+- Oracle : [0x5bec6ca0be39624d95818d17857428c9995d4db5ddd088aefbf218b6d280f2a](https://pragma-voyager.karnot.xyz/contract/0x5bec6ca0be39624d95818d17857428c9995d4db5ddd088aefbf218b6d280f2a)
+- Publisher Registry :
+[0x1051e6a2110d4b9d18344214180415f8d524867e42794f09e4ca975668db541](https://pragma-voyager.karnot.xyz/contract/0x1051e6a2110d4b9d18344214180415f8d524867e42794f09e4ca975668db541)
+
 ## Local Deployment
 
 Prerequisites:
 
 - [Scarb](https://docs.swmansion.com/scarb/)
-- 3.9 <= Python < 3.13
+- 3.12 <= Python < 3.13
 - [Poetry](https://python-poetry.org/)
 
-1. Install dependencies
+1. Compile contracts
 
 ```bash
-poetry install
-```
-
-2. Compile contracts
-
-```bash
+cd pragma-oracle
 scarb build
 ```
 
-3. Deploy contracts & setup
+2. Install dependencies
+
+```bash
+cd ../pragma-deployer
+python -m venv .venv && source .venv/bin/activate
+poetry install
+```
+
+3. Setup env file
+
+```bash
+# Make sure you are in the pragma-deployer folder
+cp .env.example .env
+```
+
+Populate the variables depending on where you wish to deploy.
+
+4. Deploy contracts & setup
 
 Make sure your local devnet is running, see latest instructions [here](https://0xspaceshard.github.io/starknet-devnet-rs/).
 
-You can also specify a different network by setting `STARKNET_NETWORK` to a different value e.g `sepolia | testnet | mainnet`.
+You can also specify a different network by setting `STARKNET_NETWORK` to a different value e.g `sepolia`, `mainnet` or `pragma_devnet`.
 
 ```bash
 
-STARKNET_NETWORK=devnet poetry run deploy-pragma
-STARKNET_NETWORK=devnet poetry run deploy-summary-stats
-STARKNET_NETWORK=devnet poetry run register-publishers
+STARKNET_NETWORK=devnet poetry run deploy-pragma --port [DEVNET_PORT]
+STARKNET_NETWORK=devnet poetry run deploy-summary-stats --port [DEVNET_PORT]
+STARKNET_NETWORK=devnet poetry run register-publishers --port [DEVNET_PORT]
 
 ```
 
@@ -97,4 +114,4 @@ For any question or feedback you can send an email to <matthias@pragma.build>
 
 ## License
 
-The code is under the GNU AFFERO GENERAL PUBLIC LICENSE v3.0, see <a href="./LICENSE">LICENSE</a>.
+The code is under the MIT LICENSE, see <a href="./LICENSE">LICENSE</a>.

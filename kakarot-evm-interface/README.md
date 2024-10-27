@@ -1,4 +1,4 @@
-# PragmaCaller deployer
+# Pragma Oracle - Kakarot Interface
 
 Sample scripts to be able to deploy the PragmaCaller contract to Kakarot and verify it.
 

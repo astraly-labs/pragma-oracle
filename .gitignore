@@ -6,6 +6,10 @@
 # Python
 __pycache__
 venv
+scripts/__pycache__
+scripts/venv
+.venv
+.ruff_cache
 
 # starknet
 node.json
@@ -19,7 +23,7 @@ build
 pragma/build/*
 *logs.json
 
-.DS_Store
+# Env files
 .env
 
 lint.sarif
@@ -42,9 +46,5 @@ tmp
 # scarb
 target
 
-# Scripts
-
-# Python
-scripts/__pycache__
-scripts/venv
-.venv
+# Devnet deployments should not be pushed
+deployments/devnet
