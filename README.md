@@ -90,7 +90,7 @@ Populate the variables depending on where you wish to deploy.
 
 Make sure your local devnet is running, see latest instructions [here](https://0xspaceshard.github.io/starknet-devnet-rs/).
 
-You can also specify a different network by setting `STARKNET_NETWORK` to a different value e.g `sepolia` or `mainnet`.
+You can also specify a different network by setting `STARKNET_NETWORK` to a different value e.g `sepolia`, `mainnet` or `pragma_devnet`.
 
 ```bash
 
