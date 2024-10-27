@@ -54,6 +54,12 @@ This repo will gradually replace the previous Pragma implementation in Cairo 0 w
 - Summary Stats : [0x49eefafae944d07744d07cc72a5bf14728a6fb463c3eae5bca13552f5d455fd](https://voyager.online/contract/0x49eefafae944d07744d07cc72a5bf14728a6fb463c3eae5bca13552f5d455fd)
 - VRF : [0x4fb09ce7113bbdf568f225bc757a29cb2b72959c21ca63a7d59bdb9026da661](https://voyager.online/contract/0x4fb09ce7113bbdf568f225bc757a29cb2b72959c21ca63a7d59bdb9026da661)
 
+**Pragma Devnet**
+
+- Oracle : [0x5bec6ca0be39624d95818d17857428c9995d4db5ddd088aefbf218b6d280f2a](https://pragma-voyager.karnot.xyz/contract/0x5bec6ca0be39624d95818d17857428c9995d4db5ddd088aefbf218b6d280f2a)
+- Publisher Registry :
+[0x1051e6a2110d4b9d18344214180415f8d524867e42794f09e4ca975668db541](https://pragma-voyager.karnot.xyz/contract/0x1051e6a2110d4b9d18344214180415f8d524867e42794f09e4ca975668db541)
+
 ## Local Deployment
 
 Prerequisites:
