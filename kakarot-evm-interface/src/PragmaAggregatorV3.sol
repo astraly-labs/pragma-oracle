@@ -1,10 +1,18 @@
-// SPDX-License-Identifier: Apache 2
-pragma solidity >=0.7.0 <0.9.0;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.8.28;
 
 interface IPragmaCaller {
-    enum DataType { SpotEntry, FuturesEntry, GenericEntry }
+    enum AggregationMode {
+        Median
+    }
+    enum DataType {
+        SpotEntry,
+        FuturesEntry,
+        GenericEntry
+    }
 
-    struct DataRequest {
+    struct PragmaPricesRequest {
+        AggregationMode aggregationMode;
         DataType dataType;
         uint256 pairId;
         uint256 expirationTimestamp;
@@ -18,7 +26,9 @@ interface IPragmaCaller {
         uint256 maybe_expiration_timestamp;
     }
 
-    function getDataMedianSpot(DataRequest memory request) external view returns (PragmaPricesResponse memory);
+    function getData(
+        PragmaPricesRequest memory request
+    ) external view returns (PragmaPricesResponse memory);
 }
 
 // This interface is forked from the Pyth Adapter found here:
@@ -39,17 +49,23 @@ contract PragmaAggregatorV3 {
     }
 
     // Wrapper utility function to get the Pragma Oracle response. Not part of the AggregatorV3 interface.
-    function getDataMedianSpot(uint256 pairId) private view returns (IPragmaCaller.PragmaPricesResponse memory) {
-        IPragmaCaller.DataRequest memory request = IPragmaCaller.DataRequest(
-            IPragmaCaller.DataType.SpotEntry,
-            pairId,
-            0
-        );
-        return pragmaCaller.getDataMedianSpot(request);
+    function getDataMedianSpot(
+        uint256 pairId
+    ) private view returns (IPragmaCaller.PragmaPricesResponse memory) {
+        IPragmaCaller.PragmaPricesRequest memory request = IPragmaCaller
+            .PragmaPricesRequest(
+                IPragmaCaller.AggregationMode.Median,
+                IPragmaCaller.DataType.SpotEntry,
+                pairId,
+                0
+            );
+        return pragmaCaller.getData(request);
     }
 
     function decimals() public view virtual returns (uint8) {
-        IPragmaCaller.PragmaPricesResponse memory response = getDataMedianSpot(priceId);
+        IPragmaCaller.PragmaPricesResponse memory response = getDataMedianSpot(
+            priceId
+        );
         return uint8(response.decimals);
     }
 
@@ -62,12 +78,16 @@ contract PragmaAggregatorV3 {
     }
 
     function latestAnswer() public view virtual returns (int256) {
-        IPragmaCaller.PragmaPricesResponse memory response = getDataMedianSpot(priceId);
+        IPragmaCaller.PragmaPricesResponse memory response = getDataMedianSpot(
+            priceId
+        );
         return int256(response.price);
     }
 
     function latestTimestamp() public view returns (uint256) {
-        IPragmaCaller.PragmaPricesResponse memory response = getDataMedianSpot(priceId);
+        IPragmaCaller.PragmaPricesResponse memory response = getDataMedianSpot(
+            priceId
+        );
         return response.last_updated_timestamp;
     }
 
@@ -97,7 +117,9 @@ contract PragmaAggregatorV3 {
             uint80 answeredInRound
         )
     {
-        IPragmaCaller.PragmaPricesResponse memory response = getDataMedianSpot(priceId);
+        IPragmaCaller.PragmaPricesResponse memory response = getDataMedianSpot(
+            priceId
+        );
         return (
             _roundId,
             int256(response.price),
@@ -118,7 +140,9 @@ contract PragmaAggregatorV3 {
             uint80 answeredInRound
         )
     {
-        IPragmaCaller.PragmaPricesResponse memory response = getDataMedianSpot(priceId);
+        IPragmaCaller.PragmaPricesResponse memory response = getDataMedianSpot(
+            priceId
+        );
         roundId = uint80(response.last_updated_timestamp);
         return (
             roundId,

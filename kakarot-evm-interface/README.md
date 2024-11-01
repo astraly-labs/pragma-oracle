@@ -13,14 +13,18 @@ RPC_URL=https://sepolia-rpc.kakarot.org
 # Etherscan URL used to verify the contract - default is Sepolia
 ETHERSCAN_VERIFY_URL=https://api.routescan.io/v2/network/testnet/evm/1802203764_2/etherscan
 
+# Cairo address of the Pragma Oracle - see deployments
+CAIRO_PRAGMA_ORACLE_ADDRESS=0x0
+CAIRO_PRAGMA_SUMMARY_STATS_ADDRESS=0x0
+
 # Deployer that will be used to deploy PragmaCaller to Kakarot
-DEPLOYER_PRIVATE_KEY=0x0
+EVM_PRIVATE_KEY=0x0
 
-# Address of the pre-deployed PragmaOracle cairo contract
-PRAGMA_ORACLE_DEPLOYED_CAIRO_ADDRESS=0x3a99b4b9f711002f1976b3973f4b2031fe6056518615ff0f4e6dd829f972764
+# Set this to the PragmaCaller deployed address on Kakarot once deployed
+EVM_PRAGMA_CALLER_ADDRESS=0x0
 
-# Once PragmaCaller has been deployed, write the address here and call `verify.sh`
-PRAGMA_CALLER_DEPLOYED_ADDRESS=0x7491cA3699701a187C1a17308338Ad0bA258B082
+# Set this to the pair you want to use for the PragmaAggregatorV3 interface
+PAIR_ID=0
 ```
 
 ## Deploy
@@ -36,7 +40,7 @@ source .env
 ```shell
 forge script script/PragmaCaller.s.sol \
 --broadcast --rpc-url $RPC_URL \
---verifier-url '$ETHERSCAN_VERIFY_URL' \
+--verifier-url $ETHERSCAN_VERIFY_URL \
 --etherscan-api-key "verifyContract"
 ```
 
