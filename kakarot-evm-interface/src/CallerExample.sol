@@ -66,14 +66,7 @@ contract CallerExample {
         view
         returns (IPragmaCaller.PragmaPricesResponse memory)
     {
-        IPragmaCaller.PragmaPricesRequest memory request = IPragmaCaller
-            .PragmaPricesRequest(
-                IPragmaCaller.AggregationMode.Median,
-                IPragmaCaller.DataType.SpotEntry,
-                BTC_USD_FEED,
-                0
-            );
-        return pragmaCaller.getData(request);
+        return getDataMedianSpot(BTC_USD_FEED);
     }
 
     function getBtcVolatilyOverLastWeek()
