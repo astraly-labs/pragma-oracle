@@ -42,6 +42,15 @@ forge script script/PragmaCaller.s.sol \
 --broadcast --rpc-url $RPC_URL \
 --verifier-url $ETHERSCAN_VERIFY_URL \
 --etherscan-api-key "verifyContract"
+
+# or just verify
+
+forge verify-contract $EVM_PRAGMA_CALLER_ADDRESS src/PragmaCaller.sol:PragmaCaller \
+--verifier-url 'https://api.routescan.io/v2/network/testnet/evm/920637907288165/etherscan' \
+--etherscan-api-key "verifyContract" \
+--num-of-optimizations 200 \
+--compiler-version 0.8.28 \
+--constructor-args $(cast abi-encode "constructor(uint256 pragmaOracleAddress, uint256 pragmaSummaryStatsAddress)" $CAIRO_PRAGMA_ORACLE_ADDRESS $CAIRO_PRAGMA_SUMMARY_STATS_ADDRESS)
 ```
 
 #### CallerExample
@@ -51,15 +60,33 @@ forge script script/CallerExample.s.sol \
 --broadcast --rpc-url $RPC_URL \
 --verifier-url '$ETHERSCAN_VERIFY_URL' \
 --etherscan-api-key "verifyContract"
+
+# or just verify
+
+forge verify-contract $EVM_PRAGMA_CALLER_EXAMPLE_ADDRESS src/CallerExample.sol:CallerExample \
+--verifier-url 'https://api.routescan.io/v2/network/testnet/evm/920637907288165/etherscan' \
+--etherscan-api-key "verifyContract" \
+--num-of-optimizations 200 \
+--compiler-version 0.8.28 \
+--constructor-args $(cast abi-encode "constructor(address pragmaCallerAddress)" $EVM_PRAGMA_CALLER_ADDRESS)
 ```
 
 #### Feeds
 
 ```shell
-PAIR_ID="24011449254105924" forge script script/PragmaAggregatorV3.s.sol \
+PAIR_ID="1407668255603079598916" forge script script/PragmaAggregatorV3.s.sol \
 --broadcast --rpc-url $RPC_URL \
 --verifier-url '$ETHERSCAN_VERIFY_URL' \
 --etherscan-api-key "verifyContract"
+
+# or just verify
+
+PAIR_ID="1407668255603079598916" forge verify-contract [CONTRACT_DEPLOYED_ABOVE] src/PragmaAggregatorV3.sol:PragmaAggregatorV3 \
+--verifier-url 'https://api.routescan.io/v2/network/testnet/evm/920637907288165/etherscan' \
+--etherscan-api-key "verifyContract" \
+--num-of-optimizations 200 \
+--compiler-version 0.8.28 \
+--constructor-args $(cast abi-encode "constructor(address _pragmaCaller, uint256 _pairId)" $EVM_PRAGMA_CALLER_ADDRESS $PAIR_ID)
 ```
 
 ## Documentation
