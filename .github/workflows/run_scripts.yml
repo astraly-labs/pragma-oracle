@@ -33,8 +33,6 @@ jobs:
 
       - name: Set up Scarb
         uses: software-mansion/setup-scarb@v1
-        with:
-          tool-versions: "./pragma-oracle/.tool-versions"
 
       - name: Build with Scarb
         run: |

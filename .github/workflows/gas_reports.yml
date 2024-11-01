@@ -20,8 +20,6 @@ jobs:
           python-version: "3.x" # Specify the Python version required
       - name: Set up Scarb
         uses: software-mansion/setup-scarb@v1
-        with:
-          tool-versions: "./pragma-oracle/.tool-versions"
 
       - name: Run compare_snapshot script
         id: run_script

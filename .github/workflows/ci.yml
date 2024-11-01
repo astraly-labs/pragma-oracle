@@ -11,8 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: software-mansion/setup-scarb@v1
-        with:
-          tool-versions: "./pragma-oracle/.tool-versions"
         
       - run: scarb fmt --check
       - run: scarb test
