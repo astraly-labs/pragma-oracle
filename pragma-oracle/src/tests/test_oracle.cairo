@@ -1,6 +1,7 @@
 use array::{ArrayTrait, SpanTrait};
 use option::OptionTrait;
 use result::ResultTrait;
+use integer::BoundedInt;
 use starknet::ContractAddress;
 use pragma::entry::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
@@ -1404,7 +1405,7 @@ fn test_delete_tokenized_vault() {
     set_contract_address(admin);
     oracle.register_tokenized_vault(token, token_address);
     assert(oracle.get_tokenized_vaults(token) == token_address, 'Failed to register token');
-    oracle.delete_tokenized_vault(token);
+    oracle.register_tokenized_vault(token, contract_address_const::<0>());
     assert(
         oracle.get_tokenized_vaults(token) == contract_address_const::<0>(),
         'Failed to delete token'
@@ -1435,7 +1436,7 @@ fn test_get_conversion_rate_price() {
         .add_currency(
             Currency {
                 id: 'STRK',
-                decimals: 8,
+                decimals: 18,
                 is_abstract_currency: false,
                 starknet_address: 0.try_into().unwrap(),
                 ethereum_address: 0.try_into().unwrap(),
@@ -1445,7 +1446,7 @@ fn test_get_conversion_rate_price() {
         .add_currency(
             Currency {
                 id: 'xSTRK',
-                decimals: 8,
+                decimals: 18,
                 is_abstract_currency: false,
                 starknet_address: 0.try_into().unwrap(),
                 ethereum_address: 0.try_into().unwrap(),
@@ -1470,4 +1471,92 @@ fn test_get_conversion_rate_price() {
     assert(
         res.price == (68250000 * 1002465544733197129) / 1000000000000000000, 'Computation failed'
     );
+}
+
+#[test]
+#[should_panic(expected: ('No pool address for given token', 'ENTRYPOINT_FAILED'))]
+#[available_gas(20000000000000)]
+fn test_get_conversion_rate_price_fails_if_pool_address_not_given() {
+    let now = 100000;
+    let (publisher_registry, oracle) = setup();
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+    oracle
+        .add_currency(
+            Currency {
+                id: 'STRK',
+                decimals: 18,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'xSTRK',
+                decimals: 18,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'STRK', quote_currency_id: 'USD', });
+    oracle.add_pair(Pair { id: 'xSTRK/USD', base_currency_id: 'xSTRK', quote_currency_id: 'USD', });
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    pair_id: 'STRK/USD',
+                    price: 68250000,
+                    volume: 0
+                }
+            )
+        );
+    let res = oracle.get_data(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
+}
+
+
+#[test]
+#[should_panic(expected: ('Asset not registered', 'ENTRYPOINT_FAILED'))]
+#[available_gas(20000000000000)]
+fn test_get_conversion_rate_price_fails_if_asset_not_registered() {
+    let now = 100000;
+    let (publisher_registry, oracle) = setup();
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+    oracle
+        .add_currency(
+            Currency {
+                id: 'STRK',
+                decimals: 18,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'xSTRK',
+                decimals: 18,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'STRK', quote_currency_id: 'USD', });
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    pair_id: 'STRK/USD',
+                    price: 68250000,
+                    volume: 0
+                }
+            )
+        );
+    let res = oracle.get_data(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
 }

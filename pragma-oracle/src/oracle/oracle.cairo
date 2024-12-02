@@ -105,7 +105,6 @@ trait IOracleABI<TContractState> {
     fn register_tokenized_vault(
         ref self: TContractState, token: felt252, token_address: ContractAddress
     );
-    fn delete_tokenized_vault(ref self: TContractState, token: felt252);
     fn upgrade(ref self: TContractState, impl_hash: ClassHash);
 }
 
@@ -203,6 +202,7 @@ mod Oracle {
     use option::OptionTrait;
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 3600; // 1 hour
     const FORWARD_TIMESTAMP_BUFFER: u64 = 420; // 7 minutes
+    const ONE_E18: u256 = 1000000000000000000;
 
 
     #[storage]
@@ -557,9 +557,7 @@ mod Oracle {
                 // Compute adjusted price
                 // `preview_mint` takes as argument an e18 and returns an e18
                 // We operate under u256 to avoid overflow
-                let price: u256 = response.price.into()
-                    * pool.preview_mint(1000000000000000000)
-                    / 1000000000000000000;
+                let price: u256 = response.price.into() * pool.preview_mint(ONE_E18) / ONE_E18;
 
                 // The conversion should not fail because we scaled the price to response.decimals
                 let converted_price: u128 = price.try_into().expect('Conversion should not fail');
@@ -1835,25 +1833,8 @@ mod Oracle {
         ) {
             OracleInternal::assert_only_admin();
             assert(token != 0, 'Token cannot be 0');
-            assert(
-                token_address != starknet::contract_address_const::<0>(),
-                'Token address cannot be 0'
-            );
             self.tokenized_vault.write((token, 'STRK'), token_address)
         }
-
-        // @notice delete a registered tokenized vault 
-        // @dev Callable only by the admin
-        // @param token The token to be removed
-        fn delete_tokenized_vault(ref self: ContractState, token: felt252) {
-            OracleInternal::assert_only_admin();
-            assert(token != 0, 'Token cannot be 0');
-
-            let token_address = self.tokenized_vault.read((token, 'STRK'));
-            assert(token_address != starknet::contract_address_const::<0>(), 'Already deleted');
-            self.tokenized_vault.write((token, 'STRK'), starknet::contract_address_const::<0>());
-        }
-
 
         // @notice set a new checkpoint for a given data type and and aggregation mode
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
