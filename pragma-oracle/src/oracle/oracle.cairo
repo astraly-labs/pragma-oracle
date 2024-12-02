@@ -105,6 +105,7 @@ trait IOracleABI<TContractState> {
     fn register_tokenized_vault(
         ref self: TContractState, token: felt252, token_address: ContractAddress
     );
+    fn delete_tokenized_vault(ref self: TContractState, token: felt252);
     fn upgrade(ref self: TContractState, impl_hash: ClassHash);
 }
 
@@ -1839,6 +1840,18 @@ mod Oracle {
                 'Token address cannot be 0'
             );
             self.tokenized_vault.write((token, 'STRK'), token_address)
+        }
+
+        // @notice delete a registered tokenized vault 
+        // @dev Callable only by the admin
+        // @param token The token to be removed
+        fn delete_tokenized_vault(ref self: ContractState, token: felt252) {
+            OracleInternal::assert_only_admin();
+            assert(token != 0, 'Token cannot be 0');
+
+            let token_address = self.tokenized_vault.read((token, 'STRK'));
+            assert(token_address != starknet::contract_address_const::<0>(), 'Already deleted');
+            self.tokenized_vault.write((token, 'STRK'), starknet::contract_address_const::<0>());
         }
 
 

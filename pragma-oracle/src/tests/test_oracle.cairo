@@ -1394,6 +1394,23 @@ fn test_register_tokenized_vault() {
     assert(oracle.get_tokenized_vaults(token) == token_address, 'Failed to register token');
 }
 
+#[test]
+#[available_gas(20000000000000)]
+fn test_delete_tokenized_vault() {
+    let (publisher_registry, oracle) = setup();
+    let token: felt252 = 'xStrk';
+    let token_address: ContractAddress = contract_address_const::<0x12345566>();
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+    oracle.register_tokenized_vault(token, token_address);
+    assert(oracle.get_tokenized_vaults(token) == token_address, 'Failed to register token');
+    oracle.delete_tokenized_vault(token);
+    assert(
+        oracle.get_tokenized_vaults(token) == contract_address_const::<0>(),
+        'Failed to delete token'
+    );
+}
+
 
 #[test]
 #[available_gas(20000000000000)]
