@@ -90,6 +90,7 @@ trait IOracleABI<TContractState> {
     fn add_currency(ref self: TContractState, new_currency: Currency);
     fn update_currency(ref self: TContractState, currency_id: felt252, currency: Currency);
     fn get_currency(self: @TContractState, currency_id: felt252) -> Currency;
+    fn get_tokenized_vaults(self: @TContractState, token: felt252) -> ContractAddress;
     fn update_pair(ref self: TContractState, pair_id: felt252, pair: Pair);
     fn add_pair(ref self: TContractState, new_pair: Pair);
     fn get_pair(self: @TContractState, pair_id: felt252) -> Pair;
@@ -547,16 +548,19 @@ mod Oracle {
                 assert(base_asset != 0, 'Asset not registered');
                 let pool_address: ContractAddress = self.tokenized_vault.read((base_asset, 'STRK'));
                 assert(
-                    pool_address != contract_address_const::<0>(), 'No pool address for given token'
+                    pool_address != starknet::contract_address_const::<0>(),
+                    'No pool address for given token'
                 );
                 let pool = IERC4626Dispatcher { contract_address: pool_address };
 
                 // Compute adjusted price
+                // `preview_mint` takes as argument an e18 and returns an e18
+                // We operate under u256 to avoid overflow
                 let price: u256 = response.price.into()
                     * pool.preview_mint(1000000000000000000)
                     / 1000000000000000000;
 
-                // The conversion should not fail because we scaled the price to 8 decimals
+                // The conversion should not fail because we scaled the price to response.decimals
                 let converted_price: u128 = price.try_into().expect('Conversion should not fail');
                 assert(converted_price != 0, 'Price conversion failed');
                 PragmaPricesResponse {
@@ -969,6 +973,10 @@ mod Oracle {
         fn get_admin_address(self: @ContractState) -> ContractAddress {
             let state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
             Ownable::OwnableImpl::owner(@state)
+        }
+
+        fn get_tokenized_vaults(self: @ContractState, token: felt252) -> ContractAddress {
+            self.tokenized_vault.read((token, 'STRK'))
         }
 
 
@@ -1826,7 +1834,10 @@ mod Oracle {
         ) {
             OracleInternal::assert_only_admin();
             assert(token != 0, 'Token cannot be 0');
-            assert(token_address != contract_address_const::<0>(), 'Token address cannot be 0');
+            assert(
+                token_address != starknet::contract_address_const::<0>(),
+                'Token address cannot be 0'
+            );
             self.tokenized_vault.write((token, 'STRK'), token_address)
         }
 
