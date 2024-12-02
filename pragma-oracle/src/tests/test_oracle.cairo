@@ -1530,7 +1530,7 @@ fn test_get_conversion_rate_price_fails_if_asset_not_registered() {
         .add_currency(
             Currency {
                 id: 'STRK',
-                decimals: 18,
+                decimals: 8,
                 is_abstract_currency: false,
                 starknet_address: 0.try_into().unwrap(),
                 ethereum_address: 0.try_into().unwrap(),
@@ -1540,7 +1540,7 @@ fn test_get_conversion_rate_price_fails_if_asset_not_registered() {
         .add_currency(
             Currency {
                 id: 'xSTRK',
-                decimals: 18,
+                decimals: 8,
                 is_abstract_currency: false,
                 starknet_address: 0.try_into().unwrap(),
                 ethereum_address: 0.try_into().unwrap(),
