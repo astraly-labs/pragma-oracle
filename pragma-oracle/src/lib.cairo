@@ -9,6 +9,9 @@ mod utils {
     mod bitwise;
     mod strings;
 }
+mod erc4626 {
+    mod erc4626;
+}
 mod operations {
     mod sorting {
         mod merge_sort;

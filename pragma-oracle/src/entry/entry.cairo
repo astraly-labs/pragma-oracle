@@ -44,6 +44,11 @@ mod Entry {
                 let value: u128 = entries_mean(entries);
                 value
             },
+            AggregationMode::ConversionRate => {
+                panic_with_felt252('No agg for conversion rate');
+                // No aggregation needed for conversion rate
+                0
+            },
             AggregationMode::Error(()) => {
                 panic_with_felt252('Wrong aggregation mode');
                 0
