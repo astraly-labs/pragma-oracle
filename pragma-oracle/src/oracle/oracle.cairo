@@ -90,6 +90,7 @@ trait IOracleABI<TContractState> {
     fn add_currency(ref self: TContractState, new_currency: Currency);
     fn update_currency(ref self: TContractState, currency_id: felt252, currency: Currency);
     fn get_currency(self: @TContractState, currency_id: felt252) -> Currency;
+    fn get_tokenized_vaults(self: @TContractState, token: felt252) -> ContractAddress;
     fn update_pair(ref self: TContractState, pair_id: felt252, pair: Pair);
     fn add_pair(ref self: TContractState, new_pair: Pair);
     fn get_pair(self: @TContractState, pair_id: felt252) -> Pair;
@@ -101,6 +102,9 @@ trait IOracleABI<TContractState> {
     );
     fn remove_source(ref self: TContractState, source: felt252, data_type: DataType) -> bool;
     fn set_sources_threshold(ref self: TContractState, threshold: u32);
+    fn register_tokenized_vault(
+        ref self: TContractState, token: felt252, token_address: ContractAddress
+    );
     fn upgrade(ref self: TContractState, impl_hash: ClassHash);
 }
 
@@ -192,11 +196,13 @@ mod Oracle {
         IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
     };
     use starknet::{get_block_timestamp, Felt252TryIntoContractAddress};
+    use pragma::erc4626::erc4626::{IERC4626Dispatcher, IERC4626DispatcherTrait};
 
     use cmp::{max, min};
     use option::OptionTrait;
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 3600; // 1 hour
     const FORWARD_TIMESTAMP_BUFFER: u64 = 420; // 7 minutes
+    const ONE_E18: u256 = 1000000000000000000;
 
 
     #[storage]
@@ -235,6 +241,8 @@ mod Oracle {
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
         oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u64, u8), u64>,
         oracle_sources_threshold_storage: u32,
+        // registry containing registered tokenized vaults and the corresponding address
+        tokenized_vault: LegacyMap<(felt252, felt252), ContractAddress>
     }
 
 
@@ -514,18 +522,57 @@ mod Oracle {
         }
 
         // @notice aggregate all the entries for a given data type, with a given aggregation mode
+        // @notice The aggregation mode `ConversionRate` is set for tokenized vault, with pricing made based on STRK price and associated conversion rate fetched 
+        // @notice onchain. 
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @param aggregation_mode: the aggregation method to be used (e.g. AggregationMode::Median(()))
         // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data(
             self: @ContractState, data_type: DataType, aggregation_mode: AggregationMode
         ) -> PragmaPricesResponse {
-            let sources = IOracleABI::get_all_sources(self, data_type);
-            let prices_response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
-                self, data_type, aggregation_mode, sources
-            );
+            if aggregation_mode == AggregationMode::ConversionRate {
+                // Query median for STRK/USD
+                let sources = IOracleABI::get_all_sources(self, DataType::SpotEntry('STRK/USD'));
+                let response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
+                    self, DataType::SpotEntry('STRK/USD'), AggregationMode::Median(()), sources
+                );
 
-            prices_response
+                //  Extract base asset
+                let asset: felt252 = match data_type {
+                    DataType::SpotEntry(asset) => asset,
+                    DataType::FutureEntry(_) => panic_with_felt252('Set only for Spot entries'),
+                    DataType::GenericEntry(_) => panic_with_felt252('Set only for Spot entries'),
+                };
+
+                // Get base currency and pool
+                let base_asset: felt252 = self.get_pair(asset).base_currency_id;
+                assert(base_asset != 0, 'Asset not registered');
+                let pool_address: ContractAddress = self.tokenized_vault.read((base_asset, 'STRK'));
+                assert(
+                    pool_address != starknet::contract_address_const::<0>(),
+                    'No pool address for given token'
+                );
+                let pool = IERC4626Dispatcher { contract_address: pool_address };
+
+                // Compute adjusted price
+                // `preview_mint` takes as argument an e18 and returns an e18
+                // We operate under u256 to avoid overflow
+                let price: u256 = response.price.into() * pool.preview_mint(ONE_E18) / ONE_E18;
+
+                // The conversion should not fail because we scaled the price to response.decimals
+                let converted_price: u128 = price.try_into().expect('Conversion should not fail');
+                assert(converted_price != 0, 'Price conversion failed');
+                PragmaPricesResponse {
+                    price: converted_price,
+                    decimals: response.decimals,
+                    last_updated_timestamp: response.last_updated_timestamp,
+                    num_sources_aggregated: response.num_sources_aggregated,
+                    expiration_timestamp: response.expiration_timestamp
+                }
+            } else {
+                let sources = IOracleABI::get_all_sources(self, data_type);
+                IOracleABI::get_data_for_sources(self, data_type, aggregation_mode, sources)
+            }
         }
 
         // @notice aggregate all the entries for a given data type and given sources, with a given aggregation mode
@@ -925,6 +972,10 @@ mod Oracle {
         fn get_admin_address(self: @ContractState) -> ContractAddress {
             let state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
             Ownable::OwnableImpl::owner(@state)
+        }
+
+        fn get_tokenized_vaults(self: @ContractState, token: felt252) -> ContractAddress {
+            self.tokenized_vault.read((token, 'STRK'))
         }
 
 
@@ -1769,6 +1820,20 @@ mod Oracle {
                     return true;
                 }
             }
+        }
+
+        // @notice register a new tokenized vault into the regisry (priced with STRK)
+        // @dev Callable only by the owner
+        // @dev the token must be registered as currency and pair in the oracle registry
+        // @dev We reserve the owner of the contract the right to overwrite an existing token address
+        // @param token The token to register
+        // @param token_address Token address to register
+        fn register_tokenized_vault(
+            ref self: ContractState, token: felt252, token_address: ContractAddress
+        ) {
+            OracleInternal::assert_only_admin();
+            assert(token != 0, 'Token cannot be 0');
+            self.tokenized_vault.write((token, 'STRK'), token_address)
         }
 
         // @notice set a new checkpoint for a given data type and and aggregation mode

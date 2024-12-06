@@ -180,10 +180,11 @@ struct PragmaPricesResponse {
     expiration_timestamp: Option<u64>,
 }
 
-#[derive(Serde, Drop, Copy, starknet::Store)]
+#[derive(Serde, Drop, Copy, starknet::Store, PartialEq)]
 enum AggregationMode {
     Median: (),
     Mean: (),
+    ConversionRate,
     Error: (),
 }
 
@@ -306,6 +307,7 @@ impl AggregationModeIntoU8 of TryInto<AggregationMode, u8> {
         match self {
             AggregationMode::Median(()) => Option::Some(0_u8),
             AggregationMode::Mean(()) => Option::Some(1_u8),
+            AggregationMode::ConversionRate => Option::Some(2_u8),
             AggregationMode::Error(()) => Option::None(()),
         }
     }
@@ -316,6 +318,8 @@ impl u8IntoAggregationMode of Into<u8, AggregationMode> {
             AggregationMode::Median(())
         } else if self == 1_u8 {
             AggregationMode::Mean(())
+        } else if self == 2_u8 {
+            AggregationMode::ConversionRate
         } else {
             AggregationMode::Error(())
         }
