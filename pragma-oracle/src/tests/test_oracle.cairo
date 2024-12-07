@@ -14,23 +14,38 @@ use traits::TryInto;
 use pragma::oracle::oracle::Oracle;
 use pragma::erc4626::erc4626::ERC4626;
 use pragma::oracle::oracle::{IOracleABIDispatcher, IOracleABIDispatcherTrait};
+use pragma::erc4626::erc4626::{IERC4626Dispatcher, IERC4626DispatcherTrait};
 use pragma::publisher_registry::publisher_registry::{
     IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
 };
 use pragma::publisher_registry::publisher_registry::PublisherRegistry;
 use starknet::ClassHash;
 use starknet::SyscallResultTrait;
-use starknet::testing::{set_contract_address, set_block_timestamp, set_chain_id,};
-use starknet::get_caller_address;
+use starknet::{get_caller_address};
 use starknet::syscalls::deploy_syscall;
 use starknet::class_hash::{Felt252TryIntoClassHash};
 use starknet::Felt252TryIntoContractAddress;
 // use starknet::class_hash::class_hash_try_from_felt252;
 use starknet::contract_address::contract_address_const;
 use serde::Serde;
+use snforge_std::{
+    BlockId, declare, ContractClassTrait, ContractClass, start_prank, stop_prank, start_warp,
+    BlockTag
+};
+
+
 const ONE_ETH: felt252 = 1000000000000000000;
 const CHAIN_ID: felt252 = 'SN_MAIN';
 const BLOCK_TIMESTAMP: u64 = 103374042;
+
+
+fn admin() -> ContractAddress {
+    contract_address_const::<0x123456789>()
+}
+
+fn current_block_timestamp() -> u64 {
+    100000
+}
 
 fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
     let mut currencies = ArrayTrait::<Currency>::new();
@@ -135,43 +150,42 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
             }
         );
     pairs.append(Pair { id: 6, quote_currency_id: 'hop', base_currency_id: USD_CURRENCY_ID, });
-    let admin = contract_address_const::<0x123456789>();
-    set_contract_address(admin);
-    set_block_timestamp(BLOCK_TIMESTAMP);
-    set_chain_id(CHAIN_ID);
-    let now = 100000;
     //Deploy the registry
     let mut constructor_calldata = ArrayTrait::new();
-    constructor_calldata.append(admin.into());
-    let (publisher_registry_address, _) = deploy_syscall(
-        PublisherRegistry::TEST_CLASS_HASH.try_into().unwrap(), 0, constructor_calldata.span(), true
-    )
-        .unwrap_syscall();
+    constructor_calldata.append(admin().into());
+    let publisher_registry_class = declare('PublisherRegistry');
+    let publisher_registry_address = publisher_registry_class
+        .deploy(@constructor_calldata)
+        .unwrap();
     let mut publisher_registry = IPublisherRegistryABIDispatcher {
         contract_address: publisher_registry_address
     };
     //Deploy the oracle
     let mut oracle_calldata = ArrayTrait::<felt252>::new();
-    admin.serialize(ref oracle_calldata);
+    admin().serialize(ref oracle_calldata);
     publisher_registry_address.serialize(ref oracle_calldata);
     currencies.serialize(ref oracle_calldata);
     pairs.serialize(ref oracle_calldata);
-    let (oracle_address, _) = deploy_syscall(
-        Oracle::TEST_CLASS_HASH.try_into().unwrap(), 0, oracle_calldata.span(), true
-    )
-        .unwrap_syscall();
+    let oracle_class = declare('Oracle');
+    let oracle_address = oracle_class.deploy(@oracle_calldata).unwrap();
 
     let mut oracle = IOracleABIDispatcher { contract_address: oracle_address };
-    publisher_registry.add_publisher(1, admin);
+    start_prank(publisher_registry_address, admin());
+    publisher_registry.add_publisher(1, admin());
     // Add source 1 for publisher 1
     publisher_registry.add_source_for_publisher(1, 1);
     // Add source 2 for publisher 1
     publisher_registry.add_source_for_publisher(1, 2);
+    stop_prank(publisher_registry_address);
+    start_prank(oracle_address, admin());
+    start_warp(oracle_address, current_block_timestamp());
     oracle
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 1
+                    },
                     pair_id: 2,
                     price: 2 * 1000000,
                     volume: 100
@@ -183,7 +197,9 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 2, publisher: 1
+                    },
                     pair_id: 2,
                     price: 3 * 1000000,
                     volume: 50
@@ -194,7 +210,9 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 1
+                    },
                     pair_id: 3,
                     price: 8 * 1000000,
                     volume: 100
@@ -205,7 +223,9 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 1
+                    },
                     pair_id: 4,
                     price: 8 * 1000000,
                     volume: 20
@@ -216,7 +236,9 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 2, publisher: 1
+                    },
                     pair_id: 4,
                     price: 3 * 1000000,
                     volume: 10
@@ -227,7 +249,9 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 1
+                    },
                     pair_id: 5,
                     price: 5 * 1000000,
                     volume: 20
@@ -238,7 +262,9 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 1
+                    },
                     pair_id: 2,
                     price: 2 * 1000000,
                     volume: 40,
@@ -250,7 +276,9 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 2, publisher: 1
+                    },
                     pair_id: 2,
                     price: 2 * 1000000,
                     volume: 30,
@@ -262,7 +290,9 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 1
+                    },
                     pair_id: 3,
                     price: 3 * 1000000,
                     volume: 1000,
@@ -274,7 +304,9 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 1
+                    },
                     pair_id: 4,
                     price: 4 * 1000000,
                     volume: 2321,
@@ -286,7 +318,9 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 1
+                    },
                     pair_id: 5,
                     price: 5 * 1000000,
                     volume: 231,
@@ -298,7 +332,9 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 2, publisher: 1
+                    },
                     pair_id: 5,
                     price: 5 * 1000000,
                     volume: 232,
@@ -311,28 +347,29 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 1
+                    },
                     pair_id: 6,
                     price: 2 * 1000000,
                     volume: 440
                 }
             )
         );
-
+    stop_prank(oracle_address);
     (publisher_registry, oracle)
 }
 
 fn deploy_erc4626() -> ContractAddress {
-    let (erc4626_address, _) = deploy_syscall(
-        ERC4626::TEST_CLASS_HASH.try_into().unwrap(), 0, array![].span(), true
-    )
-        .unwrap_syscall();
+    let erc4616_class = declare('ERC4626');
+    let erc4626_address = erc4616_class.deploy(@array![]).unwrap();
     return erc4626_address;
 }
 #[test]
-#[available_gas(200000000000000)]
 fn test_get_decimals() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
+
     let decimals_1 = oracle.get_decimals(DataType::SpotEntry(1));
     assert(decimals_1 == 18_u32, 'wrong decimals value');
     let decimals_2 = oracle.get_decimals(DataType::SpotEntry(2));
@@ -344,26 +381,26 @@ fn test_get_decimals() {
 }
 #[test]
 #[should_panic]
-#[available_gas(200000000000)]
 fn test_get_decimals_should_fail_if_not_found() {
     //Test should fail if the pair_id is not found 
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let decimals_1 = oracle.get_decimals(DataType::SpotEntry(100));
 }
 
 #[test]
 #[should_panic]
-#[available_gas(200000000000)]
 fn test_get_decimals_should_fail_if_not_found_2() {
     //Test should fail if the pair_id or the expiration timestamp is not related to a FutureEntry
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let decimals_1 = oracle.get_decimals(DataType::FutureEntry((100, 110100)));
 }
 
 #[test]
-#[available_gas(200000000000)]
 fn test_data_entry() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let entry = oracle.get_data_entry(DataType::SpotEntry(2), 1, 1);
     let (price, timestamp, volume) = data_treatment(entry);
     assert(price == (2000000), 'wrong price');
@@ -401,35 +438,35 @@ fn test_data_entry() {
 
 #[test]
 #[should_panic]
-#[available_gas(200000000000)]
 fn test_data_entry_should_fail_if_not_found() {
     //no panic because we want get_data_entry is called the first time data is published
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let entry = oracle.get_data_entry(DataType::SpotEntry(100), 1, 1);
 }
 
 #[test]
 #[should_panic]
-#[available_gas(200000000000)]
 fn test_data_entry_should_fail_if_not_found_2() {
     //Test should return if the pair_id or the expiration timestamp is not related to a FutureEntry
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let entry = oracle.get_data_entry(DataType::FutureEntry((100, 110100)), 1, 1);
 }
 
 #[test]
 #[should_panic]
-#[available_gas(200000000000)]
 fn test_data_entry_should_fail_if_not_found_3() {
     //Test should fail if the pair_id or the expiration timestamp is not related to a FutureEntry
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let entry = oracle.get_data_entry(DataType::FutureEntry((2, 110100)), 1, 1);
 }
 
 #[test]
-#[available_gas(20000000000)]
 fn test_get_data() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let entry = oracle.get_data(DataType::SpotEntry(2), AggregationMode::Median(()));
     assert(entry.price == (2500000), 'wrong price');
     let entry = oracle.get_data(DataType::SpotEntry(3), AggregationMode::Median(()));
@@ -473,18 +510,17 @@ fn data_treatment(entry: PossibleEntries) -> (u128, u64, u128) {
 }
 
 #[test]
-#[available_gas(10000000000)]
 fn test_get_admin_address() {
-    let admin = contract_address_const::<0x123456789>();
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let admin_address = oracle.get_admin_address();
-    assert(admin_address == admin, 'wrong admin address');
+    assert(admin_address == admin(), 'wrong admin address');
 }
 
 #[test]
-#[available_gas(2000000000)]
 fn get_data_median() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let entry = oracle.get_data_median(DataType::SpotEntry(2));
     assert(entry.price == (2500000), 'wrong price');
 
@@ -509,9 +545,9 @@ fn get_data_median() {
 }
 
 #[test]
-#[available_gas(2000000000)]
 fn get_data_median_for_sources() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let mut sources = ArrayTrait::<felt252>::new();
     sources.append(1);
     sources.append(2);
@@ -520,18 +556,18 @@ fn get_data_median_for_sources() {
 }
 #[test]
 #[should_panic]
-#[available_gas(2000000000)]
 fn get_data_median_for_sources_should_fail_if_wrong_sources() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let mut sources = ArrayTrait::<felt252>::new();
     // sources.append(1);
     sources.append(3);
     let entry = oracle.get_data_median_for_sources(DataType::SpotEntry(2), sources.span());
 }
 #[test]
-#[available_gas(2000000000)]
 fn get_data_for_sources() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let mut sources = array![1, 2];
     let entry = oracle
         .get_data_for_sources(DataType::SpotEntry(2), AggregationMode::Median(()), sources.span());
@@ -546,14 +582,15 @@ fn get_data_for_sources() {
 }
 
 #[test]
-#[available_gas(100000000000)]
 fn test_publish_multiple_entries() {
     let (publish_registry, oracle) = setup();
-    let now = 100000;
+    start_prank(oracle.contract_address, admin());
     let entries = array![
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry { timestamp: now + 100, source: 1, publisher: 1 },
+                base: BaseEntry {
+                    timestamp: current_block_timestamp() + 100, source: 1, publisher: 1
+                },
                 pair_id: 1,
                 price: 2 * 1000000,
                 volume: 150
@@ -561,7 +598,9 @@ fn test_publish_multiple_entries() {
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry { timestamp: now + 100, source: 1, publisher: 1 },
+                base: BaseEntry {
+                    timestamp: current_block_timestamp() + 100, source: 1, publisher: 1
+                },
                 pair_id: 4,
                 price: 2 * 1000000,
                 volume: 150
@@ -569,7 +608,9 @@ fn test_publish_multiple_entries() {
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry { timestamp: now + 100, source: 1, publisher: 1 },
+                base: BaseEntry {
+                    timestamp: current_block_timestamp() + 100, source: 1, publisher: 1
+                },
                 pair_id: 3,
                 price: 2 * 1000000,
                 volume: 20
@@ -577,7 +618,9 @@ fn test_publish_multiple_entries() {
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry { timestamp: now + 100, source: 2, publisher: 1 },
+                base: BaseEntry {
+                    timestamp: current_block_timestamp() + 100, source: 2, publisher: 1
+                },
                 pair_id: 4,
                 price: 3 * 1000000,
                 volume: 30
@@ -585,7 +628,9 @@ fn test_publish_multiple_entries() {
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry { timestamp: now + 100, source: 2, publisher: 1 },
+                base: BaseEntry {
+                    timestamp: current_block_timestamp() + 100, source: 2, publisher: 1
+                },
                 pair_id: 2,
                 price: 3 * 1000000,
                 volume: 30
@@ -593,7 +638,9 @@ fn test_publish_multiple_entries() {
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry { timestamp: now + 100, source: 2, publisher: 1 },
+                base: BaseEntry {
+                    timestamp: current_block_timestamp() + 100, source: 2, publisher: 1
+                },
                 pair_id: 3,
                 price: 3 * 1000000,
                 volume: 30
@@ -606,33 +653,32 @@ fn test_publish_multiple_entries() {
     let entry_1 = *entries.at(0);
     let (price, timestamp, volume) = data_treatment(entry_1);
     assert(price == 2 * 1000000, 'wrong price(0)');
-    assert(timestamp == now + 100, 'wrong  timestamp(0)');
+    assert(timestamp == current_block_timestamp() + 100, 'wrong  timestamp(0)');
     assert(volume == 150, 'wrong volume(0)');
     let entry_2 = *entries.at(1);
     let (price_2, timestamp_2, volume_2) = data_treatment(entry_2);
     assert(price_2 == 3 * 1000000, 'wrong price(1)');
-    assert(timestamp_2 == now + 100, 'wrong timestamp(1)');
+    assert(timestamp_2 == current_block_timestamp() + 100, 'wrong timestamp(1)');
     assert(volume_2 == 30, 'wrong volume(1)');
     let (entries_2, _) = oracle
         .get_data_entries_for_sources(DataType::SpotEntry(3), sources.span());
     let entry_3 = *entries_2.at(0);
     let (price_3, timestamp_3, volume_3) = data_treatment(entry_3);
     assert(price_3 == 2 * 1000000, 'wrong price(3)');
-    assert(timestamp_3 == now + 100, 'wrong  timestamp(3)');
+    assert(timestamp_3 == current_block_timestamp() + 100, 'wrong  timestamp(3)');
     assert(volume_3 == 20, 'wrong volume(3)');
     let entry_4 = *entries_2.at(1);
     let (price_4, timestamp_4, volume_4) = data_treatment(entry_4);
     assert(price_4 == 3 * 1000000, 'wrong price(4)');
-    assert(timestamp_4 == now + 100, 'wrong timestamp(4)');
+    assert(timestamp_4 == current_block_timestamp() + 100, 'wrong timestamp(4)');
     assert(volume_4 == 30, 'wrong volume(4)');
 }
 
 #[test]
-#[available_gas(100000000000)]
 fn test_max_publish_multiple_entries() {
     let (publish_registry, oracle) = setup();
+    start_prank(oracle.contract_address, admin());
     let MAX: u32 = 10;
-    let now = 100000;
     let mut entries = ArrayTrait::<PossibleEntries>::new();
     let mut cur_idx: u32 = 0;
     loop {
@@ -644,7 +690,9 @@ fn test_max_publish_multiple_entries() {
                 PossibleEntries::Spot(
                     SpotEntry {
                         base: BaseEntry {
-                            timestamp: now + (cur_idx + 1).into() * 100, source: 1, publisher: 1
+                            timestamp: current_block_timestamp() + (cur_idx + 1).into(),
+                            source: 1,
+                            publisher: 1
                         },
                         pair_id: 3,
                         price: 3 * 1000000 + (cur_idx + 1).into(),
@@ -657,7 +705,9 @@ fn test_max_publish_multiple_entries() {
                 PossibleEntries::Spot(
                     SpotEntry {
                         base: BaseEntry {
-                            timestamp: now + (cur_idx + 1).into() * 100, source: 2, publisher: 1
+                            timestamp: current_block_timestamp() + (cur_idx + 1).into(),
+                            source: 2,
+                            publisher: 1
                         },
                         pair_id: 2,
                         price: 3 * 1000000 + (cur_idx + 1).into(),
@@ -670,7 +720,9 @@ fn test_max_publish_multiple_entries() {
                 PossibleEntries::Spot(
                     SpotEntry {
                         base: BaseEntry {
-                            timestamp: now + (cur_idx + 1).into() * 100, source: 1, publisher: 1
+                            timestamp: current_block_timestamp() + (cur_idx + 1).into(),
+                            source: 1,
+                            publisher: 1
                         },
                         pair_id: 4,
                         price: 3 * 1000000 + (cur_idx + 1).into(),
@@ -686,9 +738,9 @@ fn test_max_publish_multiple_entries() {
 }
 
 #[test]
-#[available_gas(2000000000)]
 fn test_get_data_median_multi() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let mut sources = ArrayTrait::<felt252>::new();
     sources.append(1);
     sources.append(2);
@@ -708,10 +760,10 @@ fn test_get_data_median_multi() {
     assert(*res_2.at(1).price == (5000000), 'wrong price');
 }
 #[test]
-#[available_gas(2000000000)]
 #[should_panic]
 fn test_data_median_multi_should_fail_if_wrong_sources() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let mut sources = ArrayTrait::<felt252>::new();
     sources.append(1);
     sources.append(3);
@@ -723,9 +775,9 @@ fn test_data_median_multi_should_fail_if_wrong_sources() {
 
 #[test]
 #[should_panic]
-#[available_gas(2000000000)]
 fn test_data_median_multi_should_fail_if_no_expiration_time_associated() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let mut sources = ArrayTrait::<felt252>::new();
     sources.append(1);
     sources.append(3);
@@ -736,9 +788,9 @@ fn test_data_median_multi_should_fail_if_no_expiration_time_associated() {
 }
 #[test]
 #[should_panic]
-#[available_gas(2000000000)]
 fn test_data_median_multi_should_fail_if_wrong_data_types() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let mut sources = ArrayTrait::<felt252>::new();
     sources.append(1);
     sources.append(2);
@@ -751,9 +803,9 @@ fn test_data_median_multi_should_fail_if_wrong_data_types() {
 }
 
 #[test]
-#[available_gas(2000000000)]
 fn test_get_data_with_usd_hop() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let entry: PragmaPricesResponse = oracle
         .get_data_with_USD_hop(
             111, 222, AggregationMode::Median(()), SimpleDataType::SpotEntry(()), Option::Some(0)
@@ -773,9 +825,9 @@ fn test_get_data_with_usd_hop() {
 }
 
 #[test]
-#[available_gas(2000000000)]
 fn test_get_data_with_usd_hop_diff() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let entry = oracle
         .get_data_with_USD_hop(
             'hop', 333, AggregationMode::Median(()), SimpleDataType::SpotEntry(()), Option::Some(0)
@@ -786,9 +838,9 @@ fn test_get_data_with_usd_hop_diff() {
 
 #[test]
 #[should_panic]
-#[available_gas(2000000000)]
 fn test_get_data_with_USD_hop_should_fail_if_wrong_id() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let entry: PragmaPricesResponse = oracle
         .get_data_with_USD_hop(
             444, 222, AggregationMode::Median(()), SimpleDataType::SpotEntry(()), Option::Some(0)
@@ -796,9 +848,9 @@ fn test_get_data_with_USD_hop_should_fail_if_wrong_id() {
 }
 
 #[test]
-#[available_gas(2000000000)]
 fn test_set_checkpoint() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
     let (idx, _) = oracle
         .get_latest_checkpoint_index(DataType::SpotEntry(2), AggregationMode::Median(()));
@@ -819,15 +871,15 @@ fn test_set_checkpoint() {
 
 #[test]
 #[should_panic]
-#[available_gas(2000000000)]
 fn test_set_checkpoint_should_fail_if_wrong_data_type() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     oracle.set_checkpoint(DataType::SpotEntry(8), AggregationMode::Median(()));
 }
 #[test]
-#[available_gas(2000000000)]
 fn test_get_last_checkpoint_before() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
 
@@ -848,9 +900,9 @@ fn test_get_last_checkpoint_before() {
 
 #[test]
 #[should_panic]
-#[available_gas(2000000000)]
 fn test_get_last_checkpoint_before_should_fail_if_wrong_data_type() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
 
@@ -860,10 +912,10 @@ fn test_get_last_checkpoint_before_should_fail_if_wrong_data_type() {
 
 #[test]
 #[should_panic]
-#[available_gas(2000000000)]
 fn test_get_last_checkpoint_before_should_fail_if_timestamp_too_old() {
     //if timestamp is before the first checkpoint
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
     oracle.set_checkpoint(DataType::FutureEntry((2, 11111110)), AggregationMode::Median(()));
 
@@ -872,10 +924,11 @@ fn test_get_last_checkpoint_before_should_fail_if_timestamp_too_old() {
 }
 
 #[test]
-#[should_panic(expected: ('Currency id cannot be 0', 'ENTRYPOINT_FAILED'))]
-#[available_gas(2000000000)]
+#[should_panic(expected: ('Currency id cannot be 0',))]
 fn test_add_currency_should_fail_if_currency_id_null() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
+    start_prank(oracle.contract_address, admin());
     oracle
         .add_currency(
             Currency {
@@ -889,10 +942,11 @@ fn test_add_currency_should_fail_if_currency_id_null() {
 }
 
 #[test]
-#[should_panic(expected: ('No base currency registered', 'ENTRYPOINT_FAILED'))]
-#[available_gas(2000000000)]
+#[should_panic(expected: ('No base currency registered',))]
 fn test_add_pair_should_panic_if_base_currency_do_not_corresponds() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
+    start_prank(oracle.contract_address, admin());
     oracle
         .add_pair(
             Pair {
@@ -904,33 +958,35 @@ fn test_add_pair_should_panic_if_base_currency_do_not_corresponds() {
 }
 
 #[test]
-#[should_panic(expected: ('No quote currency registered', 'ENTRYPOINT_FAILED'))]
-#[available_gas(2000000000)]
+#[should_panic(expected: ('No quote currency registered',))]
 fn test_add_pair_should_panic_if_quote_currency_do_not_corresponds() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
+    start_prank(oracle.contract_address, admin());
     oracle
         .add_pair(Pair { id: 10, quote_currency_id: 123123132, base_currency_id: USD_CURRENCY_ID, })
 }
 
 #[test]
-#[available_gas(2000000000)]
 fn test_multiple_publishers_price() {
-    let admin = contract_address_const::<0x123456789>();
     let test_address = contract_address_const::<0x1234567>();
-    set_contract_address(admin);
     let (publisher_registry, oracle) = setup();
+    start_prank(publisher_registry.contract_address, admin());
+    start_warp(oracle.contract_address, current_block_timestamp());
     publisher_registry.add_publisher(2, test_address);
     // Add source 1 for publisher 1
     publisher_registry.add_source_for_publisher(2, 1);
     // Add source 2 for publisher 1
     publisher_registry.add_source_for_publisher(2, 2);
-    let now = 100000;
-    set_contract_address(test_address);
+    stop_prank(publisher_registry.contract_address);
+    start_prank(oracle.contract_address, test_address);
     oracle
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 2
+                    },
                     pair_id: 2,
                     price: 4 * 1000000,
                     volume: 100
@@ -942,7 +998,9 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 2, publisher: 2
+                    },
                     pair_id: 2,
                     price: 5 * 1000000,
                     volume: 50
@@ -953,7 +1011,9 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 2
+                    },
                     pair_id: 3,
                     price: 8 * 1000000,
                     volume: 100
@@ -964,7 +1024,9 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 2
+                    },
                     pair_id: 4,
                     price: 8 * 1000000,
                     volume: 20
@@ -975,7 +1037,9 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 2, publisher: 2
+                    },
                     pair_id: 4,
                     price: 3 * 1000000,
                     volume: 10
@@ -986,7 +1050,9 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 2
+                    },
                     pair_id: 5,
                     price: 5 * 1000000,
                     volume: 20
@@ -997,7 +1063,9 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 2
+                    },
                     pair_id: 2,
                     price: 2 * 1000000,
                     volume: 40,
@@ -1009,7 +1077,9 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 2, publisher: 2
+                    },
                     pair_id: 2,
                     price: 2 * 1000000,
                     volume: 30,
@@ -1021,7 +1091,9 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 2
+                    },
                     pair_id: 3,
                     price: 3 * 1000000,
                     volume: 1000,
@@ -1033,7 +1105,9 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 2
+                    },
                     pair_id: 4,
                     price: 4 * 1000000,
                     volume: 2321,
@@ -1045,7 +1119,9 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 2
+                    },
                     pair_id: 5,
                     price: 5 * 1000000,
                     volume: 231,
@@ -1057,7 +1133,9 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 2, publisher: 2
+                    },
                     pair_id: 5,
                     price: 5 * 1000000,
                     volume: 232,
@@ -1093,24 +1171,25 @@ fn test_multiple_publishers_price() {
     assert(entry.price == (5 * 1000000), 'wrong price');
 }
 #[test]
-#[available_gas(2000000000)]
 fn test_get_data_entry_for_publishers() {
-    let admin = contract_address_const::<0x123456789>();
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let test_address = contract_address_const::<0x1234567>();
-    set_contract_address(admin);
+    start_prank(publisher_registry.contract_address, admin());
     publisher_registry.add_publisher(2, test_address);
     // Add source 1 for publisher 1
     publisher_registry.add_source_for_publisher(2, 1);
     // Add source 2 for publisher 1
     publisher_registry.add_source_for_publisher(2, 2);
-    let now = 100000;
-    set_contract_address(test_address);
+    stop_prank(publisher_registry.contract_address);
+    start_prank(oracle.contract_address, test_address);
     oracle
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 2
+                    },
                     pair_id: 2,
                     price: 4 * 1000000,
                     volume: 120
@@ -1121,7 +1200,9 @@ fn test_get_data_entry_for_publishers() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 2
+                    },
                     pair_id: 2,
                     price: 4 * 1000000,
                     volume: 120,
@@ -1157,18 +1238,21 @@ fn test_get_data_entry_for_publishers() {
         }
     }
     let test_address_2 = contract_address_const::<0x1234567314>();
-    set_contract_address(admin);
+    start_prank(publisher_registry.contract_address, admin());
     publisher_registry.add_publisher(3, test_address_2);
     // Add source 1 for publisher 1
     publisher_registry.add_source_for_publisher(3, 1);
     // Add source 2 for publisher 1
     publisher_registry.add_source_for_publisher(3, 2);
-    set_contract_address(test_address_2);
+    stop_prank(publisher_registry.contract_address);
+    start_prank(oracle.contract_address, test_address_2);
     oracle
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 3 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 3
+                    },
                     pair_id: 2,
                     price: 7 * 1000000,
                     volume: 150
@@ -1179,7 +1263,9 @@ fn test_get_data_entry_for_publishers() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 3 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 3
+                    },
                     pair_id: 2,
                     price: 7 * 1000000,
                     volume: 150,
@@ -1220,37 +1306,38 @@ fn test_get_data_entry_for_publishers() {
 #[available_gas(20000000000000)]
 fn test_transfer_ownership() {
     let (publisher_registry, oracle) = setup();
-    let admin = contract_address_const::<0x123456789>();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let test_address = contract_address_const::<0x1234567>();
-    set_contract_address(admin);
     let admin_address = oracle.get_admin_address();
-    assert(admin_address == admin, 'wrong admin address');
+    assert(admin_address == admin(), 'wrong admin address');
+    start_prank(oracle.contract_address, admin());
     oracle.set_admin_address(test_address);
     let admin_address = oracle.get_admin_address();
     assert(admin_address == test_address, 'wrong admin address');
 }
 
 #[test]
-#[available_gas(2000000000)]
 fn test_get_all_publishers() {
-    let now = 100000;
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let publishers = oracle.get_all_publishers(DataType::SpotEntry(2));
     assert(publishers.len() == 1, 'wrong number of publishers(S)');
     assert(*publishers.at(0) == 1, 'wrong publisher(S)');
     let test_address = contract_address_const::<0x1234567>();
-
+    start_prank(publisher_registry.contract_address, admin());
     publisher_registry.add_publisher(2, test_address);
     // Add source 1 for publisher 1
     publisher_registry.add_source_for_publisher(2, 1);
     // Add source 2 for publisher 1
     publisher_registry.add_source_for_publisher(2, 2);
-    set_contract_address(test_address);
+    start_prank(oracle.contract_address, test_address);
     oracle
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 1, publisher: 2
+                    },
                     pair_id: 2,
                     price: 4 * 1000000,
                     volume: 120
@@ -1267,9 +1354,9 @@ fn test_get_all_publishers() {
 }
 
 #[test]
-#[available_gas(2000000000)]
 fn test_get_all_sources() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let sources = oracle.get_all_sources(DataType::SpotEntry(2));
     assert(sources.len() == 2, 'wrong number of sources(S)');
     assert(*sources.at(0) == 1, 'wrong source(S)');
@@ -1281,18 +1368,20 @@ fn test_get_all_sources() {
 }
 
 #[test]
-#[available_gas(2000000000)]
 fn test_remove_source() {
     let (publisher_registry, oracle) = setup();
-    let admin = contract_address_const::<0x123456789>();
-    set_contract_address(admin);
+    start_warp(oracle.contract_address, current_block_timestamp());
+    start_prank(publisher_registry.contract_address, admin());
     publisher_registry.add_source_for_publisher(1, 3);
-    let now = 100000;
+    stop_prank(publisher_registry.contract_address);
+    start_prank(oracle.contract_address, admin());
     oracle
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 3, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 3, publisher: 1
+                    },
                     pair_id: 2,
                     price: 7 * 1000000,
                     volume: 150
@@ -1303,7 +1392,9 @@ fn test_remove_source() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now - 10000, source: 3, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp() - 10000, source: 3, publisher: 1
+                    },
                     pair_id: 2,
                     price: 7 * 1000000,
                     volume: 150,
@@ -1321,18 +1412,20 @@ fn test_remove_source() {
 }
 
 #[test]
-#[available_gas(20000000000)]
 fn test_publishing_data_for_less_sources_than_initially_planned() {
     let (publisher_registry, oracle) = setup();
-    let now = 100000;
-    let admin = contract_address_const::<0x123456789>();
-    set_contract_address(admin);
+    start_warp(oracle.contract_address, current_block_timestamp());
+    start_prank(publisher_registry.contract_address, admin());
     publisher_registry.add_source_for_publisher(1, 3);
+    stop_prank(publisher_registry.contract_address);
+    start_prank(oracle.contract_address, admin());
     oracle
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now + 9000, source: 3, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp() + 9000, source: 3, publisher: 1
+                    },
                     pair_id: 2,
                     price: 7 * 1000000,
                     volume: 150,
@@ -1341,20 +1434,18 @@ fn test_publishing_data_for_less_sources_than_initially_planned() {
         );
     let data_sources = oracle.get_all_sources(DataType::SpotEntry(2));
     assert(data_sources.len() == 3, 'wrong number of sources');
-    set_block_timestamp(now + 10000);
+    start_warp(oracle.contract_address, current_block_timestamp() + 10000);
     let entries = oracle.get_data_entries(DataType::SpotEntry(2));
     assert(entries.len() == 1, 'wrong number of entries');
     let data = oracle.get_data(DataType::SpotEntry(2), AggregationMode::Median(()));
     assert(data.price == 7000000, 'wrong price');
 }
 
-
 #[test]
-#[available_gas(2000000000)]
 fn test_update_pair() {
     let (publisher_registry, oracle) = setup();
-    let admin = contract_address_const::<0x123456789>();
-    set_contract_address(admin);
+    start_warp(oracle.contract_address, current_block_timestamp());
+    start_prank(oracle.contract_address, admin());
     let pair = oracle.get_pair(1);
     assert(pair.id == 1, 'wrong pair fetched');
     assert(pair.quote_currency_id == 111, 'wrong recorded pair');
@@ -1382,15 +1473,14 @@ fn test_update_pair() {
     assert(pair.base_currency_id == 12345, 'wrong recorded pair');
 }
 
-
 #[test]
 #[available_gas(20000000000000)]
 fn test_register_tokenized_vault() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let token: felt252 = 'xStrk';
     let token_address: ContractAddress = contract_address_const::<0x12345566>();
-    let admin = contract_address_const::<0x123456789>();
-    set_contract_address(admin);
+    start_prank(oracle.contract_address, admin());
     oracle.register_tokenized_vault(token, token_address);
     assert(oracle.get_tokenized_vaults(token) == token_address, 'Failed to register token');
 }
@@ -1399,10 +1489,10 @@ fn test_register_tokenized_vault() {
 #[available_gas(20000000000000)]
 fn test_delete_tokenized_vault() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let token: felt252 = 'xStrk';
     let token_address: ContractAddress = contract_address_const::<0x12345566>();
-    let admin = contract_address_const::<0x123456789>();
-    set_contract_address(admin);
+    start_prank(oracle.contract_address, admin());
     oracle.register_tokenized_vault(token, token_address);
     assert(oracle.get_tokenized_vaults(token) == token_address, 'Failed to register token');
     oracle.register_tokenized_vault(token, contract_address_const::<0>());
@@ -1412,26 +1502,24 @@ fn test_delete_tokenized_vault() {
     );
 }
 
-
 #[test]
 #[available_gas(20000000000000)]
-#[should_panic(expected: ('Admin: unauthorized', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('Admin: unauthorized',))]
 fn test_register_tokenized_vault_panics_if_not_owner() {
     let (publisher_registry, oracle) = setup();
+    start_warp(oracle.contract_address, current_block_timestamp());
     let token: felt252 = 'xStrk';
     let token_address: ContractAddress = contract_address_const::<0x12345566>();
-    set_contract_address(contract_address_const::<0x12>());
+    start_prank(oracle.contract_address, contract_address_const::<0x12>());
     oracle.register_tokenized_vault(token, token_address);
 }
-
 
 #[test]
 #[available_gas(20000000000000)]
 fn test_get_conversion_rate_price() {
-    let now = 100000;
     let (publisher_registry, oracle) = setup();
-    let admin = contract_address_const::<0x123456789>();
-    set_contract_address(admin);
+    start_warp(oracle.contract_address, current_block_timestamp());
+    start_prank(oracle.contract_address, admin());
     oracle
         .add_currency(
             Currency {
@@ -1458,7 +1546,9 @@ fn test_get_conversion_rate_price() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 2, publisher: 1
+                    },
                     pair_id: 'STRK/USD',
                     price: 68250000,
                     volume: 0
@@ -1474,13 +1564,12 @@ fn test_get_conversion_rate_price() {
 }
 
 #[test]
-#[should_panic(expected: ('No pool address for given token', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('No pool address for given token',))]
 #[available_gas(20000000000000)]
 fn test_get_conversion_rate_price_fails_if_pool_address_not_given() {
-    let now = 100000;
     let (publisher_registry, oracle) = setup();
-    let admin = contract_address_const::<0x123456789>();
-    set_contract_address(admin);
+    start_warp(oracle.contract_address, current_block_timestamp());
+    start_prank(oracle.contract_address, admin());
     oracle
         .add_currency(
             Currency {
@@ -1507,7 +1596,9 @@ fn test_get_conversion_rate_price_fails_if_pool_address_not_given() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 2, publisher: 1
+                    },
                     pair_id: 'STRK/USD',
                     price: 68250000,
                     volume: 0
@@ -1517,15 +1608,13 @@ fn test_get_conversion_rate_price_fails_if_pool_address_not_given() {
     let res = oracle.get_data(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
 }
 
-
 #[test]
-#[should_panic(expected: ('Asset not registered', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('Asset not registered',))]
 #[available_gas(20000000000000)]
 fn test_get_conversion_rate_price_fails_if_asset_not_registered() {
-    let now = 100000;
     let (publisher_registry, oracle) = setup();
-    let admin = contract_address_const::<0x123456789>();
-    set_contract_address(admin);
+    start_warp(oracle.contract_address, current_block_timestamp());
+    start_prank(oracle.contract_address, admin());
     oracle
         .add_currency(
             Currency {
@@ -1551,7 +1640,9 @@ fn test_get_conversion_rate_price_fails_if_asset_not_registered() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    base: BaseEntry {
+                        timestamp: current_block_timestamp(), source: 2, publisher: 1
+                    },
                     pair_id: 'STRK/USD',
                     price: 68250000,
                     volume: 0
@@ -1559,4 +1650,34 @@ fn test_get_conversion_rate_price_fails_if_asset_not_registered() {
             )
         );
     let res = oracle.get_data(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
+}
+
+#[test]
+#[fork(
+    url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_6",
+    block_id: BlockId::Tag(BlockTag::Latest)
+)]
+#[available_gas(20000000000000)]
+fn test_upgrade_oracle_with_conversion_rate() {
+    let oracle_address =
+        contract_address_const::<0x02a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b>();
+    let oracle = IOracleABIDispatcher { contract_address: oracle_address };
+    let admin_adress = oracle.get_admin_address();
+    start_prank(oracle.contract_address, admin_adress);
+    start_warp(oracle.contract_address, 1733609500);
+    let oracle_class = declare('Oracle');
+    oracle.upgrade(oracle_class.class_hash);
+    let erc4626_address =
+        contract_address_const::<0x028d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a>();
+    oracle.register_tokenized_vault('xSTRK', erc4626_address);
+    let strk_response = oracle.get_data_median(DataType::SpotEntry('STRK/USD'));
+    let res = oracle
+        .get_data(DataType::SpotEntry('XSTRK/USD'), AggregationMode::ConversionRate)
+        .price;
+    //Compute the expected result
+    let erc4626 = IERC4626Dispatcher { contract_address: erc4626_address };
+    let conversion_rate = erc4626.preview_mint(1000000000000000000);
+    let expected_price: u256 = (strk_response.price.into() * conversion_rate / 1000000000000000000);
+    let scaled_expected_price: u128 = expected_price.try_into().unwrap();
+    assert(scaled_expected_price == res, 'Conv price after update failed');
 }
