@@ -544,12 +544,12 @@ mod Oracle {
                     DataType::GenericEntry(_) => panic_with_felt252('Set only for Spot entries'),
                 };
 
-                // Get base currency and pool
-                let quote_asset: felt252 = self.get_pair(asset).quote_currency_id;
-                assert(quote_asset != 0, 'Asset not registered');
+                // // Get base currency and pool
+                let base_asset: felt252 = self.get_pair(asset).base_currency_id;
+                assert(base_asset != 0, 'Asset not registered');
                 let pool_address: ContractAddress = self
                     .tokenized_vault
-                    .read((quote_asset, 'STRK'));
+                    .read((base_asset, 'STRK'));
                 assert(
                     pool_address != starknet::contract_address_const::<0>(),
                     'No pool address for given token'
@@ -562,7 +562,7 @@ mod Oracle {
                 let price: u256 = response.price.into() * pool.preview_mint(ONE_E18) / ONE_E18;
 
                 // The conversion should not fail because we scaled the price to response.decimals
-                let converted_price: u128 = price.try_into().expect('Conversion should not fail');
+                let converted_price: u128 = price.try_into().unwrap();
                 assert(converted_price != 0, 'Price conversion failed');
                 PragmaPricesResponse {
                     price: converted_price,

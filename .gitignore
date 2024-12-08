@@ -48,3 +48,5 @@ target
 
 # Devnet deployments should not be pushed
 deployments/devnet
+
+*/.snfoundry_cache
