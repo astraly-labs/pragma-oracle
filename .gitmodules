@@ -1,0 +1,3 @@
+[submodule "kakarot-evm-interface/lib/kakarot-lib"]
+	path = kakarot-evm-interface/lib/kakarot-lib
+	url = https://github.com/kkrt-labs/kakarot-lib
