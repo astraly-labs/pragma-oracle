@@ -544,10 +544,10 @@ mod Oracle {
                     DataType::GenericEntry(_) => panic_with_felt252('Set only for Spot entries'),
                 };
 
-                // Get base currency and pool
-                let base_asset: felt252 = self.get_pair(asset).base_currency_id;
-                assert(base_asset != 0, 'Asset not registered');
-                let pool_address: ContractAddress = self.tokenized_vault.read((base_asset, 'STRK'));
+                // Get quote currency and pool
+                let quote_asset: felt252 = self.get_pair(asset).quote_currency_id;
+                assert(quote_asset != 0, 'Asset not registered');
+                let pool_address: ContractAddress = self.tokenized_vault.read((quote_asset, 'STRK'));
                 assert(
                     pool_address != starknet::contract_address_const::<0>(),
                     'No pool address for given token'
