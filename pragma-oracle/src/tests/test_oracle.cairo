@@ -139,7 +139,6 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
     set_contract_address(admin);
     set_block_timestamp(BLOCK_TIMESTAMP);
     set_chain_id(CHAIN_ID);
-    let now = 100000;
     //Deploy the registry
     let mut constructor_calldata = ArrayTrait::new();
     constructor_calldata.append(admin.into());
@@ -171,7 +170,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 1 },
                     pair_id: 2,
                     price: 2 * 1000000,
                     volume: 100
@@ -183,7 +182,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 1 },
                     pair_id: 2,
                     price: 3 * 1000000,
                     volume: 50
@@ -194,7 +193,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 1 },
                     pair_id: 3,
                     price: 8 * 1000000,
                     volume: 100
@@ -205,7 +204,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 1 },
                     pair_id: 4,
                     price: 8 * 1000000,
                     volume: 20
@@ -216,7 +215,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 1 },
                     pair_id: 4,
                     price: 3 * 1000000,
                     volume: 10
@@ -227,7 +226,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 1 },
                     pair_id: 5,
                     price: 5 * 1000000,
                     volume: 20
@@ -238,7 +237,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 1 },
                     pair_id: 2,
                     price: 2 * 1000000,
                     volume: 40,
@@ -250,7 +249,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 1 },
                     pair_id: 2,
                     price: 2 * 1000000,
                     volume: 30,
@@ -262,7 +261,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 1 },
                     pair_id: 3,
                     price: 3 * 1000000,
                     volume: 1000,
@@ -274,7 +273,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 1 },
                     pair_id: 4,
                     price: 4 * 1000000,
                     volume: 2321,
@@ -286,7 +285,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 1 },
                     pair_id: 5,
                     price: 5 * 1000000,
                     volume: 231,
@@ -298,7 +297,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 1 },
                     pair_id: 5,
                     price: 5 * 1000000,
                     volume: 232,
@@ -311,7 +310,7 @@ fn setup() -> (IPublisherRegistryABIDispatcher, IOracleABIDispatcher) {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 1 },
                     pair_id: 6,
                     price: 2 * 1000000,
                     volume: 440
@@ -549,11 +548,10 @@ fn get_data_for_sources() {
 #[available_gas(100000000000)]
 fn test_publish_multiple_entries() {
     let (publish_registry, oracle) = setup();
-    let now = 100000;
     let entries = array![
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry { timestamp: now + 100, source: 1, publisher: 1 },
+                base: BaseEntry { timestamp: BLOCK_TIMESTAMP + 100, source: 1, publisher: 1 },
                 pair_id: 1,
                 price: 2 * 1000000,
                 volume: 150
@@ -561,7 +559,7 @@ fn test_publish_multiple_entries() {
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry { timestamp: now + 100, source: 1, publisher: 1 },
+                base: BaseEntry { timestamp: BLOCK_TIMESTAMP + 100, source: 1, publisher: 1 },
                 pair_id: 4,
                 price: 2 * 1000000,
                 volume: 150
@@ -569,7 +567,7 @@ fn test_publish_multiple_entries() {
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry { timestamp: now + 100, source: 1, publisher: 1 },
+                base: BaseEntry { timestamp: BLOCK_TIMESTAMP + 100, source: 1, publisher: 1 },
                 pair_id: 3,
                 price: 2 * 1000000,
                 volume: 20
@@ -577,7 +575,7 @@ fn test_publish_multiple_entries() {
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry { timestamp: now + 100, source: 2, publisher: 1 },
+                base: BaseEntry { timestamp: BLOCK_TIMESTAMP + 100, source: 2, publisher: 1 },
                 pair_id: 4,
                 price: 3 * 1000000,
                 volume: 30
@@ -585,7 +583,7 @@ fn test_publish_multiple_entries() {
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry { timestamp: now + 100, source: 2, publisher: 1 },
+                base: BaseEntry { timestamp: BLOCK_TIMESTAMP + 100, source: 2, publisher: 1 },
                 pair_id: 2,
                 price: 3 * 1000000,
                 volume: 30
@@ -593,7 +591,7 @@ fn test_publish_multiple_entries() {
         ),
         PossibleEntries::Spot(
             SpotEntry {
-                base: BaseEntry { timestamp: now + 100, source: 2, publisher: 1 },
+                base: BaseEntry { timestamp: BLOCK_TIMESTAMP + 100, source: 2, publisher: 1 },
                 pair_id: 3,
                 price: 3 * 1000000,
                 volume: 30
@@ -606,24 +604,24 @@ fn test_publish_multiple_entries() {
     let entry_1 = *entries.at(0);
     let (price, timestamp, volume) = data_treatment(entry_1);
     assert(price == 2 * 1000000, 'wrong price(0)');
-    assert(timestamp == now + 100, 'wrong  timestamp(0)');
+    assert(timestamp == BLOCK_TIMESTAMP + 100, 'wrong  timestamp(0)');
     assert(volume == 150, 'wrong volume(0)');
     let entry_2 = *entries.at(1);
     let (price_2, timestamp_2, volume_2) = data_treatment(entry_2);
     assert(price_2 == 3 * 1000000, 'wrong price(1)');
-    assert(timestamp_2 == now + 100, 'wrong timestamp(1)');
+    assert(timestamp_2 == BLOCK_TIMESTAMP + 100, 'wrong timestamp(1)');
     assert(volume_2 == 30, 'wrong volume(1)');
     let (entries_2, _) = oracle
         .get_data_entries_for_sources(DataType::SpotEntry(3), sources.span());
     let entry_3 = *entries_2.at(0);
     let (price_3, timestamp_3, volume_3) = data_treatment(entry_3);
     assert(price_3 == 2 * 1000000, 'wrong price(3)');
-    assert(timestamp_3 == now + 100, 'wrong  timestamp(3)');
+    assert(timestamp_3 == BLOCK_TIMESTAMP + 100, 'wrong  timestamp(3)');
     assert(volume_3 == 20, 'wrong volume(3)');
     let entry_4 = *entries_2.at(1);
     let (price_4, timestamp_4, volume_4) = data_treatment(entry_4);
     assert(price_4 == 3 * 1000000, 'wrong price(4)');
-    assert(timestamp_4 == now + 100, 'wrong timestamp(4)');
+    assert(timestamp_4 == BLOCK_TIMESTAMP + 100, 'wrong timestamp(4)');
     assert(volume_4 == 30, 'wrong volume(4)');
 }
 
@@ -632,20 +630,19 @@ fn test_publish_multiple_entries() {
 fn test_max_publish_multiple_entries() {
     let (publish_registry, oracle) = setup();
     let MAX: u32 = 10;
-    let now = 100000;
     let mut entries = ArrayTrait::<PossibleEntries>::new();
     let mut cur_idx: u32 = 0;
     loop {
         if (cur_idx == MAX) {
             break ();
         }
+        let new_timestamp = BLOCK_TIMESTAMP + (cur_idx + 1).into() * 100;
+        set_block_timestamp(new_timestamp);
         entries
             .append(
                 PossibleEntries::Spot(
                     SpotEntry {
-                        base: BaseEntry {
-                            timestamp: now + (cur_idx + 1).into() * 100, source: 1, publisher: 1
-                        },
+                        base: BaseEntry { timestamp: new_timestamp, source: 1, publisher: 1 },
                         pair_id: 3,
                         price: 3 * 1000000 + (cur_idx + 1).into(),
                         volume: 30
@@ -656,9 +653,7 @@ fn test_max_publish_multiple_entries() {
             .append(
                 PossibleEntries::Spot(
                     SpotEntry {
-                        base: BaseEntry {
-                            timestamp: now + (cur_idx + 1).into() * 100, source: 2, publisher: 1
-                        },
+                        base: BaseEntry { timestamp: new_timestamp, source: 2, publisher: 1 },
                         pair_id: 2,
                         price: 3 * 1000000 + (cur_idx + 1).into(),
                         volume: 30
@@ -669,9 +664,7 @@ fn test_max_publish_multiple_entries() {
             .append(
                 PossibleEntries::Spot(
                     SpotEntry {
-                        base: BaseEntry {
-                            timestamp: now + (cur_idx + 1).into() * 100, source: 1, publisher: 1
-                        },
+                        base: BaseEntry { timestamp: new_timestamp, source: 1, publisher: 1 },
                         pair_id: 4,
                         price: 3 * 1000000 + (cur_idx + 1).into(),
                         volume: 30
@@ -924,13 +917,12 @@ fn test_multiple_publishers_price() {
     publisher_registry.add_source_for_publisher(2, 1);
     // Add source 2 for publisher 1
     publisher_registry.add_source_for_publisher(2, 2);
-    let now = 100000;
     set_contract_address(test_address);
     oracle
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 2 },
                     pair_id: 2,
                     price: 4 * 1000000,
                     volume: 100
@@ -942,7 +934,7 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 2 },
                     pair_id: 2,
                     price: 5 * 1000000,
                     volume: 50
@@ -953,7 +945,7 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 2 },
                     pair_id: 3,
                     price: 8 * 1000000,
                     volume: 100
@@ -964,7 +956,7 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 2 },
                     pair_id: 4,
                     price: 8 * 1000000,
                     volume: 20
@@ -975,7 +967,7 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 2 },
                     pair_id: 4,
                     price: 3 * 1000000,
                     volume: 10
@@ -986,7 +978,7 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 2 },
                     pair_id: 5,
                     price: 5 * 1000000,
                     volume: 20
@@ -997,7 +989,7 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 2 },
                     pair_id: 2,
                     price: 2 * 1000000,
                     volume: 40,
@@ -1009,7 +1001,7 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 2 },
                     pair_id: 2,
                     price: 2 * 1000000,
                     volume: 30,
@@ -1021,7 +1013,7 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 2 },
                     pair_id: 3,
                     price: 3 * 1000000,
                     volume: 1000,
@@ -1033,7 +1025,7 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 2 },
                     pair_id: 4,
                     price: 4 * 1000000,
                     volume: 2321,
@@ -1045,7 +1037,7 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 2 },
                     pair_id: 5,
                     price: 5 * 1000000,
                     volume: 231,
@@ -1057,7 +1049,7 @@ fn test_multiple_publishers_price() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 2 },
                     pair_id: 5,
                     price: 5 * 1000000,
                     volume: 232,
@@ -1104,13 +1096,12 @@ fn test_get_data_entry_for_publishers() {
     publisher_registry.add_source_for_publisher(2, 1);
     // Add source 2 for publisher 1
     publisher_registry.add_source_for_publisher(2, 2);
-    let now = 100000;
     set_contract_address(test_address);
     oracle
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 2 },
                     pair_id: 2,
                     price: 4 * 1000000,
                     volume: 120
@@ -1121,7 +1112,7 @@ fn test_get_data_entry_for_publishers() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 2 },
                     pair_id: 2,
                     price: 4 * 1000000,
                     volume: 120,
@@ -1168,7 +1159,7 @@ fn test_get_data_entry_for_publishers() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 3 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 3 },
                     pair_id: 2,
                     price: 7 * 1000000,
                     volume: 150
@@ -1179,7 +1170,7 @@ fn test_get_data_entry_for_publishers() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 3 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 3 },
                     pair_id: 2,
                     price: 7 * 1000000,
                     volume: 150,
@@ -1233,7 +1224,6 @@ fn test_transfer_ownership() {
 #[test]
 #[available_gas(2000000000)]
 fn test_get_all_publishers() {
-    let now = 100000;
     let (publisher_registry, oracle) = setup();
     let publishers = oracle.get_all_publishers(DataType::SpotEntry(2));
     assert(publishers.len() == 1, 'wrong number of publishers(S)');
@@ -1250,7 +1240,7 @@ fn test_get_all_publishers() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 1, publisher: 2 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 1, publisher: 2 },
                     pair_id: 2,
                     price: 4 * 1000000,
                     volume: 120
@@ -1287,12 +1277,11 @@ fn test_remove_source() {
     let admin = contract_address_const::<0x123456789>();
     set_contract_address(admin);
     publisher_registry.add_source_for_publisher(1, 3);
-    let now = 100000;
     oracle
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 3, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 3, publisher: 1 },
                     pair_id: 2,
                     price: 7 * 1000000,
                     volume: 150
@@ -1303,7 +1292,7 @@ fn test_remove_source() {
         .publish_data(
             PossibleEntries::Future(
                 FutureEntry {
-                    base: BaseEntry { timestamp: now - 10000, source: 3, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP - 10000, source: 3, publisher: 1 },
                     pair_id: 2,
                     price: 7 * 1000000,
                     volume: 150,
@@ -1324,7 +1313,6 @@ fn test_remove_source() {
 #[available_gas(20000000000)]
 fn test_publishing_data_for_less_sources_than_initially_planned() {
     let (publisher_registry, oracle) = setup();
-    let now = 100000;
     let admin = contract_address_const::<0x123456789>();
     set_contract_address(admin);
     publisher_registry.add_source_for_publisher(1, 3);
@@ -1332,7 +1320,7 @@ fn test_publishing_data_for_less_sources_than_initially_planned() {
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now + 9000, source: 3, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP + 9000, source: 3, publisher: 1 },
                     pair_id: 2,
                     price: 7 * 1000000,
                     volume: 150,
@@ -1341,7 +1329,7 @@ fn test_publishing_data_for_less_sources_than_initially_planned() {
         );
     let data_sources = oracle.get_all_sources(DataType::SpotEntry(2));
     assert(data_sources.len() == 3, 'wrong number of sources');
-    set_block_timestamp(now + 10000);
+    set_block_timestamp(BLOCK_TIMESTAMP + 10000);
     let entries = oracle.get_data_entries(DataType::SpotEntry(2));
     assert(entries.len() == 1, 'wrong number of entries');
     let data = oracle.get_data(DataType::SpotEntry(2), AggregationMode::Median(()));
@@ -1428,7 +1416,6 @@ fn test_register_tokenized_vault_panics_if_not_owner() {
 #[test]
 #[available_gas(20000000000000)]
 fn test_get_conversion_rate_price() {
-    let now = 100000;
     let (publisher_registry, oracle) = setup();
     let admin = contract_address_const::<0x123456789>();
     set_contract_address(admin);
@@ -1452,13 +1439,14 @@ fn test_get_conversion_rate_price() {
                 ethereum_address: 0.try_into().unwrap(),
             }
         );
-    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'STRK', quote_currency_id: 'USD', });
-    oracle.add_pair(Pair { id: 'xSTRK/USD', base_currency_id: 'xSTRK', quote_currency_id: 'USD', });
+    // to fit  configuration
+    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'USD', quote_currency_id: 'STRK', });
+    oracle.add_pair(Pair { id: 'xSTRK/USD', base_currency_id: 'USD', quote_currency_id: 'xSTRK', });
     oracle
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 1 },
                     pair_id: 'STRK/USD',
                     price: 68250000,
                     volume: 0
@@ -1477,7 +1465,6 @@ fn test_get_conversion_rate_price() {
 #[should_panic(expected: ('No pool address for given token', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000000000)]
 fn test_get_conversion_rate_price_fails_if_pool_address_not_given() {
-    let now = 100000;
     let (publisher_registry, oracle) = setup();
     let admin = contract_address_const::<0x123456789>();
     set_contract_address(admin);
@@ -1501,13 +1488,13 @@ fn test_get_conversion_rate_price_fails_if_pool_address_not_given() {
                 ethereum_address: 0.try_into().unwrap(),
             }
         );
-    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'STRK', quote_currency_id: 'USD', });
-    oracle.add_pair(Pair { id: 'xSTRK/USD', base_currency_id: 'xSTRK', quote_currency_id: 'USD', });
+    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'USD', quote_currency_id: 'STRK', });
+    oracle.add_pair(Pair { id: 'xSTRK/USD', base_currency_id: 'USD', quote_currency_id: 'xSTRK', });
     oracle
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 1 },
                     pair_id: 'STRK/USD',
                     price: 68250000,
                     volume: 0
@@ -1522,7 +1509,6 @@ fn test_get_conversion_rate_price_fails_if_pool_address_not_given() {
 #[should_panic(expected: ('Asset not registered', 'ENTRYPOINT_FAILED'))]
 #[available_gas(20000000000000)]
 fn test_get_conversion_rate_price_fails_if_asset_not_registered() {
-    let now = 100000;
     let (publisher_registry, oracle) = setup();
     let admin = contract_address_const::<0x123456789>();
     set_contract_address(admin);
@@ -1546,12 +1532,12 @@ fn test_get_conversion_rate_price_fails_if_asset_not_registered() {
                 ethereum_address: 0.try_into().unwrap(),
             }
         );
-    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'STRK', quote_currency_id: 'USD', });
+    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'USD', quote_currency_id: 'STRK', });
     oracle
         .publish_data(
             PossibleEntries::Spot(
                 SpotEntry {
-                    base: BaseEntry { timestamp: now, source: 2, publisher: 1 },
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 1 },
                     pair_id: 'STRK/USD',
                     price: 68250000,
                     volume: 0
@@ -1559,4 +1545,131 @@ fn test_get_conversion_rate_price_fails_if_asset_not_registered() {
             )
         );
     let res = oracle.get_data(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
+}
+
+
+#[test]
+#[available_gas(2000000000)]
+fn test_set_conversion_rate_checkpoint() {
+    let (publisher_registry, oracle) = setup();
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+    oracle
+        .add_currency(
+            Currency {
+                id: 'STRK',
+                decimals: 18,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'xSTRK',
+                decimals: 18,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'USD', quote_currency_id: 'STRK', });
+    oracle.add_pair(Pair { id: 'xSTRK/USD', base_currency_id: 'USD', quote_currency_id: 'xSTRK', });
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 1 },
+                    pair_id: 'STRK/USD',
+                    price: 68250000,
+                    volume: 0
+                }
+            )
+        );
+    let erc4626 = deploy_erc4626();
+    oracle.register_tokenized_vault('xSTRK', erc4626);
+    let res = oracle.get_data(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
+
+    // TEST `set_checkpoint + get_checkpoint`
+    oracle.set_checkpoint(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
+    let (idx, _) = oracle
+        .get_latest_checkpoint_index(
+            DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate
+        );
+    let cp: Checkpoint = oracle
+        .get_checkpoint(DataType::SpotEntry('xSTRK/USD'), idx, AggregationMode::ConversionRate);
+    assert(cp.value == res.price, 'CR: wrong checkpoint-1');
+    assert(cp.num_sources_aggregated == res.num_sources_aggregated, 'CR: wrong num sources-1');
+    assert(cp.timestamp == res.last_updated_timestamp, 'CR: timestamp mismatch-1');
+    assert(cp.num_sources_aggregated == res.num_sources_aggregated, 'CR: sources mismatch-1');
+    assert(cp.aggregation_mode == AggregationMode::ConversionRate, 'CR: agg mismatch-1');
+
+    // TEST `get_last_checkpoint_before`
+    let new_timestamp = BLOCK_TIMESTAMP + 100000;
+    set_block_timestamp(new_timestamp);
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: new_timestamp, source: 2, publisher: 1 },
+                    pair_id: 'STRK/USD',
+                    price: 68280000,
+                    volume: 0
+                }
+            )
+        );
+    oracle.set_checkpoint(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
+    let new_res = oracle
+        .get_data(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
+    let (cp, _) = oracle
+        .get_last_checkpoint_before(
+            DataType::SpotEntry('xSTRK/USD'), new_timestamp + 1, AggregationMode::ConversionRate
+        );
+    assert(cp.value == new_res.price, 'CR: wrong checkpoint-2');
+    assert(cp.num_sources_aggregated == new_res.num_sources_aggregated, 'CR: wrong num sources-2');
+    assert(cp.timestamp == new_res.last_updated_timestamp, 'CR: timestamp mismatch-2');
+    assert(cp.num_sources_aggregated == new_res.num_sources_aggregated, 'CR: sources mismatch-2');
+    assert(cp.aggregation_mode == AggregationMode::ConversionRate, 'CR: agg mismatch-2');
+
+    // Retrieve the timestamp from before the final publish
+    let (cp, _) = oracle
+        .get_last_checkpoint_before(
+            DataType::SpotEntry('xSTRK/USD'), new_timestamp - 1, AggregationMode::ConversionRate
+        );
+    assert(cp.value == res.price, 'CR: wrong checkpoint-3');
+    assert(cp.num_sources_aggregated == res.num_sources_aggregated, 'CR: wrong num sources-3');
+    assert(cp.timestamp == res.last_updated_timestamp, 'CR: timestamp mismatch-3');
+    assert(cp.num_sources_aggregated == res.num_sources_aggregated, 'CR: sources mismatch-3');
+    assert(cp.aggregation_mode == AggregationMode::ConversionRate, 'CR: agg mismatch-3');
+
+    // TEST: `get_latest_checkpoint` 
+
+    let new_timestamp = BLOCK_TIMESTAMP + 200000;
+    set_block_timestamp(new_timestamp);
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: new_timestamp, source: 2, publisher: 1 },
+                    pair_id: 'STRK/USD',
+                    price: 68230000,
+                    volume: 0
+                }
+            )
+        );
+    oracle.set_checkpoint(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
+    let res = oracle.get_data(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
+    let cp = oracle
+        .get_latest_checkpoint(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
+    assert(cp.value == res.price, 'CR: wrong checkpoint-4');
+    assert(cp.num_sources_aggregated == res.num_sources_aggregated, 'CR: wrong num sources-4');
+    assert(cp.timestamp == res.last_updated_timestamp, 'CR: timestamp mismatch-4');
+    assert(cp.num_sources_aggregated == res.num_sources_aggregated, 'CR: sources mismatch-4');
+    assert(cp.aggregation_mode == AggregationMode::ConversionRate, 'CR: agg mismatch-4');
+    let last_idx = oracle
+        .get_latest_checkpoint_index(
+            DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate
+        );
+    assert(last_idx == (2, true), 'CR: wrong index-4');
 }

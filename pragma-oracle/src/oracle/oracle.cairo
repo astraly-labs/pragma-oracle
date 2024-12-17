@@ -547,7 +547,9 @@ mod Oracle {
                 // Get quote currency and pool
                 let quote_asset: felt252 = self.get_pair(asset).quote_currency_id;
                 assert(quote_asset != 0, 'Asset not registered');
-                let pool_address: ContractAddress = self.tokenized_vault.read((quote_asset, 'STRK'));
+                let pool_address: ContractAddress = self
+                    .tokenized_vault
+                    .read((quote_asset, 'STRK'));
                 assert(
                     pool_address != starknet::contract_address_const::<0>(),
                     'No pool address for given token'
@@ -1842,10 +1844,12 @@ mod Oracle {
         fn set_checkpoint(
             ref self: ContractState, data_type: DataType, aggregation_mode: AggregationMode
         ) {
-            let mut sources = ArrayTrait::<felt252>::new().span();
-            let priceResponse = IOracleABI::get_data_for_sources(
-                @self, data_type, aggregation_mode, sources
-            );
+            let priceResponse = if (aggregation_mode == AggregationMode::ConversionRate) {
+                self.get_data(data_type, aggregation_mode)
+            } else {
+                let mut sources = ArrayTrait::<felt252>::new().span();
+                IOracleABI::get_data_for_sources(@self, data_type, aggregation_mode, sources)
+            };
             assert(!priceResponse.last_updated_timestamp.is_zero(), 'No checkpoint available');
 
             let sources_threshold = self.oracle_sources_threshold_storage.read();
