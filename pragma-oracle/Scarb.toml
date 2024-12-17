@@ -12,7 +12,7 @@ alexandria_sorting = { git = "https://github.com/keep-starknet-strange/alexandri
 cubit = { git = "https://github.com/influenceth/cubit", rev = "2ccb2536dffa3f15ebd38b755c1be65fde1eab0c" }
 openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.7.0" }
 starknet = "2.2.0"
-snforge_std = { git = "https://github.com/foundry-rs/starknet-foundry", tag = "v0.7.1" }
+snforge_std = { git = "https://github.com/foundry-rs/starknet-foundry", tag = "v0.7.0" }
 
 
 [[target.starknet-contract]]

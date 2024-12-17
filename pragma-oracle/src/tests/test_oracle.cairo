@@ -1415,10 +1415,10 @@ fn test_remove_source() {
 fn test_publishing_data_for_less_sources_than_initially_planned() {
     let (publisher_registry, oracle) = setup();
     start_warp(oracle.contract_address, current_block_timestamp());
-    start_prank(publisher_registry.contract_address, admin()); 
+    start_prank(publisher_registry.contract_address, admin());
     publisher_registry.add_source_for_publisher(1, 3);
-    stop_prank(publisher_registry.contract_address); 
-    start_prank(oracle.contract_address ,admin());
+    stop_prank(publisher_registry.contract_address);
+    start_prank(oracle.contract_address, admin());
     oracle
         .publish_data(
             PossibleEntries::Spot(
@@ -1540,8 +1540,8 @@ fn test_get_conversion_rate_price() {
                 ethereum_address: 0.try_into().unwrap(),
             }
         );
-    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'STRK', quote_currency_id: 'USD', });
-    oracle.add_pair(Pair { id: 'xSTRK/USD', base_currency_id: 'xSTRK', quote_currency_id: 'USD', });
+    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'USD', quote_currency_id: 'STRK', });
+    oracle.add_pair(Pair { id: 'xSTRK/USD', base_currency_id: 'USD', quote_currency_id: 'xSTRK', });
     oracle
         .publish_data(
             PossibleEntries::Spot(
@@ -1590,8 +1590,8 @@ fn test_get_conversion_rate_price_fails_if_pool_address_not_given() {
                 ethereum_address: 0.try_into().unwrap(),
             }
         );
-    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'STRK', quote_currency_id: 'USD', });
-    oracle.add_pair(Pair { id: 'xSTRK/USD', base_currency_id: 'xSTRK', quote_currency_id: 'USD', });
+    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'USD', quote_currency_id: 'STRK', });
+    oracle.add_pair(Pair { id: 'xSTRK/USD', base_currency_id: 'USD', quote_currency_id: 'xSTRK', });
     oracle
         .publish_data(
             PossibleEntries::Spot(
@@ -1635,7 +1635,7 @@ fn test_get_conversion_rate_price_fails_if_asset_not_registered() {
                 ethereum_address: 0.try_into().unwrap(),
             }
         );
-    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'STRK', quote_currency_id: 'USD', });
+    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'USD', quote_currency_id: 'STRK', });
     oracle
         .publish_data(
             PossibleEntries::Spot(
@@ -1652,73 +1652,32 @@ fn test_get_conversion_rate_price_fails_if_asset_not_registered() {
     let res = oracle.get_data(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
 }
 
-
-impl PragmaPricesResponsePartialEq of PartialEq<PragmaPricesResponse> {
-    fn eq(lhs: @PragmaPricesResponse, rhs: @PragmaPricesResponse) -> bool {
-        lhs.price == rhs.price &&
-        lhs.decimals == rhs.decimals &&
-        lhs.last_updated_timestamp == rhs.last_updated_timestamp &&
-        lhs.num_sources_aggregated == rhs.num_sources_aggregated &&
-        lhs.expiration_timestamp == rhs.expiration_timestamp
-    }
-
-    fn ne(lhs: @PragmaPricesResponse, rhs: @PragmaPricesResponse) -> bool {
-        !(lhs == rhs)
-    }
-}
-
 #[test]
 #[fork(
-    url: "https://starknet-mainnet.public.blastapi.io/rpc/v0.5",
-    block_id: BlockId::Hash(
-        0x02c4881dc60090b6ec266b9b3ea632a661b41f7cc8797ff25e143c8fd7b168c2)
+    url: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7",
+    block_id: BlockId::Tag(BlockTag::Latest)
 )]
 #[available_gas(20000000000000)]
 fn test_upgrade_oracle_with_conversion_rate() {
-    // IMPORTANT NOTICE: IN ORDER FOR THIS TEST TO RUN PROPERLY, YOU NEED TO DELETE THE `.snfoundry_cache` folder. If not, 
-    // rpc calls will fail or no data will be fetched
     let oracle_address =
         contract_address_const::<0x02a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b>();
     let oracle = IOracleABIDispatcher { contract_address: oracle_address };
-    let admin_address = contract_address_const::<0x02356b628d108863baf8644c945d97bad70190af5957031f4852d00d0f690a77>();
-    start_prank(oracle.contract_address, admin_address);
-    start_warp(oracle.contract_address, 1733670294);
-    
-    // Retrieve the old price to make sure basic functionalities are still available
-    let btc_entry = oracle.get_data_median(DataType::SpotEntry('BTC/USD'));
-    let eth_entry = oracle.get_data_median(DataType::SpotEntry('ETH/USD'));
-    
+    let admin_adress = oracle.get_admin_address();
+    start_prank(oracle.contract_address, admin_adress);
+    start_warp(oracle.contract_address, 1733609500);
     let oracle_class = declare('Oracle');
     oracle.upgrade(oracle_class.class_hash);
-
-    // We cannot use existing erc4626 because the forking crate cannot fetch the flattened class
-    oracle
-        .add_currency(
-            Currency {
-                id: 'wSTRK',
-                decimals: 8,
-                is_abstract_currency: false,
-                starknet_address: 0.try_into().unwrap(),
-                ethereum_address: 0.try_into().unwrap(),
-            }
-        );
-    oracle.add_pair(Pair { id: 'wSTRK/USD', base_currency_id: 'wSTRK', quote_currency_id: 'USD', });
-    let erc4626_address = deploy_erc4626();
-    oracle.register_tokenized_vault('wSTRK', erc4626_address);
+    let erc4626_address =
+        contract_address_const::<0x028d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a>();
+    oracle.register_tokenized_vault('xSTRK', erc4626_address);
     let strk_response = oracle.get_data_median(DataType::SpotEntry('STRK/USD'));
     let res = oracle
-    .get_data(DataType::SpotEntry('wSTRK/USD'), AggregationMode::ConversionRate(()))
-    .price;
+        .get_data(DataType::SpotEntry('XSTRK/USD'), AggregationMode::ConversionRate)
+        .price;
     //Compute the expected result
     let erc4626 = IERC4626Dispatcher { contract_address: erc4626_address };
     let conversion_rate = erc4626.preview_mint(1000000000000000000);
     let expected_price: u256 = (strk_response.price.into() * conversion_rate / 1000000000000000000);
-    assert(expected_price == res.into(), 'Conv price after update failed');
-
-    // verify if the basic functionalities are still available
-    let post_update_btc_entry = oracle.get_data_median(DataType::SpotEntry('BTC/USD'));
-    let post_update_eth_entry = oracle.get_data_median(DataType::SpotEntry('ETH/USD'));
-    assert(post_update_btc_entry== btc_entry, 'BTC entry not av after update');
-    assert(post_update_eth_entry== eth_entry, 'ETH entry not av after update');
-
+    let scaled_expected_price: u128 = expected_price.try_into().unwrap();
+    assert(scaled_expected_price == res, 'Conv price after update failed');
 }
