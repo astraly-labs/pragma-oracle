@@ -2440,7 +2440,10 @@ mod Oracle {
         }
     }
 
-
+    // @notice computes the conversion rate price for a given data type 
+    // @dev the conversion rate is computed by querying the median of the STRK/USD pair and then scaling the price to the quote asset
+    // @param data_type : the data type to consider
+    // @returns a PragmaPricesResponse (see entry/structs) 
     fn get_conversion_rate_price(
         self: @ContractState, data_type: DataType
     ) -> PragmaPricesResponse {
