@@ -545,89 +545,9 @@ mod Oracle {
                 .read()
                 .array()
                 .span();
-            if registered_conversion_rate_pairs.contains(pair_id) {
-                // Query median for STRK/USD
-                let sources = IOracleABI::get_all_sources(self, DataType::SpotEntry('STRK/USD'));
-                let response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
-                    self, DataType::SpotEntry('STRK/USD'), AggregationMode::Median(()), sources
-                );
-
-                // Extract quote asset
-                // Here we extract a second time to make sure we panic for future and generic entries
-                let asset: felt252 = match data_type {
-                    DataType::SpotEntry(asset) => asset,
-                    DataType::FutureEntry(_) => panic_with_felt252('Set only for Spot entries'),
-                    DataType::GenericEntry(_) => panic_with_felt252('Set only for Spot entries'),
-                };
-
-                // Get quote currency and pool
-                let quote_asset: felt252 = self.get_pair(asset).quote_currency_id;
-                assert(quote_asset != 0, 'Asset not registered');
-                let pool_address: ContractAddress = self
-                    .tokenized_vault
-                    .read((quote_asset, 'STRK'));
-                assert(
-                    pool_address != starknet::contract_address_const::<0>(),
-                    'No pool address for given token'
-                );
-                let pool = IERC4626Dispatcher { contract_address: pool_address };
-
-                // Compute adjusted price
-                // `preview_mint` takes as argument an e18 and returns an e18
-                // We operate under u256 to avoid overflow
-                let price: u256 = response.price.into() * pool.preview_mint(ONE_E18) / ONE_E18;
-
-                // The conversion should not fail because we scaled the price to response.decimals
-                let converted_price: u128 = price.try_into().expect('Conversion should not fail');
-                assert(converted_price != 0, 'Price conversion failed');
-                PragmaPricesResponse {
-                    price: converted_price,
-                    decimals: response.decimals,
-                    last_updated_timestamp: response.last_updated_timestamp,
-                    num_sources_aggregated: response.num_sources_aggregated,
-                    expiration_timestamp: response.expiration_timestamp
-                }
-            } else if aggregation_mode == AggregationMode::ConversionRate {
-                // Query median for STRK/USD
-                let sources = IOracleABI::get_all_sources(self, DataType::SpotEntry('STRK/USD'));
-                let response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
-                    self, DataType::SpotEntry('STRK/USD'), AggregationMode::Median(()), sources
-                );
-
-                //  Extract base asset
-                let asset: felt252 = match data_type {
-                    DataType::SpotEntry(asset) => asset,
-                    DataType::FutureEntry(_) => panic_with_felt252('Set only for Spot entries'),
-                    DataType::GenericEntry(_) => panic_with_felt252('Set only for Spot entries'),
-                };
-
-                // Get quote currency and pool
-                let quote_asset: felt252 = self.get_pair(asset).quote_currency_id;
-                assert(quote_asset != 0, 'Asset not registered');
-                let pool_address: ContractAddress = self
-                    .tokenized_vault
-                    .read((quote_asset, 'STRK'));
-                assert(
-                    pool_address != starknet::contract_address_const::<0>(),
-                    'No pool address for given token'
-                );
-                let pool = IERC4626Dispatcher { contract_address: pool_address };
-
-                // Compute adjusted price
-                // `preview_mint` takes as argument an e18 and returns an e18
-                // We operate under u256 to avoid overflow
-                let price: u256 = response.price.into() * pool.preview_mint(ONE_E18) / ONE_E18;
-
-                // The conversion should not fail because we scaled the price to response.decimals
-                let converted_price: u128 = price.try_into().expect('Conversion should not fail');
-                assert(converted_price != 0, 'Price conversion failed');
-                PragmaPricesResponse {
-                    price: converted_price,
-                    decimals: response.decimals,
-                    last_updated_timestamp: response.last_updated_timestamp,
-                    num_sources_aggregated: response.num_sources_aggregated,
-                    expiration_timestamp: response.expiration_timestamp
-                }
+            if registered_conversion_rate_pairs.contains(pair_id)
+                || aggregation_mode == AggregationMode::ConversionRate {
+                get_conversion_rate_price(self, data_type)
             } else {
                 let sources = IOracleABI::get_all_sources(self, data_type);
                 IOracleABI::get_data_for_sources(self, data_type, aggregation_mode, sources)
@@ -2520,6 +2440,50 @@ mod Oracle {
         }
     }
 
+
+    fn get_conversion_rate_price(
+        self: @ContractState, data_type: DataType
+    ) -> PragmaPricesResponse {
+        // Query median for STRK/USD
+        let sources = IOracleABI::get_all_sources(self, DataType::SpotEntry('STRK/USD'));
+        let response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
+            self, DataType::SpotEntry('STRK/USD'), AggregationMode::Median(()), sources
+        );
+
+        // Extract quote asset
+        // Here we extract a second time to make sure we panic for future and generic entries
+        let asset: felt252 = match data_type {
+            DataType::SpotEntry(asset) => asset,
+            DataType::FutureEntry(_) => panic_with_felt252('Set only for Spot entries'),
+            DataType::GenericEntry(_) => panic_with_felt252('Set only for Spot entries'),
+        };
+
+        // Get quote currency and pool
+        let quote_asset: felt252 = self.get_pair(asset).quote_currency_id;
+        assert(quote_asset != 0, 'Asset not registered');
+        let pool_address: ContractAddress = self.tokenized_vault.read((quote_asset, 'STRK'));
+        assert(
+            pool_address != starknet::contract_address_const::<0>(),
+            'No pool address for given token'
+        );
+        let pool = IERC4626Dispatcher { contract_address: pool_address };
+
+        // Compute adjusted price
+        // `preview_mint` takes as argument an e18 and returns an e18
+        // We operate under u256 to avoid overflow
+        let price: u256 = response.price.into() * pool.preview_mint(ONE_E18) / ONE_E18;
+
+        // The conversion should not fail because we scaled the price to response.decimals
+        let converted_price: u128 = price.try_into().expect('Conversion should not fail');
+        assert(converted_price != 0, 'Price conversion failed');
+        PragmaPricesResponse {
+            price: converted_price,
+            decimals: response.decimals,
+            last_updated_timestamp: response.last_updated_timestamp,
+            num_sources_aggregated: response.num_sources_aggregated,
+            expiration_timestamp: response.expiration_timestamp
+        }
+    }
 
     // @notice check if the timestamp of the new entry is bigger than the timestamp of the old entry, and update the source storage 
     // @dev should fail if the old_timestamp > new_timestamp
