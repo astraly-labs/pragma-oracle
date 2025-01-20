@@ -1673,3 +1673,60 @@ fn test_set_conversion_rate_checkpoint() {
         );
     assert(last_idx == (2, true), 'CR: wrong index-4');
 }
+
+
+#[test]
+#[available_gas(20000000000)]
+fn test_get_conversion_rate_price_as_feed() {
+    let (publisher_registry, oracle) = setup();
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+    set_contract_address(admin);
+    oracle
+        .add_currency(
+            Currency {
+                id: 'CONVERSION_xSTRK',
+                decimals: 18,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'STRK',
+                decimals: 18,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'USD', quote_currency_id: 'STRK', });
+    oracle
+        .add_pair(
+            Pair {
+                id: 'CONVERSION_xSTRK/USD',
+                base_currency_id: 'USD',
+                quote_currency_id: 'CONVERSION_xSTRK',
+            }
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 1 },
+                    pair_id: 'STRK/USD',
+                    price: 68250000,
+                    volume: 0
+                }
+            )
+        );
+    oracle.add_registered_conversion_rate_pair('CONVERSION_xSTRK/USD');
+    let erc4626 = deploy_erc4626();
+    oracle.register_tokenized_vault('CONVERSION_xSTRK', erc4626);
+    let res = oracle.get_data(DataType::SpotEntry('CONVERSION_xSTRK/USD'), AggregationMode::Median);
+    assert(
+        res.price == (68250000 * 1002465544733197129) / 1000000000000000000, 'Computation failed'
+    );
+}

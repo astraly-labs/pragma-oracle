@@ -105,6 +105,8 @@ trait IOracleABI<TContractState> {
     fn register_tokenized_vault(
         ref self: TContractState, token: felt252, token_address: ContractAddress
     );
+    fn get_registered_conversion_rate_pairs(self: @TContractState) -> Span<felt252>;
+    fn add_registered_conversion_rate_pair(ref self: TContractState, new_pair_id: felt252);
     fn upgrade(ref self: TContractState, impl_hash: ClassHash);
 }
 
@@ -1675,6 +1677,19 @@ mod Oracle {
         // @returns the Pair struct associated
         fn get_pair(self: @ContractState, pair_id: felt252) -> Pair {
             self.oracle_pairs_storage.read(pair_id)
+        }
+
+        // @notice retrieve the list of registered conversion rate pairs
+        // @returns List of registered conversion rate pairs
+        fn get_registered_conversion_rate_pairs(self: @ContractState) -> Span<felt252> {
+            self.conversion_rate_compatible_pairs.read().array().span()
+        }
+
+        // @notice add a new pair to the list of registered conversion rate pairs
+        // @param new_pair_id: the pair id to be added
+        fn add_registered_conversion_rate_pair(ref self: ContractState, new_pair_id: felt252) {
+            let mut registered_pairs = self.conversion_rate_compatible_pairs.read();
+            registered_pairs.append(new_pair_id);
         }
 
 
