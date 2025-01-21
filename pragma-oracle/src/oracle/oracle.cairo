@@ -540,11 +540,7 @@ mod Oracle {
                 DataType::GenericEntry(pair_id) => pair_id,
             };
 
-            let registered_conversion_rate_pairs = self
-                .conversion_rate_compatible_pairs
-                .read()
-                .array()
-                .span();
+            let registered_conversion_rate_pairs = self.get_registered_conversion_rate_pairs();
             if registered_conversion_rate_pairs.contains(pair_id)
                 || aggregation_mode == AggregationMode::ConversionRate {
                 get_conversion_rate_price(self, data_type)
