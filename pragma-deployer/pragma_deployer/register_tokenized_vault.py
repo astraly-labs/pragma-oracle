@@ -27,14 +27,14 @@ TOKENS_TO_REGISTER = [
         "name": "XSTRK",
         "address": 0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a,
     },
-    {
-        "name": "SSTRK",
-        "address": 0x076c4b7bb1ce744e4aae2278724adedd4906ab89998623fe1715877ecb583bde,
-    },
-    {
-        "name": "KSTRK",
-        "address": 0x045cd05ee2caaac3459b87e5e2480099d201be2f62243f839f00e10dde7f500c,
-    },
+    # {
+    #     "name": "SSTRK",
+    #     "address": 0x076c4b7bb1ce744e4aae2278724adedd4906ab89998623fe1715877ecb583bde,
+    # },
+    # {
+    #     "name": "KSTRK",
+    #     "address": 0x045cd05ee2caaac3459b87e5e2480099d201be2f62243f839f00e10dde7f500c,
+    # },
 ]
 
 async def main(port: Optional[int]) -> None:

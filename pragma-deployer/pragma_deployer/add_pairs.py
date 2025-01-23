@@ -18,22 +18,49 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-EKUBO = Currency(
-    "EKUBO",
+FIXED = Currency(
+    "FIXEDRESERVED",
     18,
     0,
-    0x75AFE6402AD5A5C20DD25E10EC3B3986ACAA647B77E4AE24B0CBC9A54A27A87,
+    0x0,
+    0x0000000000000000000000000000000000000000,
+)
+SSTRK = Currency(
+    "SSTRK",
+    18,
+    0,
+    0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a,
     0x0000000000000000000000000000000000000000,
 )
 USD = Currency("USD", 8, 1, 0, 0)
-pair = Pair(EKUBO, USD)
+XSTRK = Currency(
+    "XSTRK",
+    18,
+    0,
+    0x028d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a,
+    0x0000000000000000000000000000000000000000,
+)
+CONVERSION_XSTRK = Currency(
+    "CONVERSION_XSTRK",
+    18,
+    0,
+    0x0000000000000000000000000000000000000000,
+    0x0000000000000000000000000000000000000000,
+)
+pair = Pair(CONVERSION_XSTRK, USD)
 
-CURRENCIES_TO_ADD = [EKUBO]
+
+CURRENCIES_TO_ADD = [CONVERSION_XSTRK]
 
 PAIRS_TO_ADD = [pair]
 
 PAIRS_TO_UPDATE = [
-    # Pair("WSTETH/ETH", "WSTETH", "ETH"),
+#     {
+#     "pair_id": "1629317993172502401860",
+#     "pair": ["1629317993172502401860", USD.id, XSTRK.id]
+# }
+    # Pair(XSTRK, USD),
+    # Pair("SSTRK/USD", "SSTRK", "USD"),
     # Pair("WSTETH/USD", "WSTETH", "USD"),
 ]
 
@@ -57,7 +84,7 @@ async def main(port: Optional[int]) -> None:
         tx_hash = await invoke(
             "pragma_Oracle",
             "update_pair",
-            [pair.id] + pair.serialize(),
+            [pair["pair_id"]] + pair["pair"],
             port=port,
         )
         logger.info(f"Updated pair {pair} with tx hash {hex(tx_hash)}")
