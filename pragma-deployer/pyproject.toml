@@ -21,11 +21,11 @@ register-vault-token = 'pragma_deployer.register_tokenized_vault:cli_entrypoint'
 
 [tool.poetry.dependencies]
 python = ">=3.12,<3.13"
-"starknet.py" = "0.23.0"
+"starknet.py" = "0.27.0"
 python-dotenv = "^1.0.0"
 case-converter = "^1.1.0"
 click = "^8.1.0"
-pragma-sdk = "2.2.0"
+pragma-sdk = "2.8.12"
 pragma-utils = { git = "https://github.com/astraly-labs/pragma-sdk", subdirectory = "pragma-utils" }
 
 [tool.poetry.group.dev.dependencies]

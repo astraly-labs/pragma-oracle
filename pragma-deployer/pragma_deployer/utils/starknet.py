@@ -260,9 +260,9 @@ async def invoke(contract_name, function_name, inputs, address=None, port=None):
         calldata=inputs,
     )
     logger.info(f"ℹ️  Invoking {contract_name}.{function_name}")
-    response = await account.execute_v1(
+    response = await account.execute_v3(
         calls=call,
-        max_fee=MAX_FEE,
+        auto_estimate=True,
     )
     logger.info(
         f"✅ {contract_name}.{function_name} invoked at tx: %s",
@@ -270,26 +270,6 @@ async def invoke(contract_name, function_name, inputs, address=None, port=None):
     )
     await account.client.wait_for_tx(response.transaction_hash)
     return response.transaction_hash
-
-
-async def invoke_cairo0(contract_name, function_name, *inputs, address=None):
-    account = await get_starknet_account()
-    deployments = get_deployments()
-    contract = Contract(
-        deployments[contract_name]["address"] if address is None else address,
-        json.load(open(get_artifact(contract_name)))["abi"],
-        account,
-        cairo_version=0,
-    )
-    call = contract.functions[function_name].prepare(*inputs, max_fee=MAX_FEE)
-    logger.info(f"ℹ️  Invoking {contract_name}.{function_name}")
-    response = await account.execute_v1(call, max_fee=MAX_FEE).wait_for_acceptance()
-    logger.info(
-        f"✅ {contract_name}.{function_name} invoked at tx: %s",
-        hex(response.transaction_hash),
-    )
-    return response.transaction_hash
-
 
 async def call(contract_name, function_name, *inputs, address=None, port=None):
     deployments = get_deployments()
