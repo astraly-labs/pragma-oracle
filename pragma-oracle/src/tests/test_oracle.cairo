@@ -6,7 +6,7 @@ use starknet::ContractAddress;
 use pragma::entry::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
     USD_CURRENCY_ID, SPOT, FUTURE, OPTION, PossibleEntries, FutureEntry, OptionEntry,
-    AggregationMode, SimpleDataType
+    AggregationMode, SimpleDataType, TokenizedVault
 };
 use starknet::class_hash::class_hash_const;
 use traits::Into;
@@ -1375,27 +1375,44 @@ fn test_update_pair() {
 #[available_gas(20000000000000)]
 fn test_register_tokenized_vault() {
     let (publisher_registry, oracle) = setup();
-    let token: felt252 = 'xStrk';
+    let token: felt252 = 'xSTRK';
+    let underlying_token: felt252 = 'STRK';
     let token_address: ContractAddress = contract_address_const::<0x12345566>();
     let admin = contract_address_const::<0x123456789>();
     set_contract_address(admin);
-    oracle.register_tokenized_vault(token, token_address);
-    assert(oracle.get_tokenized_vaults(token) == token_address, 'Failed to register token');
+
+    oracle.register_tokenized_vault(token, underlying_token, token_address);
+    assert(
+        oracle.get_tokenized_vaults(token).vault_address == token_address,
+        'Failed to register token'
+    );
+    assert(
+        oracle.get_tokenized_vaults(token).underlying_asset == underlying_token,
+        'Failed to register token'
+    );
 }
 
 #[test]
 #[available_gas(20000000000000)]
 fn test_delete_tokenized_vault() {
     let (publisher_registry, oracle) = setup();
-    let token: felt252 = 'xStrk';
+    let token: felt252 = 'xSTRK';
+    let underlying_token: felt252 = 'STRK';
     let token_address: ContractAddress = contract_address_const::<0x12345566>();
     let admin = contract_address_const::<0x123456789>();
     set_contract_address(admin);
-    oracle.register_tokenized_vault(token, token_address);
-    assert(oracle.get_tokenized_vaults(token) == token_address, 'Failed to register token');
-    oracle.register_tokenized_vault(token, contract_address_const::<0>());
+    oracle.register_tokenized_vault(token, underlying_token, token_address);
     assert(
-        oracle.get_tokenized_vaults(token) == contract_address_const::<0>(),
+        oracle.get_tokenized_vaults(token).vault_address == token_address,
+        'Failed to register token'
+    );
+    assert(
+        oracle.get_tokenized_vaults(token).underlying_asset == underlying_token,
+        'Failed to register token'
+    );
+    oracle.register_tokenized_vault(token, underlying_token, contract_address_const::<0>());
+    assert(
+        oracle.get_tokenized_vaults(token).vault_address == contract_address_const::<0>(),
         'Failed to delete token'
     );
 }
@@ -1406,10 +1423,11 @@ fn test_delete_tokenized_vault() {
 #[should_panic(expected: ('Admin: unauthorized', 'ENTRYPOINT_FAILED'))]
 fn test_register_tokenized_vault_panics_if_not_owner() {
     let (publisher_registry, oracle) = setup();
-    let token: felt252 = 'xStrk';
+    let token: felt252 = 'xSTRK';
+    let underlying_token: felt252 = 'STRK';
     let token_address: ContractAddress = contract_address_const::<0x12345566>();
     set_contract_address(contract_address_const::<0x12>());
-    oracle.register_tokenized_vault(token, token_address);
+    oracle.register_tokenized_vault(token, underlying_token, token_address);
 }
 
 
@@ -1439,9 +1457,31 @@ fn test_get_conversion_rate_price() {
                 ethereum_address: 0.try_into().unwrap(),
             }
         );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'BTC',
+                decimals: 8,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'TBTC',
+                decimals: 8,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
     // to fit  configuration
     oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'USD', quote_currency_id: 'STRK', });
     oracle.add_pair(Pair { id: 'xSTRK/USD', base_currency_id: 'USD', quote_currency_id: 'xSTRK', });
+    oracle.add_pair(Pair { id: 'BTC/USD', base_currency_id: 'USD', quote_currency_id: 'BTC', });
+    oracle.add_pair(Pair { id: 'TBTC/USD', base_currency_id: 'USD', quote_currency_id: 'TBTC', });
     oracle
         .publish_data(
             PossibleEntries::Spot(
@@ -1453,11 +1493,33 @@ fn test_get_conversion_rate_price() {
                 }
             )
         );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 1 },
+                    pair_id: 'BTC/USD',
+                    price: 4500000000, // BTC at $45,000 with 8 decimals
+                    volume: 0
+                }
+            )
+        );
     let erc4626 = deploy_erc4626();
-    oracle.register_tokenized_vault('xSTRK', erc4626);
+
+    // Test xSTRK with STRK underlying
+    oracle.register_tokenized_vault('xSTRK', 'STRK', erc4626);
     let res = oracle.get_data(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
     assert(
-        res.price == (68250000 * 1002465544733197129) / 1000000000000000000, 'Computation failed'
+        res.price == (68250000 * 1002465544733197129) / 1000000000000000000,
+        'xSTRK computation failed'
+    );
+
+    // Test TBTC with BTC underlying  
+    oracle.register_tokenized_vault('TBTC', 'BTC', erc4626);
+    let res_btc = oracle.get_data(DataType::SpotEntry('TBTC/USD'), AggregationMode::ConversionRate);
+    assert(
+        res_btc.price == (4500000000 * 1002465544733197129) / 1000000000000000000,
+        'TBTC computation failed'
     );
 }
 
@@ -1488,8 +1550,30 @@ fn test_get_conversion_rate_price_fails_if_pool_address_not_given() {
                 ethereum_address: 0.try_into().unwrap(),
             }
         );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'BTC',
+                decimals: 8,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'TBTC',
+                decimals: 8,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
     oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'USD', quote_currency_id: 'STRK', });
     oracle.add_pair(Pair { id: 'xSTRK/USD', base_currency_id: 'USD', quote_currency_id: 'xSTRK', });
+    oracle.add_pair(Pair { id: 'BTC/USD', base_currency_id: 'USD', quote_currency_id: 'BTC', });
+    oracle.add_pair(Pair { id: 'TBTC/USD', base_currency_id: 'USD', quote_currency_id: 'TBTC', });
     oracle
         .publish_data(
             PossibleEntries::Spot(
@@ -1501,6 +1585,7 @@ fn test_get_conversion_rate_price_fails_if_pool_address_not_given() {
                 }
             )
         );
+    // Test should fail for xSTRK since no vault is registered
     let res = oracle.get_data(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
 }
 
@@ -1588,7 +1673,7 @@ fn test_set_conversion_rate_checkpoint() {
             )
         );
     let erc4626 = deploy_erc4626();
-    oracle.register_tokenized_vault('xSTRK', erc4626);
+    oracle.register_tokenized_vault('xSTRK', 'STRK', erc4626);
     let res = oracle.get_data(DataType::SpotEntry('xSTRK/USD'), AggregationMode::ConversionRate);
 
     // TEST `set_checkpoint + get_checkpoint`
@@ -1702,6 +1787,26 @@ fn test_get_conversion_rate_price_as_feed() {
                 ethereum_address: 0.try_into().unwrap(),
             }
         );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'CONVERSION_TBTC',
+                decimals: 8,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'BTC',
+                decimals: 8,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
     oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'USD', quote_currency_id: 'STRK', });
     oracle
         .add_pair(
@@ -1709,6 +1814,15 @@ fn test_get_conversion_rate_price_as_feed() {
                 id: 'CONVERSION_xSTRK/USD',
                 base_currency_id: 'USD',
                 quote_currency_id: 'CONVERSION_xSTRK',
+            }
+        );
+    oracle.add_pair(Pair { id: 'BTC/USD', base_currency_id: 'USD', quote_currency_id: 'BTC', });
+    oracle
+        .add_pair(
+            Pair {
+                id: 'CONVERSION_TBTC/USD',
+                base_currency_id: 'USD',
+                quote_currency_id: 'CONVERSION_TBTC',
             }
         );
     oracle
@@ -1722,11 +1836,36 @@ fn test_get_conversion_rate_price_as_feed() {
                 }
             )
         );
-    oracle.add_registered_conversion_rate_pair('CONVERSION_xSTRK/USD');
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 1 },
+                    pair_id: 'BTC/USD',
+                    price: 4500000000,
+                    volume: 0
+                }
+            )
+        );
+
     let erc4626 = deploy_erc4626();
-    oracle.register_tokenized_vault('CONVERSION_xSTRK', erc4626);
+
+    // Test CONVERSION_xSTRK
+    oracle.add_registered_conversion_rate_pair('CONVERSION_xSTRK/USD');
+    oracle.register_tokenized_vault('CONVERSION_xSTRK', 'STRK', erc4626);
     let res = oracle.get_data(DataType::SpotEntry('CONVERSION_xSTRK/USD'), AggregationMode::Median);
     assert(
-        res.price == (68250000 * 1002465544733197129) / 1000000000000000000, 'Computation failed'
+        res.price == (68250000 * 1002465544733197129) / 1000000000000000000,
+        'xSTRK computation failed'
+    );
+
+    // Test CONVERSION_TBTC
+    oracle.add_registered_conversion_rate_pair('CONVERSION_TBTC/USD');
+    oracle.register_tokenized_vault('CONVERSION_TBTC', 'BTC', erc4626);
+    let res_btc = oracle
+        .get_data(DataType::SpotEntry('CONVERSION_TBTC/USD'), AggregationMode::Median);
+    assert(
+        res_btc.price == (4500000000 * 1002465544733197129) / 1000000000000000000,
+        'TBTC computation failed'
     );
 }
