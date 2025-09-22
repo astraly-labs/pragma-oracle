@@ -1835,7 +1835,6 @@ mod Oracle {
             OracleInternal::assert_only_admin();
             assert(token != 0, 'Token cannot be 0');
             assert(underlying_token != 0, 'Underlying token cannot be 0');
-            assert(!token_address.is_zero(), 'Token address cannot be 0');
             if (underlying_token == 'STRK') {
                 self.tokenized_vault.write((token, 'STRK'), token_address);
             } else {
