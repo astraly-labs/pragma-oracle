@@ -1470,7 +1470,47 @@ fn test_get_conversion_rate_price() {
     oracle
         .add_currency(
             Currency {
-                id: 'TBTC',
+                id: 'xBTC',
+                decimals: 8,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'LBTC',
+                decimals: 8,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'xLBTC',
+                decimals: 8,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'xtBTC',
+                decimals: 8,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'tBTC',
                 decimals: 8,
                 is_abstract_currency: false,
                 starknet_address: 0.try_into().unwrap(),
@@ -1481,7 +1521,11 @@ fn test_get_conversion_rate_price() {
     oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'USD', quote_currency_id: 'STRK', });
     oracle.add_pair(Pair { id: 'xSTRK/USD', base_currency_id: 'USD', quote_currency_id: 'xSTRK', });
     oracle.add_pair(Pair { id: 'BTC/USD', base_currency_id: 'USD', quote_currency_id: 'BTC', });
-    oracle.add_pair(Pair { id: 'TBTC/USD', base_currency_id: 'USD', quote_currency_id: 'TBTC', });
+    oracle.add_pair(Pair { id: 'xBTC/USD', base_currency_id: 'USD', quote_currency_id: 'xBTC', });
+    oracle.add_pair(Pair { id: 'LBTC/USD', base_currency_id: 'USD', quote_currency_id: 'LBTC', });
+    oracle.add_pair(Pair { id: 'xLBTC/USD', base_currency_id: 'USD', quote_currency_id: 'xLBTC', });
+    oracle.add_pair(Pair { id: 'xtBTC/USD', base_currency_id: 'USD', quote_currency_id: 'xtBTC', });
+    oracle.add_pair(Pair { id: 'tBTC/USD', base_currency_id: 'USD', quote_currency_id: 'tBTC', });
     oracle
         .publish_data(
             PossibleEntries::Spot(
@@ -1504,6 +1548,28 @@ fn test_get_conversion_rate_price() {
                 }
             )
         );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 1 },
+                    pair_id: 'LBTC/USD',
+                    price: 4500000000, // LBTC at same price as BTC
+                    volume: 0
+                }
+            )
+        );
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: BLOCK_TIMESTAMP, source: 2, publisher: 1 },
+                    pair_id: 'tBTC/USD',
+                    price: 4500000000, // tBTC at same price as BTC
+                    volume: 0
+                }
+            )
+        );
     let erc4626 = deploy_erc4626();
 
     // Test xSTRK with STRK underlying
@@ -1514,12 +1580,30 @@ fn test_get_conversion_rate_price() {
         'xSTRK computation failed'
     );
 
-    // Test TBTC with BTC underlying  
-    oracle.register_tokenized_vault('TBTC', 'BTC', erc4626);
-    let res_btc = oracle.get_data(DataType::SpotEntry('TBTC/USD'), AggregationMode::ConversionRate);
+    // Test xBTC with BTC underlying  
+    oracle.register_tokenized_vault('xBTC', 'BTC', erc4626);
+    let res_btc = oracle.get_data(DataType::SpotEntry('xBTC/USD'), AggregationMode::ConversionRate);
     assert(
         res_btc.price == (4500000000 * 1002465544733197129) / 1000000000000000000,
-        'TBTC computation failed'
+        'xBTC computation failed'
+    );
+
+    // Test xLBTC with LBTC underlying
+    oracle.register_tokenized_vault('xLBTC', 'LBTC', erc4626);
+    let res_lbtc = oracle
+        .get_data(DataType::SpotEntry('xLBTC/USD'), AggregationMode::ConversionRate);
+    assert(
+        res_lbtc.price == (4500000000 * 1002465544733197129) / 1000000000000000000,
+        'xLBTC computation failed'
+    );
+
+    // Test xtBTC with tBTC underlying
+    oracle.register_tokenized_vault('xtBTC', 'tBTC', erc4626);
+    let res_xtbtc = oracle
+        .get_data(DataType::SpotEntry('xtBTC/USD'), AggregationMode::ConversionRate);
+    assert(
+        res_xtbtc.price == (4500000000 * 1002465544733197129) / 1000000000000000000,
+        'xtBTC computation failed'
     );
 }
 
@@ -1563,7 +1647,7 @@ fn test_get_conversion_rate_price_fails_if_pool_address_not_given() {
     oracle
         .add_currency(
             Currency {
-                id: 'TBTC',
+                id: 'xBTC',
                 decimals: 8,
                 is_abstract_currency: false,
                 starknet_address: 0.try_into().unwrap(),
@@ -1573,7 +1657,7 @@ fn test_get_conversion_rate_price_fails_if_pool_address_not_given() {
     oracle.add_pair(Pair { id: 'STRK/USD', base_currency_id: 'USD', quote_currency_id: 'STRK', });
     oracle.add_pair(Pair { id: 'xSTRK/USD', base_currency_id: 'USD', quote_currency_id: 'xSTRK', });
     oracle.add_pair(Pair { id: 'BTC/USD', base_currency_id: 'USD', quote_currency_id: 'BTC', });
-    oracle.add_pair(Pair { id: 'TBTC/USD', base_currency_id: 'USD', quote_currency_id: 'TBTC', });
+    oracle.add_pair(Pair { id: 'xBTC/USD', base_currency_id: 'USD', quote_currency_id: 'xBTC', });
     oracle
         .publish_data(
             PossibleEntries::Spot(
@@ -1790,7 +1874,7 @@ fn test_get_conversion_rate_price_as_feed() {
     oracle
         .add_currency(
             Currency {
-                id: 'CONVERSION_TBTC',
+                id: 'CONVERSION_xBTC',
                 decimals: 8,
                 is_abstract_currency: false,
                 starknet_address: 0.try_into().unwrap(),
@@ -1820,9 +1904,9 @@ fn test_get_conversion_rate_price_as_feed() {
     oracle
         .add_pair(
             Pair {
-                id: 'CONVERSION_TBTC/USD',
+                id: 'CONVERSION_xBTC/USD',
                 base_currency_id: 'USD',
-                quote_currency_id: 'CONVERSION_TBTC',
+                quote_currency_id: 'CONVERSION_xBTC',
             }
         );
     oracle
@@ -1859,13 +1943,13 @@ fn test_get_conversion_rate_price_as_feed() {
         'xSTRK computation failed'
     );
 
-    // Test CONVERSION_TBTC
-    oracle.add_registered_conversion_rate_pair('CONVERSION_TBTC/USD');
-    oracle.register_tokenized_vault('CONVERSION_TBTC', 'BTC', erc4626);
+    // Test CONVERSION_xBTC
+    oracle.add_registered_conversion_rate_pair('CONVERSION_xBTC/USD');
+    oracle.register_tokenized_vault('CONVERSION_xBTC', 'BTC', erc4626);
     let res_btc = oracle
-        .get_data(DataType::SpotEntry('CONVERSION_TBTC/USD'), AggregationMode::Median);
+        .get_data(DataType::SpotEntry('CONVERSION_xBTC/USD'), AggregationMode::Median);
     assert(
         res_btc.price == (4500000000 * 1002465544733197129) / 1000000000000000000,
-        'TBTC computation failed'
+        'xBTC computation failed'
     );
 }

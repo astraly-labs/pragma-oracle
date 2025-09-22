@@ -2472,7 +2472,9 @@ mod Oracle {
         );
         assert(
             (tokenized_vault.underlying_asset == 'STRK')
-                || (tokenized_vault.underlying_asset == 'BTC'),
+                || (tokenized_vault.underlying_asset == 'BTC')
+                || (tokenized_vault.underlying_asset == 'LBTC')
+                || (tokenized_vault.underlying_asset == 'tBTC'),
             'Underlying asset not supported'
         );
         // The goal is to be able to rebuild the price of the base asset in USD
@@ -2483,13 +2485,23 @@ mod Oracle {
             IOracleABI::get_data_for_sources(
                 self, DataType::SpotEntry('STRK/USD'), AggregationMode::Median(()), sources
             )
-        } else {
-            // We can pu put else, because we filtered out the case where base asset is neither STRK nor USDC
+        } else if (tokenized_vault.underlying_asset == 'BTC') {
             let sources = IOracleABI::get_all_sources(self, DataType::SpotEntry('BTC/USD'));
             IOracleABI::get_data_for_sources(
                 self, DataType::SpotEntry('BTC/USD'), AggregationMode::Median(()), sources
             )
+        } else if (tokenized_vault.underlying_asset == 'LBTC') {
+            let sources = IOracleABI::get_all_sources(self, DataType::SpotEntry('LBTC/USD'));
+            IOracleABI::get_data_for_sources(
+                self, DataType::SpotEntry('LBTC/USD'), AggregationMode::Median(()), sources
+            )
+        } else {
+            let sources = IOracleABI::get_all_sources(self, DataType::SpotEntry('tBTC/USD'));
+            IOracleABI::get_data_for_sources(
+                self, DataType::SpotEntry('tBTC/USD'), AggregationMode::Median(()), sources
+            )
         };
+
         assert(!response.last_updated_timestamp.is_zero(), 'No price available');
         let pool = IERC4626Dispatcher { contract_address: tokenized_vault.vault_address };
 
