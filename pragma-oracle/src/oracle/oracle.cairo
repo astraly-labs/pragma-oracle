@@ -958,10 +958,7 @@ mod Oracle {
             // We assume that the token available with STRK as underlying are distinct from those with other underlyings
             let address = self.tokenized_vault.read((token, 'STRK'));
             if address != 0.try_into().unwrap() {
-                return TokenizedVaultInfo {
-                    vault_address: address,
-                    underlying_asset: 'STRK',
-                };
+                return TokenizedVaultInfo { vault_address: address, underlying_asset: 'STRK', };
             }
             self.extended_tokenized_vault.read(token)
         }
