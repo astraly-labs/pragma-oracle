@@ -49,6 +49,11 @@ mod Entry {
                 // No aggregation needed for conversion rate
                 0
             },
+            AggregationMode::L1YieldToken => {
+                panic_with_felt252('No agg for yield token');
+                // No aggregation needed for conversion rate
+                0
+            },
             AggregationMode::Error(()) => {
                 panic_with_felt252('Wrong aggregation mode');
                 0

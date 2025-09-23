@@ -27,6 +27,9 @@ mod oracle {
     mod oracle;
     mod mock_oracle;
 }
+mod l1_oracle {
+    mod l1_oracle;
+}
 mod publisher_registry {
     mod publisher_registry;
 }
