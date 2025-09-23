@@ -18,6 +18,9 @@ use pragma::publisher_registry::publisher_registry::{
     IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
 };
 use pragma::publisher_registry::publisher_registry::PublisherRegistry;
+use pragma::l1_oracle::l1_oracle::{
+    L1OracleImpl, IL1OracleDispatcher, IL1OracleDispatcherTrait, EntryStorage
+};
 use starknet::ClassHash;
 use starknet::SyscallResultTrait;
 use starknet::testing::{set_contract_address, set_block_timestamp, set_chain_id,};
@@ -327,6 +330,16 @@ fn deploy_erc4626() -> ContractAddress {
     )
         .unwrap_syscall();
     return erc4626_address;
+}
+
+fn deploy_l1_oracle(admin: ContractAddress) -> IL1OracleDispatcher {
+    let mut constructor_calldata = ArrayTrait::new();
+    constructor_calldata.append(admin.into());
+    let (l1_oracle_address, _) = deploy_syscall(
+        L1OracleImpl::TEST_CLASS_HASH.try_into().unwrap(), 0, constructor_calldata.span(), true
+    )
+        .unwrap_syscall();
+    IL1OracleDispatcher { contract_address: l1_oracle_address }
 }
 #[test]
 #[available_gas(200000000000000)]
@@ -1952,4 +1965,106 @@ fn test_get_conversion_rate_price_as_feed() {
         res_btc.price == (4500000000 * 1002465544733197129) / 1000000000000000000,
         'xBTC computation failed'
     );
+}
+
+#[test]
+#[available_gas(20000000000000)]
+fn test_get_data_l1_yield_token() {
+    let (publisher_registry, oracle) = setup();
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+
+    // Deploy L1Oracle contract
+    let l1_oracle = deploy_l1_oracle(admin);
+
+    // Set the L1Oracle address in the main oracle
+    oracle.set_yield_token_registry_address(l1_oracle.contract_address);
+
+    // Add currencies for yield tokens
+    oracle
+        .add_currency(
+            Currency {
+                id: 'yETH',
+                decimals: 18,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle
+        .add_currency(
+            Currency {
+                id: 'yBTC',
+                decimals: 8,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+
+    // Add pairs for yield tokens
+    oracle.add_pair(Pair { id: 'yETH/USD', base_currency_id: 'USD', quote_currency_id: 'yETH' });
+    oracle.add_pair(Pair { id: 'yBTC/USD', base_currency_id: 'USD', quote_currency_id: 'yBTC' });
+
+    // Set yield token prices in the L1Oracle
+    l1_oracle
+        .set_yield_token_price(
+            'yETH/USD',
+            EntryStorage {
+                price: 2500000000, // $2,500 with 6 decimals (USD)
+                timestamp: BLOCK_TIMESTAMP,
+                decimals: 6
+            }
+        );
+
+    l1_oracle
+        .set_yield_token_price(
+            'yBTC/USD',
+            EntryStorage {
+                price: 45000000000, // $45,000 with 6 decimals (USD)
+                timestamp: BLOCK_TIMESTAMP,
+                decimals: 6
+            }
+        );
+
+    // Test getting yETH/USD price with L1YieldToken aggregation mode
+    let yeth_result = oracle
+        .get_data(DataType::SpotEntry('yETH/USD'), AggregationMode::L1YieldToken);
+    assert(yeth_result.price == 2500000000, 'yETH price incorrect');
+    assert(yeth_result.decimals == 6, 'yETH decimals incorrect');
+    assert(yeth_result.last_updated_timestamp == BLOCK_TIMESTAMP, 'yETH timestamp incorrect');
+    assert(yeth_result.num_sources_aggregated == 1, 'yETH sources incorrect');
+
+    // Test getting yBTC/USD price with L1YieldToken aggregation mode
+    let ybtc_result = oracle
+        .get_data(DataType::SpotEntry('yBTC/USD'), AggregationMode::L1YieldToken);
+    assert(ybtc_result.price == 45000000000, 'yBTC price incorrect');
+    assert(ybtc_result.decimals == 6, 'yBTC decimals incorrect');
+    assert(ybtc_result.last_updated_timestamp == BLOCK_TIMESTAMP, 'yBTC timestamp incorrect');
+    assert(ybtc_result.num_sources_aggregated == 1, 'yBTC sources incorrect');
+}
+
+#[test]
+#[should_panic(expected: ('Yield token registry not set', 'ENTRYPOINT_FAILED'))]
+#[available_gas(20000000000000)]
+fn test_get_data_l1_yield_token_fails_without_registry() {
+    let (publisher_registry, oracle) = setup();
+    let admin = contract_address_const::<0x123456789>();
+    set_contract_address(admin);
+
+    // Add currency and pair
+    oracle
+        .add_currency(
+            Currency {
+                id: 'yETH',
+                decimals: 18,
+                is_abstract_currency: false,
+                starknet_address: 0.try_into().unwrap(),
+                ethereum_address: 0.try_into().unwrap(),
+            }
+        );
+    oracle.add_pair(Pair { id: 'yETH/USD', base_currency_id: 'USD', quote_currency_id: 'yETH' });
+
+    // Try to get data without setting the L1Oracle registry - should panic
+    oracle.get_data(DataType::SpotEntry('yETH/USD'), AggregationMode::L1YieldToken);
 }

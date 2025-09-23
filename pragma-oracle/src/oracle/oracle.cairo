@@ -551,7 +551,7 @@ mod Oracle {
             };
 
             if aggregation_mode == AggregationMode::L1YieldToken {
-                self.get_yield_token_price(pair_id);
+                return self.get_yield_token_price(pair_id);
             }
 
             let registered_conversion_rate_pairs = self.get_registered_conversion_rate_pairs();
