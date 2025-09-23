@@ -111,6 +111,9 @@ trait IOracleABI<TContractState> {
     fn get_registered_conversion_rate_pairs(self: @TContractState) -> Span<felt252>;
     fn add_registered_conversion_rate_pair(ref self: TContractState, new_pair_id: felt252);
     fn upgrade(ref self: TContractState, impl_hash: ClassHash);
+    fn get_yield_token_price(self: @TContractState, pair_id: felt252) -> PragmaPricesResponse;
+    fn get_yield_token_registry_address(self: @TContractState) -> ContractAddress;
+    fn set_yield_token_registry_address(ref self: TContractState, new_address: ContractAddress);
 }
 
 
@@ -196,6 +199,7 @@ mod Oracle {
     use alexandria_data_structures::array_ext::SpanTraitExt;
     use hash::LegacyHash;
     use pragma::entry::entry::Entry;
+    use pragma::l1_oracle::l1_oracle::{IL1OracleDispatcher, IL1OracleDispatcherTrait};
     use pragma::operations::time_series::convert::{convert_via_usd, normalize_to_decimals};
     use pragma::publisher_registry::publisher_registry::{
         IPublisherRegistryABIDispatcher, IPublisherRegistryABIDispatcherTrait
@@ -252,6 +256,7 @@ mod Oracle {
         conversion_rate_compatible_pairs: List<felt252>,
         // extension of tokenized vault to support multiple underlying assets
         extended_tokenized_vault: LegacyMap<felt252, TokenizedVaultInfo>,
+        yield_token_registry: ContractAddress
     }
 
 
@@ -544,6 +549,10 @@ mod Oracle {
                 DataType::FutureEntry((pair_id, _)) => pair_id,
                 DataType::GenericEntry(pair_id) => pair_id,
             };
+
+            if aggregation_mode == AggregationMode::L1YieldToken {
+                self.get_yield_token_price(pair_id);
+            }
 
             let registered_conversion_rate_pairs = self.get_registered_conversion_rate_pairs();
             if registered_conversion_rate_pairs.contains(pair_id)
@@ -1823,7 +1832,7 @@ mod Oracle {
         // @notice register a new tokenized vault into the regisry (priced with STRK)
         // @dev Callable only by the owner
         // @dev the token must be registered as currency and pair in the oracle registry
-        // @dev We reserve the owner of the contract the right to overwrite an existing token address
+        // @dev We reserve the owner of the contract the right to overwrite an existing token address and set it to 0 to delete it.
         // @param token The token to register
         // @param token_address Token address to register
         fn register_tokenized_vault(
@@ -2000,6 +2009,32 @@ mod Oracle {
             OracleInternal::assert_only_admin();
             let mut upstate: Upgradeable::ContractState = Upgradeable::unsafe_new_contract_state();
             Upgradeable::InternalImpl::upgrade(ref upstate, impl_hash);
+        }
+
+        // @notice get the yield token price for a given pair id
+        // @param pair_id: the pair id to be considered
+        // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
+        fn get_yield_token_price(self: @ContractState, pair_id: felt252) -> PragmaPricesResponse {
+            assert(!self.yield_token_registry.read().is_zero(), 'Yield token registry not set');
+            let yield_token_registry = IL1OracleDispatcher {
+                contract_address: self.yield_token_registry.read()
+            };
+            yield_token_registry.get_yield_token_price(pair_id)
+        }
+
+        // @notice get the yield token registry address
+        // @returns the address of the yield token registry
+        fn get_yield_token_registry_address(self: @ContractState) -> ContractAddress {
+            self.yield_token_registry.read()
+        }
+
+        // @notice set the yield token registry address
+        // @param new_yield_token_registry: the new address of the yield token registry
+        fn set_yield_token_registry_address(ref self: ContractState, new_address: ContractAddress) {
+            OracleInternal::assert_only_admin();
+            assert(!new_address.is_zero(), 'New address cannot be zero');
+            let old_yield_token_registry = self.yield_token_registry.read();
+            self.yield_token_registry.write(new_address);
         }
     }
 

@@ -185,6 +185,7 @@ enum AggregationMode {
     Median: (),
     Mean: (),
     ConversionRate,
+    L1YieldToken,
     Error: (),
 }
 
@@ -308,6 +309,7 @@ impl AggregationModeIntoU8 of TryInto<AggregationMode, u8> {
             AggregationMode::Median(()) => Option::Some(0_u8),
             AggregationMode::Mean(()) => Option::Some(1_u8),
             AggregationMode::ConversionRate => Option::Some(2_u8),
+            AggregationMode::L1YieldToken => Option::Some(3_u8),
             AggregationMode::Error(()) => Option::None(()),
         }
     }

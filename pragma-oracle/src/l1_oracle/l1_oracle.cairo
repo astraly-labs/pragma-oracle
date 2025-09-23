@@ -1,4 +1,4 @@
-use pragma::entry::structs::{PragmaPricesResponse, EntryStorage};
+use pragma::entry::structs::PragmaPricesResponse;
 use pragma::admin::admin::Ownable;
 use starknet::{ContractAddress, get_caller_address};
 use starknet::{
@@ -6,10 +6,17 @@ use starknet::{
     storage_access::storage_base_address_from_felt252, Store, StorageBaseAddress, SyscallResult,
 };
 
+#[derive(starknet::Store, Copy, Drop, Serde)]
+struct EntryStorage {
+    price: u128,
+    timestamp: u64,
+    decimals: u8
+}
+
 #[starknet::interface]
 trait IL1Oracle<TContractState> {
-    fn get_yield_asset_price(self: @TContractState, pair_id: felt252) -> PragmaPricesResponse;
-    fn set_yield_asset_price(ref self: TContractState, pair_id: felt252, entry: EntryStorage);
+    fn get_yield_token_price(self: @TContractState, pair_id: felt252) -> PragmaPricesResponse;
+    fn set_yield_token_price(ref self: TContractState, pair_id: felt252, entry: EntryStorage);
     fn get_admin_address(self: @TContractState) -> ContractAddress;
     fn set_admin_address(ref self: TContractState, new_admin_address: ContractAddress);
 }
@@ -36,19 +43,19 @@ mod L1OracleImpl {
 
     #[external(v0)]
     impl IL1OracleImpl of IL1Oracle<ContractState> {
-        fn get_yield_asset_price(self: @ContractState, pair_id: felt252) -> PragmaPricesResponse {
+        fn get_yield_token_price(self: @ContractState, pair_id: felt252) -> PragmaPricesResponse {
             let entry = self.yield_asset_prices.read(pair_id);
 
             PragmaPricesResponse {
                 price: entry.price,
-                decimals: 8,
+                decimals: entry.decimals.into(),
                 last_updated_timestamp: entry.timestamp,
                 num_sources_aggregated: 1,
                 expiration_timestamp: Option::None,
             }
         }
 
-        fn set_yield_asset_price(ref self: ContractState, pair_id: felt252, entry: EntryStorage) {
+        fn set_yield_token_price(ref self: ContractState, pair_id: felt252, entry: EntryStorage) {
             let mut state: Ownable::ContractState = Ownable::unsafe_new_contract_state();
             Ownable::InternalImpl::assert_only_owner(@state);
             self.yield_asset_prices.write(pair_id, entry);
