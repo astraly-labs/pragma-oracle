@@ -13,7 +13,7 @@ from pragma_deployer.utils.constants import (
     NETWORK,
 )
 from pragma_deployer.utils.starknet import (
-    declare_v2,
+    declare_v3,
     dump_declarations,
     dump_deployments,
     get_deployments,
@@ -38,7 +38,7 @@ async def main(port: Optional[int]) -> None:
 
     # Declaration
     class_hash = {
-        contract["contract_name"]: await declare_v2(contract["contract_name"], port)
+        contract["contract_name"]: await declare_v3(contract["contract_name"], port)
         for contract in COMPILED_CONTRACTS
     }
     dump_declarations(class_hash)

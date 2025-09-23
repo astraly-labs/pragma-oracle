@@ -16,7 +16,7 @@ from pragma_deployer.utils.starknet import (
     get_declarations,
     get_starknet_account,
     invoke,
-    declare_v2,
+    declare_v3,
 )
 
 load_dotenv()
@@ -38,7 +38,7 @@ async def main(port: Optional[int]) -> None:
     cur_class_hash = declarations["pragma_Oracle"]
     logger.info(f"ℹ️  Current implementation hash: {hex(cur_class_hash)}")
 
-    new_implementation_hash = await declare_v2("pragma_Oracle", port=port)
+    new_implementation_hash = await declare_v3("pragma_Oracle", port=port)
     logger.info(f"ℹ️  New implementation hash: {hex(new_implementation_hash)}")
 
     tx_hash = await invoke(

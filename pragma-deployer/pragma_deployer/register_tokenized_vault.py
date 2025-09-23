@@ -29,19 +29,23 @@ TOKENS_TO_REGISTER = [
     # },
     # BTC LST tokens
     {
-        "name": "xWBTC",
+        "name": "CONVERSION_XWBTC",
+        "underlying_token": "BTC",
         "address": 0x6a567e68c805323525fe1649adb80b03cddf92c23d2629a6779f54192dffc13,
     },
     {
-        "name": "xtBTC",
+        "name": "CONVERSION_XTBTC",
+        "underlying_token": "BTC",
         "address": 0x43a35c1425a0125ef8c171f1a75c6f31ef8648edcc8324b55ce1917db3f9b91,
     },
     {
-        "name": "xLBTC",
+        "name": "CONVERSION_XLBTC",
+        "underlying_token": "BTC",
         "address": 0x7dd3c80de9fcc5545f0cb83678826819c79619ed7992cc06ff81fc67cd2efe0,
     },
     {
-        "name": "xsBTC",
+        "name": "CONVERSION_XSBTC",
+        "underlying_token": "BTC",
         "address": 0x580f3dc564a7b82f21d40d404b3842d490ae7205e6ac07b1b7af2b4a5183dc9,
     },
     # {
@@ -64,7 +68,7 @@ async def main(port: Optional[int]) -> None:
         tx_hash = await invoke(
             "pragma_Oracle",
             "register_tokenized_vault",
-            [token["name"], token["address"]],
+            [token["name"], token["underlying_token"], token["address"]],
             port=port,
         )
         logger.info(f"Registered tokenized vault {token['name']} with tx {hex(tx_hash)}")

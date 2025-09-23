@@ -22,7 +22,7 @@ from pragma_deployer.utils.constants import (
     # CONTRACTS,
     DEPLOYMENTS_DIR,
     ETH_TOKEN_ADDRESS,
-    MAX_FEE,
+    # MAX_FEE,
     NETWORK,
     FULLNODE_CLIENT,
     # SOURCE_DIR,
@@ -174,7 +174,7 @@ def get_abi(contract_name):
     ).abi
 
 
-async def declare_v2(contract_name, port=None):
+async def declare_v3(contract_name, port=None):
     logger.info(f"ℹ️  Declaring {contract_name}")
 
     # contract_compiled_casm is a string containing the content of the starknet-sierra-compile (.casm file)
@@ -199,16 +199,16 @@ async def declare_v2(contract_name, port=None):
     except Exception:
         pass
 
-    # Create Declare v2 transaction
+    # Create Declare v3 transaction
     account = await get_starknet_account(port=port)
-    sign_declare_v2 = await account.sign_declare_v2(
+    sign_declare_v3 = await account.sign_declare_v3(
         compiled_contract=contract_compiled_sierra,
         compiled_class_hash=casm_class_hash,
-        max_fee=MAX_FEE,
+        auto_estimate=True,
     )
 
-    # Send Declare v2 transaction
-    resp = await account.client.declare(transaction=sign_declare_v2)
+    # Send Declare v3 transaction
+    resp = await account.client.declare(transaction=sign_declare_v3)
 
     logger.info(
         f"✅ {contract_name} class hash {hex(resp.class_hash)} at tx {hex(resp.transaction_hash)}"
@@ -230,7 +230,6 @@ async def deploy_v2(contract_name, *args, port=None):
         abi=json.loads(abi),
         constructor_args=list(args),
         cairo_version=1,
-        max_fee=MAX_FEE,
     )
 
     logger.info(f"Transaction hash: {hex(deploy_result.hash)}")

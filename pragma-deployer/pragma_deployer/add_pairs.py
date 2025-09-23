@@ -62,31 +62,61 @@ CONVERSION_SSTRK = Currency(
     0x0000000000000000000000000000000000000000,
 )
 XWBTC = Currency(
-    "CONVERSION_xWBTC",
+    "CONVERSION_XWBTC",
     8,
     0,
     0x6a567e68c805323525fe1649adb80b03cddf92c23d2629a6779f54192dffc13,
     0x0000000000000000000000000000000000000000,
 )
 XTBTC = Currency(
-    "CONVERSION_xtBTC",
+    "CONVERSION_XTBTC",
     18,
     0,
     0x43a35c1425a0125ef8c171f1a75c6f31ef8648edcc8324b55ce1917db3f9b91,
     0x0000000000000000000000000000000000000000,
 )
 XLBTC = Currency(
-    "CONVERSION_xLBTC",
+    "CONVERSION_XLBTC",
     8,
     0,
     0x7dd3c80de9fcc5545f0cb83678826819c79619ed7992cc06ff81fc67cd2efe0,
     0x0000000000000000000000000000000000000000,
 )
 XSBTC = Currency(
-    "CONVERSION_xsBTC",
+    "CONVERSION_XSBTC",
     18,
     0,
     0x580f3dc564a7b82f21d40d404b3842d490ae7205e6ac07b1b7af2b4a5183dc9,
+    0x0000000000000000000000000000000000000000,
+)
+
+# New currencies
+MRE7BTC = Currency(
+    "MRE7BTC",
+    18,
+    0,
+    0x0,  # Replace with actual starknet_address if available
+    0x0000000000000000000000000000000000000000,
+)
+MRE7YIELD = Currency(
+    "MRE7YIELD",
+    18,
+    0,
+    0x0,  # Replace with actual starknet_address if available
+    0x0000000000000000000000000000000000000000,
+)
+LBTC = Currency(
+    "LBTC",
+    8,
+    0,
+    0x0,  # Replace with actual starknet_address if available
+    0x0000000000000000000000000000000000000000,
+)
+UNIBTC = Currency(
+    "UNIBTC",
+    8,
+    0,
+    0x0,  # Replace with actual starknet_address if available
     0x0000000000000000000000000000000000000000,
 )
 
@@ -96,15 +126,34 @@ xtbtc_usd_pair = Pair(XTBTC, USD)
 xlbtc_usd_pair = Pair(XLBTC, USD)
 xsbtc_usd_pair = Pair(XSBTC, USD)
 
+# New pairs
+mre7btc_usd_pair = Pair(MRE7BTC, USD)
+mre7yield_usd_pair = Pair(MRE7YIELD, USD)
+lbtc_usd_pair = Pair(LBTC, USD)
+unibtc_usd_pair = Pair(UNIBTC, USD)
+
 CURRENCIES_TO_ADD = [XWBTC, XTBTC, XLBTC, XSBTC]
 
-PAIRS_TO_ADD = [xwbtc_usd_pair, xtbtc_usd_pair, xlbtc_usd_pair, xsbtc_usd_pair]
+PAIRS_TO_ADD = [
+    xwbtc_usd_pair,
+    xtbtc_usd_pair,
+    xlbtc_usd_pair,
+    xsbtc_usd_pair,
+]
 
 PAIRS_TO_UPDATE = [
-#     {
-#     "pair_id": "1629317993172502401860",
-#     "pair": ["1629317993172502401860", USD.id, XSTRK.id]
-# }
+    {
+        "pair_id": 384270964630611589151504336040458606883082949444,
+        "pair": [384270964630611589151504336040458606883082949444, XWBTC.id, USD.id],
+    },
+    {
+        "pair_id": 384270964630611589151504336040242434100969165636,
+        "pair": [384270964630611589151504336040242434100969165636, XTBTC.id, USD.id],
+    },
+    {
+        "pair_id": 384270964630611589151504336039665973348665742148,
+        "pair": [384270964630611589151504336039665973348665742148, XLBTC.id, USD.id],
+    },
     # Pair(XSTRK, USD),
     # Pair("SSTRK/USD", "SSTRK", "USD"),
     # Pair("WSTETH/USD", "WSTETH", "USD"),
@@ -116,16 +165,17 @@ async def main(port: Optional[int]) -> None:
     Main function to add currencies and pairs, and update pairs.
     """
     # Add Currencies
-    for currency in CURRENCIES_TO_ADD:
-        tx_hash = await invoke(
-            "pragma_Oracle",
-            "add_currency",
-            currency.serialize(),
-            port=port,
-        )
-        logger.info(f"Added currency {currency} with tx hash {hex(tx_hash)}")
+    # for currency in CURRENCIES_TO_ADD:
+    #     tx_hash = await invoke(
+    #         "pragma_Oracle",
+    #         "add_currency",
+    #         currency.serialize(),
+    #         port=port,
+    #     )
+    #     await asyncio.sleep(1)
+    #     logger.info(f"Added currency {currency} with tx hash {hex(tx_hash)}")
 
-    # Update Pairs
+    # # Update Pairs
     for pair in PAIRS_TO_UPDATE:
         tx_hash = await invoke(
             "pragma_Oracle",
@@ -135,15 +185,25 @@ async def main(port: Optional[int]) -> None:
         )
         logger.info(f"Updated pair {pair} with tx hash {hex(tx_hash)}")
 
-    # Add Pairs
-    for pair in PAIRS_TO_ADD:
-        tx_hash = await invoke(
-            "pragma_Oracle",
-            "add_pair",
-            pair.serialize(),
-            port=port,
-        )
-        logger.info(f"Added pair {pair} with tx hash {hex(tx_hash)}")
+    # # Add Pairs
+    # for pair in PAIRS_TO_ADD[2:]:
+    #     tx_hash = await invoke(
+    #         "pragma_Oracle",
+    #         "add_pair",
+    #         (pair.id, pair.quote_currency.id, pair.base_currency.id),
+    #         port=port,
+    #     )
+    #     await asyncio.sleep(1)
+    #     logger.info(f"Added pair {pair} with tx hash {hex(tx_hash)}")
+
+    # for pair in PAIRS_TO_ADD:
+    #     tx_hash = await invoke(
+    #         "pragma_Oracle",
+    #         "add_registered_conversion_rate_pair",
+    #         [pair.id],
+    #         port=port,
+    #     )
+    #     logger.info(f"Added conversion rate pair {pair} with tx hash {hex(tx_hash)}")
 
 
 @click.command()
