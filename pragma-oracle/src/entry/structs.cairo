@@ -404,3 +404,10 @@ impl CheckpointStorePacking of StorePacking<Checkpoint, felt252> {
         }
     }
 }
+
+
+#[derive(Copy, Drop, Serde, starknet::Store)]
+struct TokenizedVaultInfo {
+    vault_address: ContractAddress,
+    underlying_asset: felt252,
+}

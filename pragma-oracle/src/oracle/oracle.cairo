@@ -2,7 +2,7 @@ use pragma::entry::structs::{
     BaseEntry, SpotEntry, Currency, Pair, DataType, PragmaPricesResponse, Checkpoint,
     USD_CURRENCY_ID, SPOT, FUTURE, OPTION, GENERIC, FutureEntry, OptionEntry, GenericEntry,
     SimpleDataType, AggregationMode, PossibleEntries, ArrayEntry, EntryStorage, HasPrice,
-    HasBaseEntry, GenericEntryStorage
+    HasBaseEntry, GenericEntryStorage, TokenizedVaultInfo
 };
 use pragma::admin::admin::Ownable;
 use pragma::upgradeable::upgradeable::Upgradeable;
@@ -90,7 +90,7 @@ trait IOracleABI<TContractState> {
     fn add_currency(ref self: TContractState, new_currency: Currency);
     fn update_currency(ref self: TContractState, currency_id: felt252, currency: Currency);
     fn get_currency(self: @TContractState, currency_id: felt252) -> Currency;
-    fn get_tokenized_vaults(self: @TContractState, token: felt252) -> ContractAddress;
+    fn get_tokenized_vaults(self: @TContractState, token: felt252) -> TokenizedVaultInfo;
     fn update_pair(ref self: TContractState, pair_id: felt252, pair: Pair);
     fn add_pair(ref self: TContractState, new_pair: Pair);
     fn get_pair(self: @TContractState, pair_id: felt252) -> Pair;
@@ -103,7 +103,10 @@ trait IOracleABI<TContractState> {
     fn remove_source(ref self: TContractState, source: felt252, data_type: DataType) -> bool;
     fn set_sources_threshold(ref self: TContractState, threshold: u32);
     fn register_tokenized_vault(
-        ref self: TContractState, token: felt252, token_address: ContractAddress
+        ref self: TContractState,
+        token: felt252,
+        underlying_token: felt252,
+        token_address: ContractAddress
     );
     fn get_registered_conversion_rate_pairs(self: @TContractState) -> Span<felt252>;
     fn add_registered_conversion_rate_pair(ref self: TContractState, new_pair_id: felt252);
@@ -188,7 +191,7 @@ mod Oracle {
         storage_base_address_from_felt252, Store, StorageBaseAddress, SyscallResult,
         ContractAddress, get_caller_address, ClassHash, Into, TryInto, ResultTrait, ResultTraitImpl,
         BoxTrait, ArrayTrait, SpanTrait, Zeroable, IOracleABI, EntryStorage, List, ListTrait,
-        HasPrice, HasBaseEntry, GenericEntryStorage
+        HasPrice, HasBaseEntry, GenericEntryStorage, TokenizedVaultInfo
     };
     use alexandria_data_structures::array_ext::SpanTraitExt;
     use hash::LegacyHash;
@@ -243,10 +246,12 @@ mod Oracle {
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
         oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u64, u8), u64>,
         oracle_sources_threshold_storage: u32,
-        // registry containing registered tokenized vaults and the corresponding address
+        // registry containing registered tokenized vaults and the corresponding address (BACKWARD COMPATIBILITY)
         tokenized_vault: LegacyMap<(felt252, felt252), ContractAddress>,
         // registry containing the conversion rate compatible currencies
         conversion_rate_compatible_pairs: List<felt252>,
+        // extension of tokenized vault to support multiple underlying assets
+        extended_tokenized_vault: LegacyMap<felt252, TokenizedVaultInfo>,
     }
 
 
@@ -949,8 +954,13 @@ mod Oracle {
             Ownable::OwnableImpl::owner(@state)
         }
 
-        fn get_tokenized_vaults(self: @ContractState, token: felt252) -> ContractAddress {
-            self.tokenized_vault.read((token, 'STRK'))
+        fn get_tokenized_vaults(self: @ContractState, token: felt252) -> TokenizedVaultInfo {
+            // We assume that the token available with STRK as underlying are distinct from those with other underlyings
+            let address = self.tokenized_vault.read((token, 'STRK'));
+            if address != 0.try_into().unwrap() {
+                return TokenizedVaultInfo { vault_address: address, underlying_asset: 'STRK', };
+            }
+            self.extended_tokenized_vault.read(token)
         }
 
 
@@ -1817,11 +1827,26 @@ mod Oracle {
         // @param token The token to register
         // @param token_address Token address to register
         fn register_tokenized_vault(
-            ref self: ContractState, token: felt252, token_address: ContractAddress
+            ref self: ContractState,
+            token: felt252,
+            underlying_token: felt252,
+            token_address: ContractAddress
         ) {
             OracleInternal::assert_only_admin();
             assert(token != 0, 'Token cannot be 0');
-            self.tokenized_vault.write((token, 'STRK'), token_address)
+            assert(underlying_token != 0, 'Underlying token cannot be 0');
+            if (underlying_token == 'STRK') {
+                self.tokenized_vault.write((token, 'STRK'), token_address);
+            } else {
+                self
+                    .extended_tokenized_vault
+                    .write(
+                        token,
+                        TokenizedVaultInfo {
+                            vault_address: token_address, underlying_asset: underlying_token
+                        }
+                    );
+            }
         }
 
         // @notice set a new checkpoint for a given data type and and aggregation mode
@@ -2443,29 +2468,60 @@ mod Oracle {
     fn get_conversion_rate_price(
         self: @ContractState, data_type: DataType
     ) -> PragmaPricesResponse {
-        // Query median for STRK/USD
-        let sources = IOracleABI::get_all_sources(self, DataType::SpotEntry('STRK/USD'));
-        let response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
-            self, DataType::SpotEntry('STRK/USD'), AggregationMode::Median(()), sources
-        );
+        // First step is retrieve the Pair associated to the data type.
+        let pair: Pair = self
+            .get_pair(
+                match data_type {
+                    DataType::SpotEntry(asset) => asset,
+                    DataType::FutureEntry((asset, _)) => asset,
+                    DataType::GenericEntry(key) => key,
+                }
+            );
 
-        // Extract quote asset
-        // Here we extract a second time to make sure we panic for future and generic entries
-        let asset: felt252 = match data_type {
-            DataType::SpotEntry(asset) => asset,
-            DataType::FutureEntry(_) => panic_with_felt252('Set only for Spot entries'),
-            DataType::GenericEntry(_) => panic_with_felt252('Set only for Spot entries'),
-        };
-
-        // Get quote currency and pool
-        let quote_asset: felt252 = self.get_pair(asset).quote_currency_id;
+        let quote_asset = pair.quote_currency_id;
         assert(quote_asset != 0, 'Asset not registered');
-        let pool_address: ContractAddress = self.tokenized_vault.read((quote_asset, 'STRK'));
+
+        let tokenized_vault = self.get_tokenized_vaults(quote_asset);
         assert(
-            pool_address != starknet::contract_address_const::<0>(),
+            tokenized_vault.vault_address != starknet::contract_address_const::<0>(),
             'No pool address for given token'
         );
-        let pool = IERC4626Dispatcher { contract_address: pool_address };
+        assert(
+            (tokenized_vault.underlying_asset == 'STRK')
+                || (tokenized_vault.underlying_asset == 'BTC')
+                || (tokenized_vault.underlying_asset == 'tBTC')
+                || (tokenized_vault.underlying_asset == 'LBTC'),
+            'Underlying asset not supported'
+        );
+
+        let pool = IERC4626Dispatcher { contract_address: tokenized_vault.vault_address };
+        // The goal is to be able to rebuild the price of the base asset in USD
+        // Starting from the base asset and 'USD', we can mathematically build the pair id, but for simplicity we 
+        // will work with hardcoded value
+        let response = if (tokenized_vault.underlying_asset == 'STRK') {
+            let sources = IOracleABI::get_all_sources(self, DataType::SpotEntry('STRK/USD'));
+            IOracleABI::get_data_for_sources(
+                self, DataType::SpotEntry('STRK/USD'), AggregationMode::Median(()), sources
+            )
+        } else if (tokenized_vault.underlying_asset == 'BTC') {
+            // We can pu put else, because we filtered out the case where base asset is neither STRK nor USDC
+            let sources = IOracleABI::get_all_sources(self, DataType::SpotEntry('BTC/USD'));
+            IOracleABI::get_data_for_sources(
+                self, DataType::SpotEntry('BTC/USD'), AggregationMode::Median(()), sources
+            )
+        } else if (tokenized_vault.underlying_asset == 'tBTC') {
+            let sources = IOracleABI::get_all_sources(self, DataType::SpotEntry('tBTC/USD'));
+            IOracleABI::get_data_for_sources(
+                self, DataType::SpotEntry('tBTC/USD'), AggregationMode::Median(()), sources
+            )
+        } else {
+            // LBTC case
+            let sources = IOracleABI::get_all_sources(self, DataType::SpotEntry('LBTC/USD'));
+            IOracleABI::get_data_for_sources(
+                self, DataType::SpotEntry('LBTC/USD'), AggregationMode::Median(()), sources
+            )
+        };
+        assert(!response.last_updated_timestamp.is_zero(), 'No price available');
 
         // Compute adjusted price
         // `preview_mint` takes as argument an e18 and returns an e18
