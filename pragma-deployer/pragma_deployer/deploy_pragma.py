@@ -17,7 +17,7 @@ from pragma_deployer.utils.starknet import (
     dump_declarations,
     dump_deployments,
     get_starknet_account,
-    declare_v2,
+    declare_v3,
     deploy_v2,
 )
 
@@ -36,7 +36,7 @@ async def main(port: Optional[int]) -> None:
     logger.info(f"ℹ️  Using account {hex(account.address)} as deployer")
 
     class_hash = {
-        contract["contract_name"]: await declare_v2(contract["contract_name"], port)
+        contract["contract_name"]: await declare_v3(contract["contract_name"], port)
         for contract in COMPILED_CONTRACTS
     }
     dump_declarations(class_hash)
