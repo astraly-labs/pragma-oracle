@@ -487,11 +487,7 @@ mod Oracle {
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data_median(self: @ContractState, data_type: DataType) -> PragmaPricesResponse {
-            let sources = IOracleABI::get_all_sources(self, data_type);
-            let prices_response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
-                self, data_type, AggregationMode::Median(()), sources
-            );
-            prices_response
+            IOracleABI::get_data(self, data_type, AggregationMode::Median(()))
         }
 
         // @notice aggregate the entries for specific sources,  for a given data type, using MEDIAN as aggregation mode
@@ -1614,6 +1610,7 @@ mod Oracle {
         // @notice add a new pair to the list of registered conversion rate pairs
         // @param new_pair_id: the pair id to be added
         fn add_registered_conversion_rate_pair(ref self: ContractState, new_pair_id: felt252) {
+            OracleInternal::assert_only_admin();
             let mut registered_pairs = self.conversion_rate_compatible_pairs.read();
             registered_pairs.append(new_pair_id);
         }
