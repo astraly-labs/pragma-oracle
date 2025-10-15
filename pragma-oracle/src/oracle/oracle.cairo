@@ -1614,6 +1614,7 @@ mod Oracle {
         // @notice add a new pair to the list of registered conversion rate pairs
         // @param new_pair_id: the pair id to be added
         fn add_registered_conversion_rate_pair(ref self: ContractState, new_pair_id: felt252) {
+            OracleInternal::assert_only_admin();
             let mut registered_pairs = self.conversion_rate_compatible_pairs.read();
             registered_pairs.append(new_pair_id);
         }
