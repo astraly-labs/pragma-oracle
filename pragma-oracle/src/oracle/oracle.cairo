@@ -487,11 +487,7 @@ mod Oracle {
         // @param data_type: an enum of DataType (e.g : DataType::SpotEntry(ASSET_ID) or DataType::FutureEntry((ASSSET_ID, expiration_timestamp)))
         // @returns a PragmaPricesResponse, a structure providing the main information for an asset (see entry/structs for details)
         fn get_data_median(self: @ContractState, data_type: DataType) -> PragmaPricesResponse {
-            let sources = IOracleABI::get_all_sources(self, data_type);
-            let prices_response: PragmaPricesResponse = IOracleABI::get_data_for_sources(
-                self, data_type, AggregationMode::Median(()), sources
-            );
-            prices_response
+            IOracleABI::get_data(self, data_type, AggregationMode::Median(()))
         }
 
         // @notice aggregate the entries for specific sources,  for a given data type, using MEDIAN as aggregation mode
