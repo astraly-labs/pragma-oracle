@@ -29,7 +29,7 @@ NETWORKS = {
     "sepolia": {
         "name": "sepolia",
         "explorer_url": "https://sepolia.starkscan.co/",
-        "rpc_url": "https://starknet-sepolia.public.blastapi.io/rpc/v0_7",
+        "rpc_url": "https://starknet-sepolia.public.blastapi.io/rpc/v0_8",
         "chain_id": StarknetChainId.SEPOLIA,
     },
     "devnet": {
