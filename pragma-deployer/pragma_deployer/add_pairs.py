@@ -119,6 +119,20 @@ UNIBTC = Currency(
     0x0,  # Replace with actual starknet_address if available
     0x0000000000000000000000000000000000000000,
 )
+USN = Currency(
+    "USN",
+    18,
+    0,
+    0x0,  # Replace with actual starknet_address if available
+    0x0000000000000000000000000000000000000000,
+)
+SUSN = Currency(
+    "SUSN",
+    18,
+    0,
+    0x0,  # Replace with actual starknet_address if available
+    0x0000000000000000000000000000000000000000,
+)
 
 # BTC LST pairs
 xwbtc_usd_pair = Pair(XWBTC, USD)
@@ -131,29 +145,29 @@ mre7btc_usd_pair = Pair(MRE7BTC, USD)
 mre7yield_usd_pair = Pair(MRE7YIELD, USD)
 lbtc_usd_pair = Pair(LBTC, USD)
 unibtc_usd_pair = Pair(UNIBTC, USD)
+usn_usd_pair = Pair(USN, USD)
+susn_usd_pair = Pair(SUSN, USD)
 
-CURRENCIES_TO_ADD = [XWBTC, XTBTC, XLBTC, XSBTC]
+CURRENCIES_TO_ADD = [USN, SUSN]
 
 PAIRS_TO_ADD = [
-    xwbtc_usd_pair,
-    xtbtc_usd_pair,
-    xlbtc_usd_pair,
-    xsbtc_usd_pair,
+    usn_usd_pair,
+    susn_usd_pair,
 ]
 
 PAIRS_TO_UPDATE = [
-    {
-        "pair_id": 384270964630611589151504336040458606883082949444,
-        "pair": [384270964630611589151504336040458606883082949444, XWBTC.id, USD.id],
-    },
-    {
-        "pair_id": 384270964630611589151504336040242434100969165636,
-        "pair": [384270964630611589151504336040242434100969165636, XTBTC.id, USD.id],
-    },
-    {
-        "pair_id": 384270964630611589151504336039665973348665742148,
-        "pair": [384270964630611589151504336039665973348665742148, XLBTC.id, USD.id],
-    },
+    # {
+    #     "pair_id": 384270964630611589151504336040458606883082949444,
+    #     "pair": [384270964630611589151504336040458606883082949444, XWBTC.id, USD.id],
+    # },
+    # {
+    #     "pair_id": 384270964630611589151504336040242434100969165636,
+    #     "pair": [384270964630611589151504336040242434100969165636, XTBTC.id, USD.id],
+    # },
+    # {
+    #     "pair_id": 384270964630611589151504336039665973348665742148,
+    #     "pair": [384270964630611589151504336039665973348665742148, XLBTC.id, USD.id],
+    # },
     # Pair(XSTRK, USD),
     # Pair("SSTRK/USD", "SSTRK", "USD"),
     # Pair("WSTETH/USD", "WSTETH", "USD"),
@@ -176,25 +190,25 @@ async def main(port: Optional[int]) -> None:
     #     logger.info(f"Added currency {currency} with tx hash {hex(tx_hash)}")
 
     # # Update Pairs
-    for pair in PAIRS_TO_UPDATE:
-        tx_hash = await invoke(
-            "pragma_Oracle",
-            "update_pair",
-            [pair["pair_id"]] + pair["pair"],
-            port=port,
-        )
-        logger.info(f"Updated pair {pair} with tx hash {hex(tx_hash)}")
-
-    # # Add Pairs
-    # for pair in PAIRS_TO_ADD[2:]:
+    # for pair in PAIRS_TO_UPDATE:
     #     tx_hash = await invoke(
     #         "pragma_Oracle",
-    #         "add_pair",
-    #         (pair.id, pair.quote_currency.id, pair.base_currency.id),
+    #         "update_pair",
+    #         [pair["pair_id"]] + pair["pair"],
     #         port=port,
     #     )
-    #     await asyncio.sleep(1)
-    #     logger.info(f"Added pair {pair} with tx hash {hex(tx_hash)}")
+    #     logger.info(f"Updated pair {pair} with tx hash {hex(tx_hash)}")
+
+    # # Add Pairs
+    for pair in PAIRS_TO_ADD:
+        tx_hash = await invoke(
+            "pragma_Oracle",
+            "add_pair",
+            (pair.id, pair.quote_currency.id, pair.base_currency.id),
+            port=port,
+        )
+        await asyncio.sleep(1)
+        logger.info(f"Added pair {pair} with tx hash {hex(tx_hash)}")
 
     # for pair in PAIRS_TO_ADD:
     #     tx_hash = await invoke(

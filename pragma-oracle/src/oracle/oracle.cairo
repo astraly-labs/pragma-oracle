@@ -541,6 +541,11 @@ mod Oracle {
                 DataType::GenericEntry(pair_id) => pair_id,
             };
 
+            if pair_id == 'USN/USD' || pair_id == 'SUSN/USD' {
+                let sources = IOracleABI::get_all_sources(self, data_type);
+                return IOracleABI::get_data_for_sources(self, data_type, aggregation_mode, sources);
+            }
+
             let registered_conversion_rate_pairs = self.get_registered_conversion_rate_pairs();
             if registered_conversion_rate_pairs.contains(pair_id)
                 || aggregation_mode == AggregationMode::ConversionRate {
@@ -1614,7 +1619,6 @@ mod Oracle {
             let mut registered_pairs = self.conversion_rate_compatible_pairs.read();
             registered_pairs.append(new_pair_id);
         }
-
 
         // @notice add a new currency to the oracle (e.g ETH)
         // @dev can be called only by the admin
