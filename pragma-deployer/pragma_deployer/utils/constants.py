@@ -1,14 +1,12 @@
-import os
 import logging
-
-from dotenv import load_dotenv
+import os
 from pathlib import Path
 
-from starknet_py.net.full_node_client import FullNodeClient
-from starknet_py.net.models.chains import StarknetChainId
-
+from dotenv import load_dotenv
 from pragma_sdk.common.types.currency import Currency
 from pragma_sdk.common.types.pair import Pair
+from starknet_py.net.full_node_client import FullNodeClient
+from starknet_py.net.models.chains import StarknetChainId
 
 load_dotenv()
 
@@ -23,13 +21,13 @@ ETH_TOKEN_ADDRESS = "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E
 NETWORKS = {
     "mainnet": {
         "name": "mainnet",
-        "rpc_url": "https://starknet-mainnet.public.blastapi.io/rpc/v0_8",
+        "rpc_url": "https://1rpc.io/starknet",
         "chain_id": StarknetChainId.MAINNET,
     },
     "sepolia": {
         "name": "sepolia",
         "explorer_url": "https://sepolia.starkscan.co/",
-        "rpc_url": "https://starknet-sepolia.public.blastapi.io/rpc/v0_8",
+        "rpc_url": "https://1rpc.io/starknet-sepolia",
         "chain_id": StarknetChainId.SEPOLIA,
     },
     "devnet": {

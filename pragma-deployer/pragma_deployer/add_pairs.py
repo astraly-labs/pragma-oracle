@@ -1,13 +1,12 @@
-import os
 import asyncio
-import click
 import logging
-
+import os
 from typing import Optional
 
+import click
 from dotenv import load_dotenv
-from pragma_sdk.common.types.pair import Pair
 from pragma_sdk.common.types.currency import Currency
+from pragma_sdk.common.types.pair import Pair
 from pragma_utils.logger import setup_logging
 
 from pragma_deployer.utils.starknet import (
@@ -29,22 +28,22 @@ SSTRK = Currency(
     "SSTRK",
     18,
     0,
-    0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a,
+    0x28D709C875C0CEAC3DCE7065BEC5328186DC89FE254527084D1689910954B0A,
     0x0000000000000000000000000000000000000000,
 )
 RETH = Currency(
     "RETH",
     18,
     0,
-    0x0319111a5037cbec2b3e638cc34a3474e2d2608299f3e62866e9cc683208c610,
-    0xae78736cd615f374d3085123a210448e74fc6393,
+    0x0319111A5037CBEC2B3E638CC34A3474E2D2608299F3E62866E9CC683208C610,
+    0xAE78736CD615F374D3085123A210448E74FC6393,
 )
 USD = Currency("USD", 8, 1, 0, 0)
 XSTRK = Currency(
     "XSTRK",
     18,
     0,
-    0x028d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a,
+    0x028D709C875C0CEAC3DCE7065BEC5328186DC89FE254527084D1689910954B0A,
     0x0000000000000000000000000000000000000000,
 )
 DOG = Currency(
@@ -65,28 +64,28 @@ XWBTC = Currency(
     "CONVERSION_XWBTC",
     8,
     0,
-    0x6a567e68c805323525fe1649adb80b03cddf92c23d2629a6779f54192dffc13,
+    0x6A567E68C805323525FE1649ADB80B03CDDF92C23D2629A6779F54192DFFC13,
     0x0000000000000000000000000000000000000000,
 )
 XTBTC = Currency(
     "CONVERSION_XTBTC",
     18,
     0,
-    0x43a35c1425a0125ef8c171f1a75c6f31ef8648edcc8324b55ce1917db3f9b91,
+    0x43A35C1425A0125EF8C171F1A75C6F31EF8648EDCC8324B55CE1917DB3F9B91,
     0x0000000000000000000000000000000000000000,
 )
 XLBTC = Currency(
     "CONVERSION_XLBTC",
     8,
     0,
-    0x7dd3c80de9fcc5545f0cb83678826819c79619ed7992cc06ff81fc67cd2efe0,
+    0x7DD3C80DE9FCC5545F0CB83678826819C79619ED7992CC06FF81FC67CD2EFE0,
     0x0000000000000000000000000000000000000000,
 )
 XSBTC = Currency(
     "CONVERSION_XSBTC",
     18,
     0,
-    0x580f3dc564a7b82f21d40d404b3842d490ae7205e6ac07b1b7af2b4a5183dc9,
+    0x580F3DC564A7B82F21D40D404B3842D490AE7205E6AC07B1B7AF2B4A5183DC9,
     0x0000000000000000000000000000000000000000,
 )
 
@@ -134,6 +133,14 @@ SUSN = Currency(
     0x0000000000000000000000000000000000000000,
 )
 
+SURVIVOR = Currency(
+    "SURVIVOR",
+    18,
+    0,
+    0x042DD777885AD2C116BE96D4D634ABC90A26A790FFB5871E037DD5AE7D2EC86B,
+    0x0000000000000000000000000000000000000000,
+)
+
 # BTC LST pairs
 xwbtc_usd_pair = Pair(XWBTC, USD)
 xtbtc_usd_pair = Pair(XTBTC, USD)
@@ -147,13 +154,11 @@ lbtc_usd_pair = Pair(LBTC, USD)
 unibtc_usd_pair = Pair(UNIBTC, USD)
 usn_usd_pair = Pair(USN, USD)
 susn_usd_pair = Pair(SUSN, USD)
+survivor_usd_pair = Pair(SURVIVOR, USD)
 
-CURRENCIES_TO_ADD = [USN, SUSN]
+CURRENCIES_TO_ADD = [SURVIVOR]
 
-PAIRS_TO_ADD = [
-    usn_usd_pair,
-    susn_usd_pair,
-]
+PAIRS_TO_ADD = [survivor_usd_pair]
 
 PAIRS_TO_UPDATE = [
     # {
@@ -179,15 +184,15 @@ async def main(port: Optional[int]) -> None:
     Main function to add currencies and pairs, and update pairs.
     """
     # Add Currencies
-    # for currency in CURRENCIES_TO_ADD:
-    #     tx_hash = await invoke(
-    #         "pragma_Oracle",
-    #         "add_currency",
-    #         currency.serialize(),
-    #         port=port,
-    #     )
-    #     await asyncio.sleep(1)
-    #     logger.info(f"Added currency {currency} with tx hash {hex(tx_hash)}")
+    for currency in CURRENCIES_TO_ADD:
+        tx_hash = await invoke(
+            "pragma_Oracle",
+            "add_currency",
+            currency.serialize(),
+            port=port,
+        )
+        await asyncio.sleep(1)
+        logger.info(f"Added currency {currency} with tx hash {hex(tx_hash)}")
 
     # # Update Pairs
     # for pair in PAIRS_TO_UPDATE:
