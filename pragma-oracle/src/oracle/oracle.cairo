@@ -1745,7 +1745,7 @@ mod Oracle {
                         }
                         let cur_source = self
                             .oracle_sources_storage
-                            .read((pair_id, FUTURE, cur_idx, 0));
+                            .read((pair_id, FUTURE, cur_idx, expiration_timestamp));
                         if (source == cur_source) {
                             break true;
                         }
