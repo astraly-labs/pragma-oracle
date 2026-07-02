@@ -26,6 +26,7 @@ upgrade-pragma = "pragma_deployer.upgrade_pragma:cli_entrypoint"
 remove-source = "pragma_deployer.remove_source:cli_entrypoint"
 remove-publishers = "pragma_deployer.remove_publishers:cli_entrypoint"
 register-vault-token = "pragma_deployer.register_tokenized_vault:cli_entrypoint"
+upgrade-argent-account = "pragma_deployer.upgrade_argent_account:cli_entrypoint"
 
 [dependency-groups]
 dev = [
