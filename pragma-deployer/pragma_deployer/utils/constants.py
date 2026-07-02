@@ -21,13 +21,13 @@ ETH_TOKEN_ADDRESS = "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E
 NETWORKS = {
     "mainnet": {
         "name": "mainnet",
-        "rpc_url": "https://1rpc.io/starknet",
+        "rpc_url": "https://starknet-mainnet.g.alchemy.com/starknet/version/rpc/v0_8/N42NzbEUpEJksfpAnXHdq",
         "chain_id": StarknetChainId.MAINNET,
     },
     "sepolia": {
         "name": "sepolia",
         "explorer_url": "https://sepolia.starkscan.co/",
-        "rpc_url": "https://1rpc.io/starknet-sepolia",
+        "rpc_url": "https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_8/N42NzbEUpEJksfpAnXHdq",
         "chain_id": StarknetChainId.SEPOLIA,
     },
     "devnet": {
