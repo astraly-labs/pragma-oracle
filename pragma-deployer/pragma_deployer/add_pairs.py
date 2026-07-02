@@ -88,6 +88,13 @@ XSBTC = Currency(
     0x580F3DC564A7B82F21D40D404B3842D490AE7205E6AC07B1B7AF2B4A5183DC9,
     0x0000000000000000000000000000000000000000,
 )
+XSTRKBTC = Currency(
+    "CONVERSION_XSTRKBTC",
+    8,
+    0,
+    0x047751B3532FABCA89B0F2E35CA1CB45E5A7B11D5E3D3663DFA1F4406B45FD88,
+    0x0000000000000000000000000000000000000000,
+)
 
 # New currencies
 MRE7BTC = Currency(
@@ -146,6 +153,7 @@ xwbtc_usd_pair = Pair(XWBTC, USD)
 xtbtc_usd_pair = Pair(XTBTC, USD)
 xlbtc_usd_pair = Pair(XLBTC, USD)
 xsbtc_usd_pair = Pair(XSBTC, USD)
+xstrkbtc_usd_pair = Pair(XSTRKBTC, USD)
 
 # New pairs
 mre7btc_usd_pair = Pair(MRE7BTC, USD)
@@ -156,9 +164,14 @@ usn_usd_pair = Pair(USN, USD)
 susn_usd_pair = Pair(SUSN, USD)
 survivor_usd_pair = Pair(SURVIVOR, USD)
 
-CURRENCIES_TO_ADD = [SURVIVOR]
+CURRENCIES_TO_ADD = []
 
-PAIRS_TO_ADD = [survivor_usd_pair]
+PAIRS_TO_ADD = []
+
+# Conversion rate pairs have inverted base/quote semantics:
+# id = "<TOKEN>/USD", quote_currency_id = <TOKEN>, base_currency_id = USD
+# Already added on-chain with wrong base/quote — needs update_pair to flip + register.
+CONVERSION_RATE_PAIRS_TO_UPDATE = [xstrkbtc_usd_pair]
 
 PAIRS_TO_UPDATE = [
     # {
@@ -215,14 +228,34 @@ async def main(port: Optional[int]) -> None:
         await asyncio.sleep(1)
         logger.info(f"Added pair {pair} with tx hash {hex(tx_hash)}")
 
-    # for pair in PAIRS_TO_ADD:
-    #     tx_hash = await invoke(
-    #         "pragma_Oracle",
-    #         "add_registered_conversion_rate_pair",
-    #         [pair.id],
-    #         port=port,
-    #     )
-    #     logger.info(f"Added conversion rate pair {pair} with tx hash {hex(tx_hash)}")
+    # Update + register Conversion Rate Pairs.
+    # Pair was originally added with base/quote inverted; flip them and register.
+    # On-chain Pair struct: { id, quote_currency_id, base_currency_id }
+    # update_pair calldata: (pair_id, struct.id, struct.quote, struct.base)
+    for pair in CONVERSION_RATE_PAIRS_TO_UPDATE:
+        token_currency = pair.base_currency  # token sits in SDK's base slot; should be on-chain quote
+        usd_currency = pair.quote_currency
+        tx_hash = await invoke(
+            "pragma_Oracle",
+            "update_pair",
+            (pair.id, pair.id, token_currency.id, usd_currency.id),
+            port=port,
+        )
+        await asyncio.sleep(1)
+        logger.info(
+            f"Updated conversion rate pair {pair} (quote={token_currency.id}, base={usd_currency.id}) with tx hash {hex(tx_hash)}"
+        )
+
+        tx_hash = await invoke(
+            "pragma_Oracle",
+            "add_registered_conversion_rate_pair",
+            [pair.id],
+            port=port,
+        )
+        await asyncio.sleep(1)
+        logger.info(
+            f"Registered conversion rate pair {pair} with tx hash {hex(tx_hash)}"
+        )
 
 
 @click.command()

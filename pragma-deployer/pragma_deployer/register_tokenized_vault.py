@@ -43,6 +43,11 @@ TOKENS_TO_REGISTER = [
         "underlying_token": "BTC",
         "address": 0x7dd3c80de9fcc5545f0cb83678826819c79619ed7992cc06ff81fc67cd2efe0,
     },
+    {
+        "name": "CONVERSION_XSTRKBTC",
+        "underlying_token": "BTC",
+        "address": 0x047751b3532fabca89b0f2e35ca1cb45e5a7b11d5e3d3663dfa1f4406b45fd88,
+    },
     # {
     #     "name": "CONVERSION_XSBTC",
     #     "underlying_token": "BTC",
