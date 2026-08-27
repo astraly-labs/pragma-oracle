@@ -59,6 +59,11 @@ mod SummaryStats {
         DERIBIT_OPTIONS_FEED_ID
     };
 
+    // Maximum number of checkpoints sampled by an interval computation (mean / twap).
+    // Bounds the per-query gas cost so a permissionless flood of the shared checkpoint
+    // history cannot make an interval query exceed the transaction gas limit.
+    const MAX_SAMPLES: u64 = 200;
+
     #[storage]
     struct Storage {
         oracle_address: ContractAddress,
@@ -118,8 +123,16 @@ mod SummaryStats {
                 return (cp.value, decimals);
             }
 
+            // Bound the number of checkpoints read so a permissionless flood of the
+            // shared history cannot inflate this query's gas without limit.
+            let skip_frequency = calculate_skip_frequency(stop_index - start_index, MAX_SAMPLES);
             let scaled_arr = _make_scaled_array(
-                oracle_address, data_type, stop_index - start_index, stop_index, 1, aggregation_mode
+                oracle_address,
+                data_type,
+                stop_index - start_index,
+                stop_index,
+                skip_frequency,
+                aggregation_mode
             );
 
             let mean = mean(scaled_arr.span()) / ONE_u128;
@@ -294,18 +307,41 @@ mod SummaryStats {
                 .get_last_checkpoint_before(data_type, start_time + time, aggregation_mode);
             let decimals = oracle_dispatcher.get_decimals(data_type);
             assert(start_index != stop_index, 'Not enough data');
+
+            // Bound the number of checkpoints read so the cost of a TWAP query stays
+            // bounded regardless of how many checkpoints exist for the pair. Without this,
+            // a permissionless flood of the shared checkpoint history could make this loop
+            // exceed the per-transaction gas limit. We keep both interval endpoints and
+            // sub-sample the interior with a deterministic skip frequency, the same
+            // approach already used by `calculate_volatility`.
+            let skip_frequency = calculate_skip_frequency(stop_index - start_index, MAX_SAMPLES);
+
             let mut tick_arr = ArrayTrait::<TickElem>::new();
             let mut idx = start_index;
+            let mut last_read_idx = start_index;
             loop {
                 if (stop_index < idx) {
                     break ();
                 }
                 let cp = oracle_dispatcher.get_checkpoint(data_type, idx, aggregation_mode);
-
-                let fixed_val = FixedTrait::new(cp.value, false);
-                tick_arr.append(TickElem { tick: cp.timestamp, value: fixed_val });
-                idx += 1;
+                tick_arr
+                    .append(
+                        TickElem { tick: cp.timestamp, value: FixedTrait::new(cp.value, false) }
+                    );
+                last_read_idx = idx;
+                idx += skip_frequency;
             };
+
+            // Always include the final checkpoint of the interval so the covered time span
+            // (and therefore the time-weighting) matches the requested window.
+            if (last_read_idx != stop_index) {
+                let cp = oracle_dispatcher.get_checkpoint(data_type, stop_index, aggregation_mode);
+                tick_arr
+                    .append(
+                        TickElem { tick: cp.timestamp, value: FixedTrait::new(cp.value, false) }
+                    );
+            }
+
             (twap(tick_arr.span()), decimals)
         }
 
