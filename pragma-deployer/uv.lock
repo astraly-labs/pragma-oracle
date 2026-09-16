@@ -3,8 +3,7 @@ revision = 3
 requires-python = "==3.12.*"
 
 [options]
-exclude-newer = "2026-05-01T10:05:36.464803Z"
-exclude-newer-span = "P7D"
+exclude-newer = "2026-05-01T10:05:36Z"
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -808,7 +807,7 @@ requires-dist = [
     { name = "case-converter", specifier = ">=1.1.0" },
     { name = "click", specifier = ">=8.1.0" },
     { name = "pragma-sdk", specifier = "==2.8.12" },
-    { name = "pragma-utils", git = "https://github.com/astraly-labs/pragma-sdk?subdirectory=pragma-utils" },
+    { name = "pragma-utils", git = "https://github.com/astraly-labs/pragma-sdk?subdirectory=pragma-utils&rev=1bd63a16c16f74988cc08040ea6984feb2584300" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "starknet-py", specifier = "==0.27.0" },
 ]
@@ -841,7 +840,7 @@ wheels = [
 [[package]]
 name = "pragma-utils"
 version = "2.13.0a1"
-source = { git = "https://github.com/astraly-labs/pragma-sdk?subdirectory=pragma-utils#1bd63a16c16f74988cc08040ea6984feb2584300" }
+source = { git = "https://github.com/astraly-labs/pragma-sdk?subdirectory=pragma-utils&rev=1bd63a16c16f74988cc08040ea6984feb2584300#1bd63a16c16f74988cc08040ea6984feb2584300" }
 dependencies = [
     { name = "boto3" },
     { name = "google-cloud-secret-manager" },

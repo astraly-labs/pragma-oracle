@@ -224,12 +224,13 @@ async def deploy_v2(contract_name, *args, port=None):
     sierra_class_hash = get_declarations()[contract_name]
     abi = get_abi(contract_name)
 
-    deploy_result = await Contract.deploy_contract_v1(
+    deploy_result = await Contract.deploy_contract_v3(
         account=account,
         class_hash=sierra_class_hash,
         abi=json.loads(abi),
         constructor_args=list(args),
         cairo_version=1,
+        auto_estimate=True,
     )
 
     logger.info(f"Transaction hash: {hex(deploy_result.hash)}")
