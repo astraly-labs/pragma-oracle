@@ -2,6 +2,11 @@ name: Run scripts
 
 on: pull_request
 
+env:
+  # starknet-py 0.27 (pinned by pragma-sdk) speaks JSON-RPC 0.8.
+  # Devnet 0.4.x is the last line serving RPC 0.8; 0.5+ only serves 0.9+.
+  DEVNET_VERSION: v0.4.4
+
 jobs:
   run_scripts:
     runs-on: ubuntu-latest
@@ -9,38 +14,30 @@ jobs:
       run:
         working-directory: pragma-deployer
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Install Starknet Devnet RS
+      - name: Install Starknet Devnet
         run: |
-          wget https://github.com/0xSpaceShard/starknet-devnet-rs/releases/download/v0.1.2/starknet-devnet-x86_64-unknown-linux-gnu.tar.gz
-          tar -xvf starknet-devnet-x86_64-unknown-linux-gnu.tar.gz
-          chmod +x starknet-devnet
-          sudo mv starknet-devnet /usr/local/bin/
+          wget -q "https://github.com/starknet-io/starknet-devnet/releases/download/${DEVNET_VERSION}/starknet-devnet-x86_64-unknown-linux-gnu.tar.gz"
+          tar -xzf starknet-devnet-x86_64-unknown-linux-gnu.tar.gz
+          sudo install -m 755 starknet-devnet /usr/local/bin/starknet-devnet
           rm -f starknet-devnet-x86_64-unknown-linux-gnu.tar.gz
+          starknet-devnet --version
 
-      - name: Make script executable
-        run: chmod +x scripts/devnet.sh
-
-      - name: Set up Python and install Poetry
-        uses: actions/setup-python@v4
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.12"
-      - run: pip install poetry
+          enable-cache: true
 
       - name: Install dependencies
-        run: poetry install
+        run: uv sync --locked
 
       - name: Set up Scarb
         uses: software-mansion/setup-scarb@v1
 
       - name: Build with Scarb
-        run: |
-          cd ../pragma-oracle
-          scarb build
+        run: scarb build
+        working-directory: pragma-oracle
 
       - name: Run Starknet Devnet and scripts
-        env:
-          DEVNET_ACCOUNT_ADDRESS: "0x260a8311b4f1092db620b923e8d7d20e76dedcc615fb4b6fdf28315b81de201"
-          DEVNET_PRIVATE_KEY: "0xc10662b7b247c7cecf7e8a30726cff12"
         run: bash scripts/devnet.sh

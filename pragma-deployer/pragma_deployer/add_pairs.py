@@ -9,8 +9,10 @@ from pragma_sdk.common.types.currency import Currency
 from pragma_sdk.common.types.pair import Pair
 from pragma_utils.logger import setup_logging
 
-from pragma_deployer.utils.starknet import (
-    invoke,
+from pragma_deployer.utils.oracle import (
+    ensure_conversion_rate_pair,
+    ensure_currency,
+    ensure_pair,
 )
 
 logger = logging.getLogger(__name__)
@@ -194,68 +196,24 @@ PAIRS_TO_UPDATE = [
 
 async def main(port: Optional[int]) -> None:
     """
-    Main function to add currencies and pairs, and update pairs.
+    Register currencies and pairs that are missing on-chain; no-op when they exist.
     """
-    # Add Currencies
     for currency in CURRENCIES_TO_ADD:
-        tx_hash = await invoke(
-            "pragma_Oracle",
-            "add_currency",
-            currency.serialize(),
-            port=port,
-        )
-        await asyncio.sleep(1)
-        logger.info(f"Added currency {currency} with tx hash {hex(tx_hash)}")
+        await ensure_currency(currency, port=port)
 
-    # # Update Pairs
-    # for pair in PAIRS_TO_UPDATE:
-    #     tx_hash = await invoke(
-    #         "pragma_Oracle",
-    #         "update_pair",
-    #         [pair["pair_id"]] + pair["pair"],
-    #         port=port,
-    #     )
-    #     logger.info(f"Updated pair {pair} with tx hash {hex(tx_hash)}")
-
-    # # Add Pairs
     for pair in PAIRS_TO_ADD:
-        tx_hash = await invoke(
-            "pragma_Oracle",
-            "add_pair",
-            (pair.id, pair.quote_currency.id, pair.base_currency.id),
-            port=port,
+        await ensure_pair(
+            pair.id, pair.quote_currency.id, pair.base_currency.id, port=port
         )
-        await asyncio.sleep(1)
-        logger.info(f"Added pair {pair} with tx hash {hex(tx_hash)}")
 
-    # Update + register Conversion Rate Pairs.
-    # Pair was originally added with base/quote inverted; flip them and register.
-    # On-chain Pair struct: { id, quote_currency_id, base_currency_id }
-    # update_pair calldata: (pair_id, struct.id, struct.quote, struct.base)
+    # Conversion rate pairs have inverted base/quote semantics on-chain:
+    # id = "<TOKEN>/USD", quote_currency_id = <TOKEN>, base_currency_id = USD.
+    # The SDK Pair keeps the token in its base slot, hence the swap below.
     for pair in CONVERSION_RATE_PAIRS_TO_UPDATE:
-        token_currency = pair.base_currency  # token sits in SDK's base slot; should be on-chain quote
-        usd_currency = pair.quote_currency
-        tx_hash = await invoke(
-            "pragma_Oracle",
-            "update_pair",
-            (pair.id, pair.id, token_currency.id, usd_currency.id),
-            port=port,
-        )
-        await asyncio.sleep(1)
-        logger.info(
-            f"Updated conversion rate pair {pair} (quote={token_currency.id}, base={usd_currency.id}) with tx hash {hex(tx_hash)}"
-        )
-
-        tx_hash = await invoke(
-            "pragma_Oracle",
-            "add_registered_conversion_rate_pair",
-            [pair.id],
-            port=port,
-        )
-        await asyncio.sleep(1)
-        logger.info(
-            f"Registered conversion rate pair {pair} with tx hash {hex(tx_hash)}"
-        )
+        token_currency, usd_currency = pair.base_currency, pair.quote_currency
+        await ensure_currency(token_currency, port=port)
+        await ensure_pair(pair.id, token_currency.id, usd_currency.id, port=port)
+        await ensure_conversion_rate_pair(pair.id, port=port)
 
 
 @click.command()
