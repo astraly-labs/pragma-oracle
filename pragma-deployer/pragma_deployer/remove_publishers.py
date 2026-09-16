@@ -17,20 +17,12 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-PUBLISHERS = [
-    "SKYNET_TRADING",
-    "FOURLEAF",
-    "NETHERMIND",
-    "FLOWDESK",
-    "CRYPTOMENTUM",
-]
 
-
-async def main(port: Optional[int]) -> None:
+async def main(publishers: tuple[str, ...], port: Optional[int]) -> None:
     """
     Main function to remove publishers from the Publisher Registry.
     """
-    for publisher in PUBLISHERS:
+    for publisher in publishers:
         await invoke(
             "pragma_PublisherRegistry",
             "remove_publisher",
@@ -41,6 +33,14 @@ async def main(port: Optional[int]) -> None:
 
 
 @click.command()
+@click.option(
+    "-P",
+    "--publisher",
+    "publishers",
+    multiple=True,
+    required=True,
+    help="Publisher name to remove (repeatable).",
+)
 @click.option(
     "--log-level",
     type=click.Choice(
@@ -56,7 +56,9 @@ async def main(port: Optional[int]) -> None:
     required=False,
     help="Port number (required for Devnet network)",
 )
-def cli_entrypoint(log_level: str, port: Optional[int]) -> None:
+def cli_entrypoint(
+    publishers: tuple[str, ...], log_level: str, port: Optional[int]
+) -> None:
     """
     CLI entrypoint to remove publishers from the Publisher Registry.
     """
@@ -65,7 +67,7 @@ def cli_entrypoint(log_level: str, port: Optional[int]) -> None:
     if os.getenv("STARKNET_NETWORK") == "devnet" and port is None:
         raise click.UsageError('⛔ "--port" must be set for Devnet.')
 
-    asyncio.run(main(port))
+    asyncio.run(main(publishers, port))
 
 
 if __name__ == "__main__":
