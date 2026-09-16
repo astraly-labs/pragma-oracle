@@ -10,7 +10,7 @@ dependencies = [
     "case-converter>=1.1.0",
     "click>=8.1.0",
     "pragma-sdk==2.8.12",
-    "pragma-utils @ git+https://github.com/astraly-labs/pragma-sdk#subdirectory=pragma-utils",
+    "pragma-utils @ git+https://github.com/astraly-labs/pragma-sdk@1bd63a16c16f74988cc08040ea6984feb2584300#subdirectory=pragma-utils",
 ]
 
 [project.scripts]
@@ -34,6 +34,9 @@ dev = [
 
 [tool.uv]
 package = true
+# Pinned so uv.lock resolves identically on every machine and in CI,
+# independently of any user-level exclude-newer setting.
+exclude-newer = "2026-05-01T10:05:36Z"
 
 [tool.hatch.metadata]
 allow-direct-references = true
