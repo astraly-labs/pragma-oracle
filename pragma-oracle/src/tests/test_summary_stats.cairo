@@ -30,6 +30,9 @@ use starknet::testing::{
 use starknet::syscalls::deploy_syscall;
 use starknet::class_hash::{Felt252TryIntoClassHash};
 use starknet::Felt252TryIntoContractAddress;
+use pragma::operations::time_series::structs::TickElem;
+use pragma::operations::time_series::metrics::volatility;
+use cubit::f128::types::fixed::FixedTrait;
 
 const ONE_ETH: felt252 = 1000000000000000000;
 const CHAIN_ID: felt252 = 'SN_MAIN';
@@ -829,4 +832,68 @@ fn test_update_options_data_fail_with_invalid_proof() {
     let leaf = summary_stats.get_options_data_hash(update_data);
 
     summary_stats.update_options_data(merkle_proof.span(), update_data);
+}
+
+fn median_tick(oracle: IOracleABIDispatcher, index: u64) -> TickElem {
+    let cp = oracle.get_checkpoint(DataType::SpotEntry(2), index, AggregationMode::Median(()));
+    TickElem { tick: cp.timestamp, value: FixedTrait::new(cp.value, false) }
+}
+
+#[test]
+#[available_gas(200000000000)]
+fn test_summary_stats_volatility_ignores_checkpoint_flood() {
+    let (summary_stats, oracle) = setup();
+    // setup() leaves median checkpoints at indexes 0..4 (NOW, +101, +200, +300, +400)
+
+    // flood: 30 checkpoints 2s apart while the median is flat
+    let mut i: u64 = 1;
+    loop {
+        if (i > 30) {
+            break ();
+        }
+        starknet::testing::set_block_timestamp(NOW + 400 + 2 * i);
+        oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+        i += 1;
+    };
+
+    starknet::testing::set_block_timestamp(NOW + 500);
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: NOW + 500, source: 2, publisher: 1 },
+                    pair_id: 2,
+                    price: 5 * 1000000,
+                    volume: 0
+                }
+            )
+        );
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+    let (last_index, _) = oracle
+        .get_latest_checkpoint_index(DataType::SpotEntry(2), AggregationMode::Median(()));
+    assert(last_index == 35, 'flood not recorded');
+
+    // grid NOW, +100, ..., +500 picks indexes 0, 0 (dedup), 2, 3, 4 and the last one: no flood checkpoint
+    let mut expected = ArrayTrait::<TickElem>::new();
+    expected.append(median_tick(oracle, 0));
+    expected.append(median_tick(oracle, 2));
+    expected.append(median_tick(oracle, 3));
+    expected.append(median_tick(oracle, 4));
+    expected.append(median_tick(oracle, last_index));
+
+    let (vol, decimals) = summary_stats
+        .calculate_volatility(DataType::SpotEntry(2), NOW, 0, 5, AggregationMode::Median(()));
+    assert(decimals == 8, 'wrong decimals');
+    assert(vol == volatility(expected.span()), 'flood changed volatility');
+}
+
+#[test]
+#[available_gas(200000000000)]
+#[should_panic(expected: ('Not enough data', 'ENTRYPOINT_FAILED'))]
+fn test_summary_stats_volatility_fails_with_single_sample() {
+    let (summary_stats, oracle) = setup();
+    summary_stats
+        .calculate_volatility(
+            DataType::SpotEntry(2), NOW, NOW + 50, 1, AggregationMode::Median(())
+        );
 }
