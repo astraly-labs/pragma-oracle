@@ -241,44 +241,50 @@ mod SummaryStats {
             num_samples: u64,
             aggregation_mode: AggregationMode,
         ) -> (u128, u32) {
-            let oracle_address = self.oracle_address.read();
-
             assert(num_samples > 0, 'num_samples must be > 0');
             assert(num_samples <= 200, 'num_samples is too large');
+            let oracle_dispatcher = IOracleABIDispatcher {
+                contract_address: self.oracle_address.read()
+            };
 
-            let oracle_dispatcher = IOracleABIDispatcher { contract_address: oracle_address };
-            let (latest_checkpoint_index, _) = oracle_dispatcher
-                .get_latest_checkpoint_index(data_type, aggregation_mode);
-            let (_start_cp, start_index) = oracle_dispatcher
-                .get_last_checkpoint_before(data_type, start_tick, aggregation_mode);
-
-            let mut end_index = 0;
-            if (end_tick == 0) {
-                end_index = latest_checkpoint_index;
+            let end_ts = if (end_tick == 0) {
+                oracle_dispatcher.get_latest_checkpoint(data_type, aggregation_mode).timestamp
             } else {
-                let (_end_cp, _end_idx) = oracle_dispatcher
-                    .get_last_checkpoint_before(data_type, end_tick, aggregation_mode);
-                end_index = _end_idx;
-            }
-            assert(start_index < end_index, 'start_tick must be < end_tick');
-            assert(start_index != latest_checkpoint_index, 'Not enough data');
+                end_tick
+            };
+            assert(start_tick < end_ts, 'start_tick must be < end_tick');
+            let step = (end_ts - start_tick) / num_samples;
+            assert(step > 0, 'Window too small');
+
+            // Sample on a time grid (last checkpoint at or before each grid point) rather than by
+            // checkpoint index, so the density of the permissionless checkpoint history cannot
+            // change which checkpoints are sampled.
             let mut tick_arr = ArrayTrait::<TickElem>::new();
-            let skip_frequency = calculate_skip_frequency(end_index - start_index, num_samples);
-            let total_samples = (end_index - start_index) / skip_frequency;
-            let mut idx = 0;
+            let mut prev_index: u64 = 0;
+            let mut has_prev = false;
+            let mut k: u64 = 0;
             loop {
-                if (end_index <= idx * skip_frequency + start_index) {
+                if (k > num_samples) {
                     break ();
                 }
-                let cp = oracle_dispatcher
-                    .get_checkpoint(
-                        data_type, idx * skip_frequency + start_index, aggregation_mode
-                    );
-
-                let fixed_val = FixedTrait::new(cp.value, false);
-                tick_arr.append(TickElem { tick: cp.timestamp, value: fixed_val });
-                idx += 1;
+                let t = if (k == num_samples) {
+                    end_ts
+                } else {
+                    start_tick + k * step
+                };
+                let (cp, cp_index) = oracle_dispatcher
+                    .get_last_checkpoint_before(data_type, t, aggregation_mode);
+                if (!has_prev || cp_index != prev_index) {
+                    tick_arr
+                        .append(
+                            TickElem { tick: cp.timestamp, value: FixedTrait::new(cp.value, false) }
+                        );
+                    prev_index = cp_index;
+                    has_prev = true;
+                }
+                k += 1;
             };
+            assert(tick_arr.len() >= 2, 'Not enough data');
             //the number of decimals is hardcoded to 8 by the volatilty computation in metrics.cairo
             (volatility(tick_arr.span()), 8)
         }
@@ -341,24 +347,6 @@ mod SummaryStats {
     //
     // Views
     //
-
-    // @notice create the subdivision, e.g the number by which we need to increment the cursor in order to comply with the given num_samples
-    // @param total_samples: the total number of data available within the interval
-    // @param num_samples: the number of samples needed
-    // @returns the incrementation
-    fn calculate_skip_frequency(total_samples: u64, num_samples: u64) -> u64 {
-        let skip_frequency = total_samples / num_samples;
-        if (skip_frequency == 0) {
-            return 1;
-        }
-        let r = total_samples % num_samples;
-        if (r * 2 < num_samples) {
-            return skip_frequency;
-        } else {
-            return skip_frequency + 1;
-        }
-    }
-
 
     // @notice generate an array with incremented entries, complying with the calculate_skip_freqency specification
     // @param oracle_address: the oracle address, used to call functions within the oracle
