@@ -30,6 +30,11 @@ mod oracle {
 mod publisher_registry {
     mod publisher_registry;
 }
+mod validator_registry {
+    mod staking;
+    mod validator_registry;
+    mod mock_staking;
+}
 mod compute_engines {
     mod yield_curve {
         mod yield_curve;
@@ -55,5 +60,6 @@ mod tests {
     mod test_summary_stats;
     mod test_yield_curve;
     mod test_randomness;
+    mod test_validator_registry;
 }
 
