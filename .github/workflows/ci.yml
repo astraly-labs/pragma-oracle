@@ -13,3 +13,15 @@ jobs:
       - uses: software-mansion/setup-scarb@v1
       - run: scarb fmt --check
       - run: scarb test
+  validator-registry:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: validator-registry
+    steps:
+      - uses: actions/checkout@v3
+      - uses: software-mansion/setup-scarb@v1
+        with:
+          tool-versions: validator-registry/.tool-versions
+      - run: scarb fmt --check
+      - run: scarb test

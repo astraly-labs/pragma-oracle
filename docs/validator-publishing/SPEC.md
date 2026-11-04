@@ -81,7 +81,7 @@ Entries already stored stay in the pilot median for at most the Oracle's 1-hour 
 
 ### 4.1 ValidatorRegistry
 
-Source: `pragma-oracle/src/validator_registry/validator_registry.cairo`.
+Source: `validator-registry/src/validator_registry.cairo`, a standalone Scarb package built with Cairo 2.11 (Sierra 1.7.0). Starknet only accepts declaring Sierra 1.5.0 to 1.9.0; the `pragma-oracle` package (Cairo 2.2) produces Sierra 1.3.0.
 
 The Oracle-facing views are selector-compatible with `IPublisherRegistryABI`:
 
@@ -104,12 +104,23 @@ Staking dependency: only `get_staker_info_v1`, using the ABI deployed on mainnet
 
 ### 4.2 Pilot Oracle
 
-- Same class as the production Oracle, deployed with `ValidatorRegistry` as its publisher registry.
+- An instance of the Oracle class already declared and running in production on each network (mainnet `0x04d6370214accdaac8cc249db34a916c92464235b87cf03641a85889d2f6d8e7`, sepolia `0x069f78c514b85543dbbc056a539e6b007cc37300892889be9d7ce9d5d5a21efb`), deployed with `ValidatorRegistry` as its publisher registry. No Oracle class is declared for the pilot.
 - Pairs: assets that meet the four-source rule of section B, starting with BTC/USD, ETH/USD, STRK/USD, USDC/USD and USDT/USD.
 - Allowed sources: market venues only, so source overlap between operators is measurable and aggregators are not counted as markets (section B): BINANCE, BITGET, BITSTAMP, BYBIT, GATEIO, HUOBI, KUCOIN, LBANK, OKX, UPBIT, EKUBO. On 2026-11-03 this left 9 sources for BTC/USD, 10 for ETH/USD, 8 for STRK/USD, 9 for USDC/USD and 5 for USDT/USD.
 - Initial `min_self_stake`: 20,000 STRK (the protocol minimum).
 
-### 4.3 Admin
+### 4.3 Deployments
+
+Script: `pragma-deployer/scripts/deploy_validator_pilot.py`. It writes `deployments/<network>/validator_pilot.json`. On devnet it also replays the registration flow end to end against the real Oracle class and a mock staking contract.
+
+Sepolia, deployed on 2026-11-04:
+
+- ValidatorRegistry: `0x056f2c0121bbd89983de8e6a300966115c7b7692a1ba38546d6cc2036b92ab58` (class `0x219b8602ef9523f41998b9281c6414a757918716b61fdf9d24072873349d8c0`)
+- Pilot Oracle: `0x0417c6079b630414c223b2567c3d786c2abe9fa189e11c8cb3455f602044f658`
+- Admin: `0x008ab21e4798ca47b17a86b0f68c4051768d2855691b59b5d515643d5a55eaa4`
+- Minimum self-stake: 1 STRK, the Sepolia protocol minimum
+
+### 4.4 Admin
 
 The pilot contracts are administered by a Pragma account, whose address is published, so the pilot can be suspended or paused quickly. Pilot admin powers are limited to sources, minimum self-stake, suspension and pause. Admin cannot bind a signer for a validator. The production Oracle and PublisherRegistry keep the 3-of-4 multisig of section A.
 
@@ -260,7 +271,7 @@ Confirmed on 2026-11-03:
 
 1. A separate pilot Oracle instance (unmodified production class) on top of the ValidatorRegistry.
 2. On-chain publishing during the pilot, to measure real gas costs and on-chain behaviour.
-3. Pilot admin: a Pragma account limited to the powers in 4.3.
+3. Pilot admin: a Pragma account limited to the powers in 4.4.
 4. `min_self_stake`: 20,000 STRK, the protocol minimum.
 5. Cap of the capped stake-weighted series: 5% per operator.
 6. Pilot gas: a capped reimbursement from the section D operator budget, subject to Foundation approval.
