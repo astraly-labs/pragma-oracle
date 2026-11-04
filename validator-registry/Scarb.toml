@@ -1,0 +1,17 @@
+[package]
+name = "pragma_validator_registry"
+version = "0.1.0"
+edition = "2024_07"
+
+# Compiled with a recent Cairo: Starknet only accepts declaring Sierra 1.5.0 to 1.9.0,
+# and the pragma-oracle package (Cairo 2.2) produces Sierra 1.3.0.
+
+[dependencies]
+starknet = "2.11.4"
+
+[dev-dependencies]
+cairo_test = "2.11.4"
+
+[[target.starknet-contract]]
+sierra = true
+casm = true

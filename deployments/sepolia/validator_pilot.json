@@ -1,0 +1,35 @@
+{
+  "admin": "0x8ab21e4798ca47b17a86b0f68c4051768d2855691b59b5d515643d5a55eaa4",
+  "staking": "0x3745ab04a431fc02871a139be6b93d9260b0ff3e779ad9c8b377183b23109f1",
+  "min_self_stake": "1000000000000000000",
+  "allowed_sources": [
+    "BINANCE",
+    "BITGET",
+    "BITSTAMP",
+    "BYBIT",
+    "GATEIO",
+    "HUOBI",
+    "KUCOIN",
+    "LBANK",
+    "OKX",
+    "UPBIT",
+    "EKUBO"
+  ],
+  "pairs": [
+    "BTC/USD",
+    "ETH/USD",
+    "STRK/USD",
+    "USDC/USD",
+    "USDT/USD"
+  ],
+  "pragma_ValidatorRegistry": {
+    "address": "0x56f2c0121bbd89983de8e6a300966115c7b7692a1ba38546d6cc2036b92ab58",
+    "tx": "0x1ad536784a976e7ff56eda1ea7a3d14c57278470d8e54a8e7770de5fa754c28",
+    "class_hash": "0x219b8602ef9523f41998b9281c6414a757918716b61fdf9d24072873349d8c0"
+  },
+  "pragma_Oracle": {
+    "address": "0x417c6079b630414c223b2567c3d786c2abe9fa189e11c8cb3455f602044f658",
+    "tx": "0x25a7391efa38d82d66fff9feeb1205807f0b30425c11edb342d1437793a03a3",
+    "class_hash": "0x69f78c514b85543dbbc056a539e6b007cc37300892889be9d7ce9d5d5a21efb"
+  }
+}
