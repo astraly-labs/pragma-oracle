@@ -158,7 +158,9 @@ async def declare(account: Account, name: str, hash_method) -> int:
     )
     response = await account.client.declare(transaction=tx)
     await account.client.wait_for_tx(response.transaction_hash)
-    print(f"  {name}: declared {hex(response.class_hash)} (tx {hex(response.transaction_hash)})")
+    print(
+        f"  {name}: declared {hex(response.class_hash)} (tx {hex(response.transaction_hash)})"
+    )
     return response.class_hash
 
 
@@ -176,24 +178,49 @@ async def deploy(account: Account, name: str, class_hash: int, args: list) -> di
     await result.wait_for_acceptance()
     address = result.deployed_contract.address
     print(f"  {name}: deployed at {hex(address)} (tx {hex(result.hash)})")
-    return {"address": hex(address), "tx": hex(result.hash), "class_hash": hex(class_hash)}
+    return {
+        "address": hex(address),
+        "tx": hex(result.hash),
+        "class_hash": hex(class_hash),
+    }
 
 
-async def read(client: FullNodeClient, address: int, entrypoint: str, calldata=()) -> list:
+async def read(
+    client: FullNodeClient, address: int, entrypoint: str, calldata=()
+) -> list:
     return await client.call_contract(
-        Call(to_addr=address, selector=get_selector_from_name(entrypoint), calldata=list(calldata)),
+        Call(
+            to_addr=address,
+            selector=get_selector_from_name(entrypoint),
+            calldata=list(calldata),
+        ),
         block_number="latest",
     )
 
 
-async def verify(client: FullNodeClient, registry: int, oracle: int, admin: int, staking: int, network: str) -> None:
+async def verify(
+    client: FullNodeClient,
+    registry: int,
+    oracle: int,
+    admin: int,
+    staking: int,
+    network: str,
+) -> None:
     sources = await read(client, registry, "get_allowed_sources")
     checks = {
-        "registry admin": (await read(client, registry, "get_admin_address"))[0] == admin,
-        "registry staking": (await read(client, registry, "get_staking_contract"))[0] == staking,
-        "registry min self-stake": (await read(client, registry, "get_min_self_stake"))[0] == MIN_SELF_STAKE[network],
+        "registry admin": (await read(client, registry, "get_admin_address"))[0]
+        == admin,
+        "registry staking": (await read(client, registry, "get_staking_contract"))[0]
+        == staking,
+        "registry min self-stake": (await read(client, registry, "get_min_self_stake"))[
+            0
+        ]
+        == MIN_SELF_STAKE[network],
         "registry sources": sources[1:] == [str_to_felt(s) for s in ALLOWED_SOURCES],
-        "oracle registry": (await read(client, oracle, "get_publisher_registry_address"))[0] == registry,
+        "oracle registry": (
+            await read(client, oracle, "get_publisher_registry_address")
+        )[0]
+        == registry,
     }
     for pair in PAIRS:
         (pair_id, *_rest) = await read(client, oracle, "get_pair", [str_to_felt(pair)])
@@ -206,13 +233,17 @@ async def verify(client: FullNodeClient, registry: int, oracle: int, admin: int,
 
 async def execute(account: Account, to: int, entrypoint: str, calldata: list) -> None:
     response = await account.execute_v3(
-        calls=Call(to_addr=to, selector=get_selector_from_name(entrypoint), calldata=calldata),
+        calls=Call(
+            to_addr=to, selector=get_selector_from_name(entrypoint), calldata=calldata
+        ),
         auto_estimate=True,
     )
     await account.client.wait_for_tx(response.transaction_hash)
 
 
-async def expect_revert(account: Account, to: int, entrypoint: str, calldata: list, reason: str) -> None:
+async def expect_revert(
+    account: Account, to: int, entrypoint: str, calldata: list, reason: str
+) -> None:
     try:
         await execute(account, to, entrypoint, calldata)
     except Exception as e:
@@ -223,12 +254,23 @@ async def expect_revert(account: Account, to: int, entrypoint: str, calldata: li
 
 
 def devnet_accounts(rpc: str) -> list:
-    body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "devnet_getPredeployedAccounts", "params": {}})
-    request = urllib.request.Request(rpc, body.encode(), {"content-type": "application/json"})
+    body = json.dumps(
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "devnet_getPredeployedAccounts",
+            "params": {},
+        }
+    )
+    request = urllib.request.Request(
+        rpc, body.encode(), {"content-type": "application/json"}
+    )
     return json.load(urllib.request.urlopen(request))["result"]
 
 
-async def devnet_e2e(rpc: str, client: FullNodeClient, registry: int, oracle: int, staking: int) -> None:
+async def devnet_e2e(
+    rpc: str, client: FullNodeClient, registry: int, oracle: int, staking: int
+) -> None:
     """The registration flow against the real Oracle class, on devnet only."""
     accounts = devnet_accounts(rpc)
     if len(accounts) < 3:
@@ -245,7 +287,9 @@ async def devnet_e2e(rpc: str, client: FullNodeClient, registry: int, oracle: in
         # PossibleEntries::Spot(SpotEntry { base: { timestamp, source, publisher }, price, pair_id, volume })
         return [0, timestamp, source, publisher, 65_000 * 10**8, btc_usd, 0]
 
-    await execute(admin, staking, "set_staker", [staker.address, reward, operational, 10 * 10**18])
+    await execute(
+        admin, staking, "set_staker", [staker.address, reward, operational, 10 * 10**18]
+    )
     await execute(signer, registry, "declare_oracle_signer", [staker.address])
     await execute(staker, registry, "bind_oracle_signer", [signer.address])
     (status,) = await read(client, registry, "get_publisher_status", [staker.address])
@@ -253,15 +297,35 @@ async def devnet_e2e(rpc: str, client: FullNodeClient, registry: int, oracle: in
 
     now = (await client.get_block(block_number="latest")).timestamp
     await execute(signer, oracle, "publish_data", spot(binance, now))
-    entry = await read(client, oracle, "get_data_entry", [0, btc_usd, binance, publisher])
+    entry = await read(
+        client, oracle, "get_data_entry", [0, btc_usd, binance, publisher]
+    )
     checks["oracle accepts the bound validator"] = 65_000 * 10**8 in entry
-    await expect_revert(signer, oracle, "publish_data", spot(str_to_felt("PYTH"), now), "Not allowed for source")
+    await expect_revert(
+        signer,
+        oracle,
+        "publish_data",
+        spot(str_to_felt("PYTH"), now),
+        "Not allowed for source",
+    )
     checks["oracle rejects a source outside the whitelist"] = True
-    await expect_revert(staker, oracle, "publish_data", spot(binance, now + 1), "Transaction not from publisher")
+    await expect_revert(
+        staker,
+        oracle,
+        "publish_data",
+        spot(binance, now + 1),
+        "Transaction not from publisher",
+    )
     checks["oracle rejects the staker key"] = True
 
     await execute(admin, staking, "set_unstake_time", [staker.address, now + 300])
-    await expect_revert(signer, oracle, "publish_data", spot(binance, now + 2), "Publisher is not registered")
+    await expect_revert(
+        signer,
+        oracle,
+        "publish_data",
+        spot(binance, now + 2),
+        "Publisher is not registered",
+    )
     checks["oracle rejects an exiting validator"] = True
     await execute(admin, registry, "prune", [staker.address])
     (bound,) = await read(client, registry, "get_oracle_signer", [staker.address])
@@ -296,9 +360,16 @@ async def main(args: argparse.Namespace) -> None:
     if chain_id != CHAINS[args.network].value:
         sys.exit(f"{rpc} is on chain {hex(chain_id)}, not {args.network}")
     admin = int(args.account, 16)
-    account = Account(address=admin, client=client, key_pair=load_key(args.keystore), chain=CHAINS[args.network])
+    account = Account(
+        address=admin,
+        client=client,
+        key_pair=load_key(args.keystore),
+        chain=CHAINS[args.network],
+    )
     block = await client.get_block(block_number="latest")
-    hash_method = get_casm_hash_method_for_starknet_version(semver.Version.parse(block.starknet_version))
+    hash_method = get_casm_hash_method_for_starknet_version(
+        semver.Version.parse(block.starknet_version)
+    )
     print(f"{args.network} (Starknet {block.starknet_version}), admin {hex(admin)}")
 
     print("Declaring")
@@ -313,7 +384,9 @@ async def main(args: argparse.Namespace) -> None:
     print("Deploying")
     if staking is None:
         mock_class = await declare(account, "MockStaking", hash_method)
-        staking = int((await deploy(account, "MockStaking", mock_class, []))["address"], 16)
+        staking = int(
+            (await deploy(account, "MockStaking", mock_class, []))["address"], 16
+        )
     registry = await deploy(
         account, "ValidatorRegistry", registry_class,
         [admin, staking, MIN_SELF_STAKE[args.network], [str_to_felt(s) for s in ALLOWED_SOURCES]],
@@ -324,10 +397,23 @@ async def main(args: argparse.Namespace) -> None:
     )  # fmt: skip
 
     print("Verifying")
-    await verify(client, int(registry["address"], 16), int(oracle["address"], 16), admin, staking, args.network)
+    await verify(
+        client,
+        int(registry["address"], 16),
+        int(oracle["address"], 16),
+        admin,
+        staking,
+        args.network,
+    )
     if args.network == "devnet":
         print("End-to-end (devnet)")
-        await devnet_e2e(rpc, client, int(registry["address"], 16), int(oracle["address"], 16), staking)
+        await devnet_e2e(
+            rpc,
+            client,
+            int(registry["address"], 16),
+            int(oracle["address"], 16),
+            staking,
+        )
 
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(
@@ -354,6 +440,8 @@ if __name__ == "__main__":
     parser.add_argument("--account", required=True, help="admin account address")
     parser.add_argument("--keystore", help="starkli keystore of the admin account")
     parser.add_argument("--rpc-url", help="JSON-RPC 0.10 endpoint")
-    parser.add_argument("--staking", help="staking contract (devnet: a mock is deployed)")
+    parser.add_argument(
+        "--staking", help="staking contract (devnet: a mock is deployed)"
+    )
     parser.add_argument("--force", action="store_true")
     asyncio.run(main(parser.parse_args()))
