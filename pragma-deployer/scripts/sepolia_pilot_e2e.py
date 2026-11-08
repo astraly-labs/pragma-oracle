@@ -21,6 +21,17 @@ and the exit. State and test keys live in ~/.pragma-pilot-e2e (chmod 700).
     uv run $S exit            # unstake intent: the registry revokes at once
     uv run $S withdraw        # after the 5 min exit window
     uv run $S refund --funder 0x... --funder-keystore ...   # STRK back to the funder
+
+Source-quorum failure, read as a consumer with `pragma-validator feed-status`
+(VALID needs 4 markets with a fresh entry from ACTIVE operators):
+
+    pragma-validator run ...                          # until the first push, then stop it
+    pragma-validator feed-status --network sepolia --rpc-url ...    # VALID
+    uv run $S sources --admin 0x... --admin-keystore ... --only BINANCE,OKX,BYBIT
+    pragma-validator feed-status ...                  # WITHHELD, 3 markets
+    uv run $S sources --admin 0x... --admin-keystore ...            # restore the list
+    pragma-validator feed-status ...                  # VALID again
+    uv run $S revoke && pragma-validator feed-status ...            # STALE at once
 """
 
 import argparse
@@ -115,7 +126,7 @@ def funder_account(
     client: FullNodeClient, address: str, keystore: str | None
 ) -> Account:
     if keystore:
-        password = getpass.getpass("Funder keystore password: ").encode()
+        password = getpass.getpass("Keystore password: ").encode()
         key_pair = KeyPair.from_keystore(os.path.expanduser(keystore), password)  # type: ignore[arg-type]
     elif os.getenv("PRIVATE_KEY"):
         key_pair = KeyPair.from_private_key(int(os.environ["PRIVATE_KEY"], 16))
@@ -262,6 +273,21 @@ async def cmd_status(args, client: FullNodeClient) -> None:
         print(f"  {pair:9} {', '.join(ages) or 'none'}")
 
 
+async def cmd_sources(args, client: FullNodeClient) -> None:
+    """Admin call: restrict the allowed sources, or restore the deployed list."""
+    sources = args.only.split(",") if args.only else PILOT["allowed_sources"]
+    admin = funder_account(client, args.admin, args.admin_keystore)
+    print(f"Admin sets the allowed sources: {', '.join(sources)}")
+    await send(
+        admin,
+        call(
+            REGISTRY,
+            "set_allowed_sources",
+            [len(sources), *(str_to_felt(source) for source in sources)],
+        ),
+    )
+
+
 async def cmd_exit(args, client: FullNodeClient) -> None:
     staker = test_account(client, load_state()["staker"])
     print("Staker sends its unstake intent")
@@ -293,6 +319,7 @@ COMMANDS = {
     "bind": cmd_bind,
     "revoke": cmd_revoke,
     "status": cmd_status,
+    "sources": cmd_sources,
     "exit": cmd_exit,
     "withdraw": cmd_withdraw,
     "refund": cmd_refund,
@@ -315,6 +342,10 @@ if __name__ == "__main__":
         if name == "setup":
             p.add_argument("--funder-keystore", help="or PRIVATE_KEY")
     sub.add_parser("bind").add_argument("--signer", choices=["a", "b"], required=True)
+    p = sub.add_parser("sources")
+    p.add_argument("--admin", required=True, help="pilot admin address")
+    p.add_argument("--admin-keystore", help="or PRIVATE_KEY")
+    p.add_argument("--only", help="comma-separated sources; default: the deployed list")
     for name in ("revoke", "status", "exit", "withdraw"):
         sub.add_parser(name)
     asyncio.run(main(parser.parse_args()))
