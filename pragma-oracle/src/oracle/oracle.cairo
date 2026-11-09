@@ -78,6 +78,7 @@ trait IOracleABI<TContractState> {
         aggregation_mode: AggregationMode
     ) -> Checkpoint;
     fn get_sources_threshold(self: @TContractState,) -> u32;
+    fn get_checkpoint_min_interval(self: @TContractState) -> u64;
     fn get_admin_address(self: @TContractState,) -> ContractAddress;
     fn get_all_publishers(self: @TContractState, data_type: DataType) -> Span<felt252>;
     fn get_all_sources(self: @TContractState, data_type: DataType) -> Span<felt252>;
@@ -102,6 +103,7 @@ trait IOracleABI<TContractState> {
     );
     fn remove_source(ref self: TContractState, source: felt252, data_type: DataType) -> bool;
     fn set_sources_threshold(ref self: TContractState, threshold: u32);
+    fn set_checkpoint_min_interval(ref self: TContractState, interval: u64);
     fn register_tokenized_vault(
         ref self: TContractState,
         token: felt252,
@@ -207,6 +209,8 @@ mod Oracle {
     use option::OptionTrait;
     const BACKWARD_TIMESTAMP_BUFFER: u64 = 3600; // 1 hour
     const FORWARD_TIMESTAMP_BUFFER: u64 = 420; // 7 minutes
+    const MIN_CHECKPOINT_INTERVAL: u64 =
+        2; // floor, matches the historical one-checkpoint-per-block rule
     const ONE_E18: u256 = 1000000000000000000;
 
 
@@ -246,6 +250,7 @@ mod Oracle {
         //oracle_checkpoint_index, legacyMap between (pair_id, (SPOT/FUTURES/OPTIONS), expiration_timestamp (0 for SPOT)) and the index of the last checkpoint
         oracle_checkpoint_index: LegacyMap::<(felt252, felt252, u64, u8), u64>,
         oracle_sources_threshold_storage: u32,
+        oracle_checkpoint_min_interval_storage: u64,
         // registry containing registered tokenized vaults and the corresponding address (BACKWARD COMPATIBILITY)
         tokenized_vault: LegacyMap<(felt252, felt252), ContractAddress>,
         // registry containing the conversion rate compatible currencies
@@ -947,6 +952,11 @@ mod Oracle {
 
         fn get_sources_threshold(self: @ContractState) -> u32 {
             self.oracle_sources_threshold_storage.read()
+        }
+
+        // @notice minimum number of seconds between two checkpoints of the same data type and aggregation mode
+        fn get_checkpoint_min_interval(self: @ContractState) -> u64 {
+            max(self.oracle_checkpoint_min_interval_storage.read(), MIN_CHECKPOINT_INTERVAL)
         }
         // @notice get the oracle admin address
         // @returns the ContractAddress of the admin
@@ -1869,9 +1879,10 @@ mod Oracle {
                 @self, data_type, aggregation_mode
             );
             let timestamp: u64 = get_block_timestamp();
-            let next_checkpoint_timestamp = cur_checkpoint.timestamp + 1;
+            let next_checkpoint_timestamp = cur_checkpoint.timestamp
+                + IOracleABI::get_checkpoint_min_interval(@self);
             if (sources_threshold < priceResponse.num_sources_aggregated
-                && (next_checkpoint_timestamp < timestamp)) {
+                && (next_checkpoint_timestamp <= timestamp)) {
                 let new_checkpoint = Checkpoint {
                     timestamp: timestamp,
                     value: priceResponse.price,
@@ -1992,6 +2003,13 @@ mod Oracle {
         fn set_sources_threshold(ref self: ContractState, threshold: u32) {
             OracleInternal::assert_only_admin();
             self.oracle_sources_threshold_storage.write(threshold);
+        }
+
+        // @notice set the minimum interval between two checkpoints, bounding the checkpoint density anyone can create
+        // @param interval: the new minimum interval in seconds (floored at MIN_CHECKPOINT_INTERVAL)
+        fn set_checkpoint_min_interval(ref self: ContractState, interval: u64) {
+            OracleInternal::assert_only_admin();
+            self.oracle_checkpoint_min_interval_storage.write(interval);
         }
 
         // @notice upgrade the contract implementation, call to the contract Upgradeable
