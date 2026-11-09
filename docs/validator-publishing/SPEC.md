@@ -175,11 +175,14 @@ An open-source package in `astraly-labs/pragma-sdk` that reuses the price-pusher
 
 - The publish decision is made against the operator's own last entries (`get_data_entry(source, publisher)`), not the aggregated median. Otherwise operators would never push while other publishers keep the feed fresh.
 - All Starknet reads, including on-chain fetchers, go through the operator's node. There is no silent fallback to public RPCs.
-- Section B rules apply as in production:
-  - at least four independent market sources per input;
-  - quotes are converted with a measured USDT/USD rate;
-  - values are withheld below quorum;
-  - data is flagged stale.
+- Section B rules apply where the agreement puts them. The quorum counts underlying markets, not publisher processes, so it is applied to the feed, not to each publisher:
+  - **In the client.** Quotes are converted with a measured USDT/USD rate: 4 reference venues, the last verified rate reused for 300 s at most, then converted pairs are not published. The client publishes every allowed source that answered and never withholds a pair below four sources. Every operator runs the same fetchers, so a source outage hits all of them at once: withholding per publisher would turn it into a stale feed. `validator_publisher_pair_sources` reports the coverage.
+  - **On the read path** (`pragma-validator feed-status`, the comparator, any consumer of the pilot):
+    - only entries of `ACTIVE` operators, on sources the registry allows, count;
+    - a value is given only when at least four markets hold an entry younger than 40 min, across operators. Below that it is `WITHHELD`;
+    - with no fresh entry the feed is `STALE`;
+    - publisher and market counts are reported separately.
+  - The pilot Oracle runs the production class unchanged. It returns a median whatever the number of sources, and checks the registry only when an entry is published: without the read path rules, a revoked operator's last entries would stay in its median for up to an hour.
 - Graceful shutdown on SIGTERM. Liveness reflects the poll loop and readiness reflects pushes.
 
 ### 5.6 Telemetry
@@ -191,7 +194,7 @@ Prometheus metrics:
 - `validator_publisher_registry_status`;
 - `validator_publisher_signer_balance_strk`;
 - `validator_publisher_tx_failures_total{reason}`;
-- `validator_publisher_quorum_withheld_total{pair}`.
+- `validator_publisher_pair_sources{pair}`: allowed sources that answered in the last poll.
 
 Each release ships an `alerts.rules.yml` with the production pusher alerts.
 
@@ -215,9 +218,9 @@ Pragma collects no telemetry by default. The pilot asks operators to expose buil
 
 The comparator reads every validator entry from the pilot Oracle and, once per staking epoch, a stake snapshot from the staking contract (`get_staker_info_v1`, `staker_pool_info`, `get_current_total_staking_power`).
 
-For each pair and interval it computes:
+Every series applies the read path rules of §5.5. For each pair and interval it computes:
 
-- **Operator-based**: one vote per active operator. The median of each operator's own source median, with a minimum operator quorum.
+- **Operator-based**: one vote per active operator. The median of each operator's own source median, with a minimum operator quorum. An operator votes in an interval only with four fresh markets of its own.
 - **Stake-weighted**: a weighted median using protocol staking power, `w = 0.75 * strk_i / STRK + 0.25 * btc_i / BTC`. BTC token decimals are normalized; SolvBTC uses 18 decimals.
 - **Capped stake-weighted**: the same, with each operator capped (5% proposed). Today 3 operators hold more than a third of staking power and 4 hold more than half, so an uncapped stake-weighted median is effectively set by about 4 entities.
 
