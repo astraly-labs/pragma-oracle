@@ -68,7 +68,12 @@ CHAIN = StarknetChainId.SEPOLIA
 STATE_DIR = Path(os.getenv("PILOT_E2E_DIR", Path.home() / ".pragma-pilot-e2e"))
 STATE = STATE_DIR / "state.json"
 STRK_UNIT = 10**18
-FUNDING = {"staker": 3 * STRK_UNIT, "a": 20 * STRK_UNIT, "b": 10 * STRK_UNIT}
+# PILOT_E2E_SIGNER_A_STRK funds signer a for a long run (~3 STRK per push of the 5 pairs)
+FUNDING = {
+    "staker": 3 * STRK_UNIT,
+    "a": int(float(os.getenv("PILOT_E2E_SIGNER_A_STRK", "20")) * STRK_UNIT),
+    "b": 10 * STRK_UNIT,
+}
 STAKE = 1 * STRK_UNIT
 
 
