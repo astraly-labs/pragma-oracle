@@ -1316,6 +1316,7 @@ fn test_publishing_data_for_less_sources_than_initially_planned() {
     let admin = contract_address_const::<0x123456789>();
     set_contract_address(admin);
     publisher_registry.add_source_for_publisher(1, 3);
+    set_block_timestamp(BLOCK_TIMESTAMP + 10000);
     oracle
         .publish_data(
             PossibleEntries::Spot(
@@ -1329,7 +1330,6 @@ fn test_publishing_data_for_less_sources_than_initially_planned() {
         );
     let data_sources = oracle.get_all_sources(DataType::SpotEntry(2));
     assert(data_sources.len() == 3, 'wrong number of sources');
-    set_block_timestamp(BLOCK_TIMESTAMP + 10000);
     let entries = oracle.get_data_entries(DataType::SpotEntry(2));
     assert(entries.len() == 1, 'wrong number of entries');
     let data = oracle.get_data(DataType::SpotEntry(2), AggregationMode::Median(()));
@@ -1868,4 +1868,78 @@ fn test_get_conversion_rate_price_as_feed() {
         res_btc.price == (4500000000 * 1002465544733197129) / 1000000000000000000,
         'TBTC computation failed'
     );
+}
+
+fn publish_spot_on_fresh_source(
+    publisher_registry: IPublisherRegistryABIDispatcher,
+    oracle: IOracleABIDispatcher,
+    timestamp: u64
+) {
+    publisher_registry.add_source_for_publisher(1, 3);
+    oracle
+        .publish_data(
+            PossibleEntries::Spot(
+                SpotEntry {
+                    base: BaseEntry { timestamp: timestamp, source: 3, publisher: 1 },
+                    pair_id: 2,
+                    price: 7 * 1000000,
+                    volume: 150,
+                }
+            )
+        );
+}
+
+#[test]
+#[available_gas(2000000000)]
+#[should_panic(expected: ('Timestamp is in the future', 'ENTRYPOINT_FAILED'))]
+fn test_first_publish_rejects_future_timestamp() {
+    let (publisher_registry, oracle) = setup();
+    publish_spot_on_fresh_source(publisher_registry, oracle, 4294967295);
+}
+
+#[test]
+#[available_gas(2000000000)]
+#[should_panic(expected: ('Timestamp cannot be 0', 'ENTRYPOINT_FAILED'))]
+fn test_first_publish_rejects_zero_timestamp() {
+    let (publisher_registry, oracle) = setup();
+    publish_spot_on_fresh_source(publisher_registry, oracle, 0);
+}
+
+#[test]
+#[available_gas(2000000000)]
+fn test_first_publish_accepts_forward_buffer_bound() {
+    let (publisher_registry, oracle) = setup();
+    publish_spot_on_fresh_source(publisher_registry, oracle, BLOCK_TIMESTAMP + 420);
+    let entry = oracle.get_data_entry(DataType::SpotEntry(2), 3, 1);
+    match entry {
+        PossibleEntries::Spot(spot) => {
+            assert(spot.base.timestamp == BLOCK_TIMESTAMP + 420, 'wrong timestamp');
+        },
+        PossibleEntries::Future(_) => {
+            assert(false, 'wrong entry type');
+        },
+        PossibleEntries::Generic(_) => {
+            assert(false, 'wrong entry type');
+        },
+    }
+}
+
+#[test]
+#[available_gas(2000000000)]
+#[should_panic(expected: ('Timestamp is in the future', 'ENTRYPOINT_FAILED'))]
+fn test_first_publish_future_entry_rejects_future_timestamp() {
+    let (publisher_registry, oracle) = setup();
+    publisher_registry.add_source_for_publisher(1, 3);
+    oracle
+        .publish_data(
+            PossibleEntries::Future(
+                FutureEntry {
+                    base: BaseEntry { timestamp: 4294967295, source: 3, publisher: 1 },
+                    pair_id: 2,
+                    price: 2 * 1000000,
+                    volume: 40,
+                    expiration_timestamp: 11111110
+                }
+            )
+        );
 }

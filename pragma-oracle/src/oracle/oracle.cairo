@@ -1183,6 +1183,7 @@ mod Oracle {
             match new_entry {
                 PossibleEntries::Spot(spot_entry) => {
                     validate_sender_for_source(@self, spot_entry);
+                    validate_entry_timestamp_bounds(spot_entry);
                     let res = get_entry_storage(
                         @self,
                         spot_entry.pair_id,
@@ -1269,6 +1270,7 @@ mod Oracle {
                 },
                 PossibleEntries::Future(future_entry) => {
                     validate_sender_for_source(@self, future_entry);
+                    validate_entry_timestamp_bounds(future_entry);
                     let res = get_entry_storage(
                         @self,
                         future_entry.pair_id,
@@ -1405,6 +1407,7 @@ mod Oracle {
                 },
                 PossibleEntries::Generic(generic_entry) => {
                     validate_sender_for_source(@self, generic_entry);
+                    validate_entry_timestamp_bounds(generic_entry);
                     let res = get_generic_entry_storage(
                         @self,
                         generic_entry.key,
@@ -2123,6 +2126,19 @@ mod Oracle {
         assert(caller_address == publisher_address, 'Transaction not from publisher');
         assert(_can_publish_source == true, 'Not allowed for source');
         return ();
+    }
+
+    // @notice check the entry timestamp is non-zero and not in the future, on every publish path
+    // @param entry: the entry to be published
+    fn validate_entry_timestamp_bounds<T, impl THasBaseEntry: HasBaseEntry<T>, impl TDrop: Drop<T>>(
+        entry: T
+    ) {
+        let timestamp = entry.get_base_timestamp();
+        assert(timestamp != 0, 'Timestamp cannot be 0');
+        assert(
+            timestamp <= get_block_timestamp() + FORWARD_TIMESTAMP_BUFFER,
+            'Timestamp is in the future'
+        );
     }
 
     // @notice retrieve the latest entry timestamp for a given data type and and sources 
