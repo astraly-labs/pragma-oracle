@@ -106,7 +106,7 @@ Staking dependency: only `get_staker_info_v1`, using the ABI deployed on mainnet
 
 - An instance of the Oracle class already declared and running in production on each network (mainnet `0x04d6370214accdaac8cc249db34a916c92464235b87cf03641a85889d2f6d8e7`, sepolia `0x069f78c514b85543dbbc056a539e6b007cc37300892889be9d7ce9d5d5a21efb`), deployed with `ValidatorRegistry` as its publisher registry. No Oracle class is declared for the pilot.
 - Pairs: assets that meet the four-source rule of section B, starting with BTC/USD, ETH/USD, STRK/USD, USDC/USD and USDT/USD.
-- Allowed sources: market venues only, so source overlap between operators is measurable and aggregators are not counted as markets (section B): BINANCE, BITGET, BITSTAMP, BYBIT, GATEIO, HUOBI, KUCOIN, LBANK, OKX, UPBIT, EKUBO. On 2026-11-03 this left 9 sources for BTC/USD, 10 for ETH/USD, 8 for STRK/USD, 9 for USDC/USD and 5 for USDT/USD.
+- Allowed sources: market venues only, so source overlap between operators is measurable and aggregators are not counted as markets (section B): BINANCE, BITGET, BITSTAMP, BYBIT, GATEIO, HUOBI, KUCOIN, LBANK, OKX, UPBIT, EKUBO. On 2026-11-03 this left 9 sources for BTC/USD, 10 for ETH/USD, 8 for STRK/USD, 9 for USDC/USD and 5 for USDT/USD. The registry allow-list is shared by every pair; the read path also pins, per release, the sources that quote each pair (`PAIR_SOURCES` in the client, §5.5).
 - Initial `min_self_stake`: 20,000 STRK (the protocol minimum).
 
 ### 4.3 Deployments
@@ -178,10 +178,11 @@ An open-source package in `astraly-labs/pragma-sdk` that reuses the price-pusher
 - Section B rules apply where the agreement puts them. The quorum counts underlying markets, not publisher processes, so it is applied to the feed, not to each publisher:
   - **In the client.** Quotes are converted with a measured USDT/USD rate: 4 reference venues, the last verified rate reused for 300 s at most, then converted pairs are not published. The client publishes every allowed source that answered and never withholds a pair below four sources. Every operator runs the same fetchers, so a source outage hits all of them at once: withholding per publisher would turn it into a stale feed. `validator_publisher_pair_sources` reports the coverage.
   - **On the read path** (`pragma-validator feed-status`, the comparator, any consumer of the pilot):
-    - only entries of `ACTIVE` operators, on sources the registry allows, count;
-    - a value is given only when at least four markets hold an entry younger than 40 min, across operators. Below that it is `WITHHELD`;
+    - only entries of `ACTIVE` operators, on sources the registry allows and that quote the pair (`PAIR_SOURCES`), count;
+    - the source of an entry is a label its operator writes, which nothing on-chain verifies. A market counts only when a strict majority of the operators with an entry younger than 40 min on the pair publish it;
+    - a value is given only with at least 3 such operators and 4 such markets. Below that it is `WITHHELD`, with the reason (`operators` or `markets`);
     - with no fresh entry the feed is `STALE`;
-    - publisher and market counts are reported separately.
+    - operator and market counts are reported separately, with the markets dropped for lack of a majority.
   - The pilot Oracle runs the production class unchanged. It returns a median whatever the number of sources, and checks the registry only when an entry is published: without the read path rules, a revoked operator's last entries would stay in its median for up to an hour.
 - Graceful shutdown on SIGTERM. Liveness reflects the poll loop and readiness reflects pushes.
 
@@ -194,7 +195,7 @@ Prometheus metrics:
 - `validator_publisher_registry_status`;
 - `validator_publisher_signer_balance_strk`;
 - `validator_publisher_tx_failures_total{reason}`;
-- `validator_publisher_pair_sources{pair}`: allowed sources that answered in the last poll.
+- `validator_publisher_pair_sources{pair}`: sources that answered in the last poll, among those the read path counts for the pair.
 
 Each release ships an `alerts.rules.yml` with the production pusher alerts.
 
@@ -220,7 +221,7 @@ The comparator reads every validator entry from the pilot Oracle and, once per s
 
 Every series applies the read path rules of §5.5. For each pair and interval it computes:
 
-- **Operator-based**: one vote per active operator. The median of each operator's own source median, with a minimum operator quorum. An operator votes in an interval only with four fresh markets of its own.
+- **Operator-based**: one vote per active operator. The median of each operator's own source median, with a minimum operator quorum. An operator votes in an interval only with four fresh markets of its own, among the markets counted by §5.5.
 - **Stake-weighted**: a weighted median using protocol staking power, `w = 0.75 * strk_i / STRK + 0.25 * btc_i / BTC`. BTC token decimals are normalized; SolvBTC uses 18 decimals.
 - **Capped stake-weighted**: the same, with each operator capped (5% proposed). Today 3 operators hold more than a third of staking power and 4 hold more than half, so an uncapped stake-weighted median is effectively set by about 4 entities.
 
@@ -258,6 +259,7 @@ Threats covered:
 - **Exiting or deleted stakers**: auto-revoked.
 - **Sybil**: minimum self-stake, plus operator manifest review for the operator-based series.
 - **Feedback loops**: no fetcher reads any Pragma on-chain median (enforced by test).
+- **Operator-declared source labels**: an operator could publish one price under several source names to make up markets, or fill the allowed names no honest operator uses on a pair. The read path counts only the sources that quote each pair, and a market only when a strict majority of operators publish it, with at least 3 operators (§5.5). The raw median of the pilot Oracle stays open to this, so no consumer reads it: the read path is the only valid reading. An attacker holding a majority of operator identities is bounded by the minimum self-stake, the operator manifest review and the capped stake-weighted series (§7).
 - **Supply chain**: signed images, pinned digests, SBOM.
 
 An independent security review of the contracts and the client must be completed, with critical and high findings resolved, before mainnet use (December 2026).
