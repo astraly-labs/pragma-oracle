@@ -1869,3 +1869,43 @@ fn test_get_conversion_rate_price_as_feed() {
         'TBTC computation failed'
     );
 }
+
+#[test]
+#[available_gas(2000000000)]
+fn test_checkpoint_min_interval_defaults_to_two_seconds() {
+    let (publisher_registry, oracle) = setup();
+    assert(oracle.get_checkpoint_min_interval() == 2, 'wrong default interval');
+}
+
+#[test]
+#[available_gas(2000000000)]
+fn test_set_checkpoint_respects_min_interval() {
+    let (publisher_registry, oracle) = setup();
+    oracle.set_checkpoint_min_interval(300);
+    assert(oracle.get_checkpoint_min_interval() == 300, 'interval not set');
+
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+    let (idx_0, _) = oracle
+        .get_latest_checkpoint_index(DataType::SpotEntry(2), AggregationMode::Median(()));
+
+    set_block_timestamp(BLOCK_TIMESTAMP + 299);
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+    let (idx_1, _) = oracle
+        .get_latest_checkpoint_index(DataType::SpotEntry(2), AggregationMode::Median(()));
+    assert(idx_1 == idx_0, 'checkpoint added too early');
+
+    set_block_timestamp(BLOCK_TIMESTAMP + 300);
+    oracle.set_checkpoint(DataType::SpotEntry(2), AggregationMode::Median(()));
+    let (idx_2, _) = oracle
+        .get_latest_checkpoint_index(DataType::SpotEntry(2), AggregationMode::Median(()));
+    assert(idx_2 == idx_0 + 1, 'checkpoint not added');
+}
+
+#[test]
+#[available_gas(2000000000)]
+#[should_panic(expected: ('Admin: unauthorized', 'ENTRYPOINT_FAILED'))]
+fn test_set_checkpoint_min_interval_should_fail_if_not_admin() {
+    let (publisher_registry, oracle) = setup();
+    set_contract_address(contract_address_const::<0x12>());
+    oracle.set_checkpoint_min_interval(300);
+}
